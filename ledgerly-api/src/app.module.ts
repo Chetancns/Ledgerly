@@ -1,0 +1,54 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
+import { User } from './users/user.entity';
+import { Account } from './accounts/account.entity';
+import { Category } from './categories/category.entity';
+import { Transaction } from './transactions/transaction.entity';
+import { Budget } from './budgets/budget.entity';
+import { RecurringTransaction } from './recurring/recurring.entity';
+import { AuthModule } from './auth/auth.module';
+import { UserModule } from './users/user.module';
+ import { AccountModule } from './accounts/account.module';
+ import { CategoryModule } from './categories/category.module';
+import { TransactionsModule } from './transactions/transaction.module';
+// import { BudgetsModule } from './budgets/budgets.module';
+// import { RecurringModule } from './recurring/recurring.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ ttl: 60, limit: 100 }]),
+    ScheduleModule.forRoot(),
+    TypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: 'postgres',
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT),
+        username: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME,
+        entities: [
+          User,
+          Account,
+          Category,
+          Transaction,
+          Budget,
+          RecurringTransaction,
+        ],
+        synchronize: false, // true for dev only; use migrations instead
+        ssl: process.env.DB_SSL === 'true',
+      }),
+    }),
+    AuthModule,
+     UserModule,
+     AccountModule,
+     CategoryModule,
+     TransactionsModule,
+    // BudgetsModule,
+    // RecurringModule,
+  ],
+})
+export class AppModule {}
