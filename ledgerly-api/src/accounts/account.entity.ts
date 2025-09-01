@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
-export type AccountType = 'bank' | 'cash' | 'credit_card' | 'wallet';
+export type AccountType = 'bank' | 'cash' | 'credit_card' | 'wallet' | 'savings';
 
 @Entity('dbo.accounts')
 export class Account {

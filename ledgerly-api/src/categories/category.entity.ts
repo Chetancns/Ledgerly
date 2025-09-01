@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
-export type CategoryType = 'expense' | 'income';
+export type CategoryType = 'expense' | 'income' | 'savings' ;
 
 @Entity('dbo.categories')
 export class Category {

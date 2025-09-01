@@ -24,7 +24,7 @@ export class AccountController {
     console.log(id);
     return this.accountService.findOne(id);
   }
-
+  
   @Post()
   create(@GetUser() user: { userId: string, email: string, name: string },@Body() account: CreateAccountDto): Promise<Account> {
     return this.accountService.create(user.userId,account);

@@ -10,7 +10,7 @@ import { User } from '../users/user.entity';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
 
-export type TxType = 'expense' | 'income';
+export type TxType = 'expense' | 'income' | 'savings';
 
 @Entity('dbo.transactions')
 export class Transaction {

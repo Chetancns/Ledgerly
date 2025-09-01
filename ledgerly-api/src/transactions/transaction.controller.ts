@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards } from '@nestjs/common';
 import { TransactionsService } from './transaction.service';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { CreateTransactionDto ,TransferDto} from './dto/create-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUser } from '../common/decorators/user.decorator'
 
@@ -11,6 +11,39 @@ export class TransactionsController {
     console.log("T is called")
   }
 
+  
+  @Post('/transfers')
+  async transfer(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: TransferDto) {
+    console.log('Transfer called:', dto);
+
+    const now = new Date().toISOString();
+
+    const debit = await this.service.create({
+      userId: user.userId,
+      accountId: dto.from,
+      categoryId: dto.cat,
+      type: 'expense',
+      amount: dto.amount,
+      description: `Amount debited for ${dto.type}`,
+      transactionDate: now,
+    });
+
+    const credit = await this.service.create({
+      userId: user.userId,
+      accountId: dto.to,
+      categoryId: dto.cat,
+      type: 'income',
+      amount: dto.amount,
+      description: `Amount credited with ₹${dto.amount} for ${dto.type}`,
+      transactionDate: now,
+    });
+
+    return {
+      message: 'Transfer successful',
+      debit,
+      credit,
+    };
+  }
   @Post()
   create(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: Partial<CreateTransactionDto>) {
     console.log("Createis called ",user.userId,dto)
