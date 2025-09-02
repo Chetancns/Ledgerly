@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { parseTransaction } from "../services/ai";
+//import { useState } from "react";
+//import { parseTransaction } from "../services/ai";
 
 export default function AiInput() {//{ onCreated }: { onCreated: () => void }
 //   const [input, setInput] = useState("");

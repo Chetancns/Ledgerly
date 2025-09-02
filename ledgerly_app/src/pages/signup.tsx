@@ -1,5 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import router from "next/router";
+import Link from "next/link";
 
 export default function Signup() {
   const { doSignup } = useAuth();
@@ -9,7 +11,14 @@ export default function Signup() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await doSignup(email, password, name);
+    const success = await doSignup(email, password, name);
+    if (success) {
+          console.log("redirect called");
+    router.push('/'); // redirects to index page
+  } else {
+    // optionally show error message
+    console.error("Login failed");
+  }
   };
 
 return (
@@ -58,7 +67,7 @@ return (
           </button>
         </form>
         <p className="text-white/80 mt-6 text-sm text-center">
-          Already have an account? <a href="/login" className="underline text-yellow-300 hover:text-yellow-400">Log in</a>
+          Already have an account? <Link href="/login" className="underline text-yellow-300 hover:text-yellow-400">Log in</Link>
         </p>
       </div>
     </div>

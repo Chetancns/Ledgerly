@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useRouter } from 'next/router';
-
+import Link from 'next/link';
 
 export default function Login() {
     
@@ -64,7 +64,7 @@ export default function Login() {
           </button>
         </form>
         <p className="text-white/80 mt-6 text-sm text-center">
-          New to Ledgerly? <a href="/signup" className="underline text-yellow-300 hover:text-yellow-400">Create an account</a>
+          New to Ledgerly? <Link href="/signup" className="underline text-yellow-300 hover:text-yellow-400">Create an account</Link>
         </p>
       </div>
     </div>

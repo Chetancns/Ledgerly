@@ -6,7 +6,7 @@ export class CreateAccountDto {
   name: string;
 
   @IsString()
-  @IsIn(['bank','cash','credit_card','wallet']) // Ensures the value is exactly 'bank'
+  @IsIn(['bank','cash','credit_card','wallet','savings']) // Ensures the value is exactly 'bank'
   type: AccountType;
 
   @IsString()

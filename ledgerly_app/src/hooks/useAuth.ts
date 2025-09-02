@@ -18,11 +18,12 @@ export const useAuth = () => {
 
   const doLogin = async (email: string, password: string) => {
       try {
-          //console.log("api called ", email, password);
+          //alert("api called ", email, password);
           const res = await login(email, password);
           //console.log("api called end ", res);
       const userData = res.data.user;
         setUser(userData);
+        //alert("sahfoie");
         localStorage.setItem("accessToken", res.data.accessToken);
           localStorage.setItem("user", JSON.stringify(userData));
           //console.log(localStorage.getItem("accessToken"));
@@ -37,7 +38,9 @@ export const useAuth = () => {
 
   const doSignup = async (email: string, password: string, name: string) => {
     try {
+      console.log(email,password,name);
       const res = await signup(email, password, name);
+      alert("sahfoie");
       const userData = res.data.user;
         setUser(userData);
         localStorage.setItem("accessToken", res.data.accessToken);

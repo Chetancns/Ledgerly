@@ -8,42 +8,40 @@ import { GetUser } from '../common/decorators/user.decorator'
 @Controller('transactions')
 export class TransactionsController {
   constructor(private readonly service: TransactionsService) {
-    console.log("T is called")
   }
 
   
-  @Post('/transfers')
-  async transfer(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: TransferDto) {
-    console.log('Transfer called:', dto);
+@Post('/transfers')
+async transfer(
+  @GetUser() user: { userId: string },
+  @Body() dto: TransferDto
+) {
+  const now = new Date().toISOString();
 
-    const now = new Date().toISOString();
+  // Debit bank account
+  const debit = await this.service.create({
+    userId: user.userId,
+    accountId: dto.from,
+    categoryId: dto.cat,
+    type: 'expense',
+    amount: dto.amount,
+    description: `Amount debited for ${dto.amount}`,
+    transactionDate: now,
+  });
 
-    const debit = await this.service.create({
-      userId: user.userId,
-      accountId: dto.from,
-      categoryId: dto.cat,
-      type: 'expense',
-      amount: dto.amount,
-      description: `Amount debited for ${dto.type}`,
-      transactionDate: now,
-    });
+  // Credit credit card account
+  const credit = await this.service.create({
+    userId: user.userId,
+    accountId: dto.to,
+    categoryId: dto.cat,
+    type: 'income',
+    amount: dto.amount,
+    description: `Amount credited with ${dto.amount}`,
+    transactionDate: now,
+  });
 
-    const credit = await this.service.create({
-      userId: user.userId,
-      accountId: dto.to,
-      categoryId: dto.cat,
-      type: 'income',
-      amount: dto.amount,
-      description: `Amount credited with ₹${dto.amount} for ${dto.type}`,
-      transactionDate: now,
-    });
-
-    return {
-      message: 'Transfer successful',
-      debit,
-      credit,
-    };
-  }
+  return { message: 'Transfer successful', debit, credit };
+}
   @Post()
   create(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: Partial<CreateTransactionDto>) {
     console.log("Createis called ",user.userId,dto)
@@ -65,6 +63,7 @@ export class TransactionsController {
 
   @Delete(':id')
   remove(@GetUser() user: { userId: string, email: string, name: string }, @Param('id') id: string) {
+    console.log("delete",id,user);
     return this.service.delete(user.userId, id);
   }
 }

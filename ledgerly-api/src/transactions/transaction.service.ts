@@ -45,10 +45,12 @@ export class TransactionsService {
 
   async delete(userId: string, id: string) {
     const tx = await this.txRepo.findOne({ where: { id, userId } });
+    console.log(tx);
     if (!tx) throw new NotFoundException('Transaction not found');
 
     // Reverse balance impact if an account is attached
     if (tx.accountId) {
+      console.log("delete account called");
       const acc = await this.accRepo.findOne({ where: { id: tx.accountId, userId } });
       if (acc) {
         const sign = tx.type === 'income' ? -1 : 1;

@@ -17,14 +17,14 @@ import { ChartDataPoint,CategorySpending } from "@/models/chat";
 const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9D4EDD"];
 
 export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
-  console.log(data);
   return (
     <ResponsiveContainer width="100%" height={250}>
       <LineChart data={data}>
-        <XAxis dataKey="date" />
-        <YAxis />
+        <XAxis dataKey="date" stroke="black"/>
+        <YAxis stroke="black" />
         <Tooltip />
-        <Line type="monotone" dataKey="amount" stroke="#0f1cccff" strokeWidth={2} />
+        <Line type="monotone" dataKey="income" stroke="#4D96FF" strokeWidth={2} />
+        <Line type="monotone" dataKey="expense" stroke="#FF6B6B" strokeWidth={2} />
       </LineChart>
     </ResponsiveContainer>
   );
