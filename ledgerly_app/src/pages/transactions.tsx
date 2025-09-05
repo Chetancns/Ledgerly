@@ -15,7 +15,16 @@ export default function Transactions() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+const formatDateForUI = (dateString: string) => {  
+  if (!dateString) return "";
+  const [year, month, day] = dateString.split("-");
+  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(
+    "en-US",
+    { year: "numeric", month: "short", day: "numeric" }
+  );
+};
 
+  
   const tLabels: Record<TransactionType, string> = {
     income: 'Income',
     expense: 'Expense',
@@ -70,11 +79,9 @@ export default function Transactions() {
                     }`}
                   >
                     <div>
-                      <p className="font-semibold text-gray-800">₹{t.amount}</p>
+                      <p className="font-semibold text-gray-800"> {t.amount}</p>
                       <span className="text-xs text-gray-500">
-                        {new Date(t.transactionDate).toLocaleString('en-US', {
-                          year: 'numeric', month: 'short', day: 'numeric'
-                        })}
+                        {formatDateForUI(t.transactionDate)}
                       </span>
                       <span className="text-xs text-gray-700 ml-2">
                         {account ? `${account.name} (${account.type})` : "Unknown Account"}

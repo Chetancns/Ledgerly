@@ -30,4 +30,5 @@ export class TransferDto {
   @IsString()
   @IsOptional()
   type?: 'transfer'; // Optional, but still validated if present
+  @IsOptional() @IsDateString() date: string;
 }

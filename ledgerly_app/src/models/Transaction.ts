@@ -7,5 +7,5 @@ export interface Transaction {
     amount: string;
     type?: TransactionType;
     description?: string;
-    transactionDate: Date;
+    transactionDate: string;
 }

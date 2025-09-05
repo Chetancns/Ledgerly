@@ -14,7 +14,7 @@ export default function TransactionForm({ onCreated }: { onCreated: () => void }
     categoryId: "",
     amount: "",
     description: "",
-    transactionDate: new Date(),
+    transactionDate: new Date().toISOString().split("T")[0],
   });
 
   const [isCreditCardPayment, setIsCreditCardPayment] = useState(false);
@@ -37,10 +37,14 @@ export default function TransactionForm({ onCreated }: { onCreated: () => void }
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: name === "transactionDate" ? new Date(value) : value,
+      [name]:  value,
     }));
   };
-
+const toISOStringWithoutOffset = (dateString: string) => {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.toISOString();
+};
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -55,17 +59,18 @@ export default function TransactionForm({ onCreated }: { onCreated: () => void }
           alert("Please select a source account to pay the credit card.");
           return;
         }
-
+        console.log(form.transactionDate);
         // Call your transfer API
         await transfer({
           from: payFromAccountId,
           to: form.accountId, // credit card account
           cat: form.categoryId,
           amount: form.amount,
+          date: form.transactionDate
         });
       } else {
         // Normal expense or income
-        await createTransaction(form);
+        await createTransaction({...form,transactionDate:toISOStringWithoutOffset(form.transactionDate),});
       }
 
       setSuccessMessage("✅ Transaction added successfully!");
@@ -77,7 +82,7 @@ export default function TransactionForm({ onCreated }: { onCreated: () => void }
         categoryId: "",
         amount: "",
         description: "",
-        transactionDate: new Date(),
+        transactionDate: new Date().toISOString().split("T")[0],
       });
       setIsCreditCardPayment(false);
       setPayFromAccountId("");
@@ -94,13 +99,13 @@ export default function TransactionForm({ onCreated }: { onCreated: () => void }
       <h2 className="text-2xl font-semibold text-white mb-6">Add Transaction</h2>
 
       {successMessage && (
-        <div className="mb-4 text-green-300 font-medium bg-green-900/30 p-3 rounded-lg border border-green-500/40">
+        <div className="fixed top-4 right-4 mb-4 text-green-300 font-medium bg-green-900/30 p-3 rounded-lg border border-green-500/40">
           {successMessage}
         </div>
       )}
 
       {errorMessage && (
-        <div className="mb-4 text-green-300 font-medium bg-green-900/30 p-3 rounded-lg border border-green-500/40">
+        <div className="fixed top-4 right-4 mb-4 text-green-300 font-medium bg-green-900/30 p-3 rounded-lg border border-green-500/40">
           {errorMessage}
         </div>
       )}
@@ -149,7 +154,7 @@ export default function TransactionForm({ onCreated }: { onCreated: () => void }
         <input
           type="date"
           name="transactionDate"
-          value={form.transactionDate.toISOString().split("T")[0]}
+          value={form.transactionDate}
           onChange={handleChange}
           className="w-full px-4 py-3 rounded-lg bg-white/20 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition md:col-span-2"
         />

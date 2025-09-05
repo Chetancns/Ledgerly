@@ -26,7 +26,7 @@ export class TransactionsService {
     if (dto.accountId) {
       account = await this.accRepo.findOne({ where: { id: dto.accountId, userId: dto.userId } });
       if (!account) throw new NotFoundException('Account not found');
-      const sign = dto.type === 'income' ? 1 : -1;
+      const sign = dto.type === 'income' || dto.type === 'savings' ? 1 : -1;
       const newBal = (Number(account.balance) + sign * Number(dto.amount)).toFixed(2);
       await this.accRepo.update(account.id, { balance: newBal });
     }

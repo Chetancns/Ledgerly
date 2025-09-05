@@ -8,21 +8,34 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [error, setError] = useState<string | null>(null);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    try{
     const success = await doSignup(email, password, name);
     if (success) {
           console.log("redirect called");
     router.push('/'); // redirects to index page
-  } else {
-    // optionally show error message
-    console.error("Login failed");
-  }
+  }  else {
+    showError();
+  }}catch (err: unknown) {
+    showError();
+    }
   };
+
+    const showError = () =>{
+    console.error("Sign up Failed");
+    setError("Account creation failed. If the issue persists, contact support.");
+    setTimeout(() => setError(null), 5000);
+    }
 
 return (
   <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 flex items-center justify-center px-4">
+    {error && (
+  <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in-out z-50">
+    {error}
+  </div>
+)}
     <div className="grid grid-cols-1 md:grid-cols-2 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl border border-white/20">
       
       {/* Left Panel: Branding */}

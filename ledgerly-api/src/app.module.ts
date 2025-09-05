@@ -14,7 +14,7 @@ import { UserModule } from './users/user.module';
  import { AccountModule } from './accounts/account.module';
  import { CategoryModule } from './categories/category.module';
 import { TransactionsModule } from './transactions/transaction.module';
-// import { BudgetsModule } from './budgets/budgets.module';
+import { BudgetModule } from './budgets/budget.module';
 // import { RecurringModule } from './recurring/recurring.module';
 
 @Module({
@@ -47,7 +47,7 @@ import { TransactionsModule } from './transactions/transaction.module';
      AccountModule,
      CategoryModule,
      TransactionsModule,
-    // BudgetsModule,
+     BudgetModule,
     // RecurringModule,
   ],
 })

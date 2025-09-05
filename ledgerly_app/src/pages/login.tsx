@@ -7,26 +7,40 @@ export default function Login() {
     
   const { doLogin } = useAuth();
   const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const router = useRouter();
-
+  const [password, setPassword] = useState("");
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       //console.log(email,password);
+    try{  
     const success = await doLogin(email, password); // assuming this returns true/false
 
       if (success) {
           console.log("redirect called");
     router.push('/'); // redirects to index page
   } else {
-    // optionally show error message
-    console.error("Login failed");
-  }
+    showError();
+  }}catch (err: unknown) {
+    showError();
+    }
 
   };
+  const showError = () =>{
+    console.error("Login failed");
+    setError("Login unsuccessful. Double-check your email and password.");
+    setTimeout(() => setError(null), 5000);
+  }
 
   return (
+    
   <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 flex items-center justify-center px-4">
+    {error && (
+  <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in-out z-50">
+    {error}
+  </div>
+)}
+
     <div className="grid grid-cols-1 md:grid-cols-2 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl border border-white/20">
       
       {/* Left Panel: Branding */}

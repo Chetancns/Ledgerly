@@ -33,6 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <Link href="/transactions">Transactions</Link>
         <Link href="/accounts">Accounts</Link>
         <Link href="/categories">Categories</Link>
+        <Link href="/budgets">Budget</Link>
         <span className="ml-auto font-semibold">{user.name || "Guest"}</span>
         <button onClick={logout} className="ml-4 bg-red-600 hover:bg-red-700 px-3 py-1 rounded">
   Logout

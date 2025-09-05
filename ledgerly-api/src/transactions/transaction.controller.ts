@@ -26,7 +26,7 @@ async transfer(
     type: 'expense',
     amount: dto.amount,
     description: `Amount debited for ${dto.amount}`,
-    transactionDate: now,
+    transactionDate: dto.date,
   });
 
   // Credit credit card account
@@ -37,7 +37,7 @@ async transfer(
     type: 'income',
     amount: dto.amount,
     description: `Amount credited with ${dto.amount}`,
-    transactionDate: now,
+    transactionDate: dto.date,
   });
 
   return { message: 'Transfer successful', debit, credit };

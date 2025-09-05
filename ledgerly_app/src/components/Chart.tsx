@@ -20,11 +20,11 @@ export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={250}>
       <LineChart data={data}>
-        <XAxis dataKey="date" stroke="black"/>
+        <XAxis dataKey="date" stroke="black" tick={{fontSize:10 }}/>
         <YAxis stroke="black" />
         <Tooltip />
-        <Line type="monotone" dataKey="income" stroke="#4D96FF" strokeWidth={2} />
-        <Line type="monotone" dataKey="expense" stroke="#FF6B6B" strokeWidth={2} />
+        <Line type="monotone" dataKey="income" stroke="#69a7fdff" strokeWidth={2} />
+        <Line type="monotone" dataKey="expense" stroke="#6bffaeff" strokeWidth={2} />
       </LineChart>
     </ResponsiveContainer>
   );

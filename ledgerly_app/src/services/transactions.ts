@@ -9,4 +9,5 @@ export const transfer = (par:{
         to: string, 
         cat: string,
         amount: string,
+        date:string
       }) => api.post("/transactions/transfers",par);
