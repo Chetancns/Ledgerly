@@ -130,7 +130,7 @@ async deletebugets(id:string){
 }
 async allUtilizations(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly' | 'yearly', date: string) {
   const dayjsDate = dayjs(date);
-  console.log(dayjsDate);
+  //console.log(dayjsDate);
   if (!dayjsDate.isValid()) {
     throw new Error(`Invalid date: ${date}`);
   }
@@ -146,8 +146,8 @@ async allUtilizations(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly'
     to = from.add(14, 'day');
   }
 
-  const budgets = await this.budRepo.find({ where: { userId, period } });
-  console.log(budgets);
+  const budgets = await this.budRepo.find({ where: { userId, period,startDate:from.format('YYYY-MM-DD'),endDate:to.format('YYYY-MM-DD') } });
+  //console.log(budgets);
   const results :BudgetCategory[] = [];
   for (const b of budgets) {
     const where: any = {

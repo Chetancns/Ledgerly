@@ -35,22 +35,24 @@ export class TransactionsService {
     return this.txRepo.save(tx);
   }
 
-  async findByUser(userId: string, filters?: { from?: string; to?: string; categoryId?: string; type?: 'expense'|'income' }) {
+  async findByUser(userId: string, filters?: { from?: string; to?: string; categoryId?: string; accountId?:string;type?: 'expense'|'income' | 'savings' }) {
     const where:  Partial<Record<keyof Transaction, any>> = { userId };
     if (filters?.from && filters?.to) where.transactionDate = Between(filters.from, filters.to);
     if (filters?.categoryId) where.categoryId = filters.categoryId;
+    if (filters?.accountId) where.accountId = filters.accountId;
     if (filters?.type) where.type = filters.type;
+    //console.log(where);
     return this.txRepo.find({ where, order: { transactionDate: 'DESC', createdAt: 'DESC' } });
   }
 
   async delete(userId: string, id: string) {
     const tx = await this.txRepo.findOne({ where: { id, userId } });
-    console.log(tx);
+    //console.log(tx);
     if (!tx) throw new NotFoundException('Transaction not found');
 
     // Reverse balance impact if an account is attached
     if (tx.accountId) {
-      console.log("delete account called");
+      //console.log("delete account called");
       const acc = await this.accRepo.findOne({ where: { id: tx.accountId, userId } });
       if (acc) {
         const sign = tx.type === 'income' ? -1 : 1;

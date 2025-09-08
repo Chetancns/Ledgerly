@@ -77,8 +77,7 @@ export default function Dashboard() {
     if ((t.type === "income" || t.type === "savings") && account?.type !== "credit_card") {
       dailyTotals[date].income += parseFloat(t.amount);
     } else if (t.type === "expense") {
-      if (account?.type === "credit_card") dailyTotals[date].creditCardExpense += parseFloat(t.amount);
-      else dailyTotals[date].expense += parseFloat(t.amount);
+       dailyTotals[date].expense += parseFloat(t.amount);
     }
   });
 
@@ -102,7 +101,7 @@ export default function Dashboard() {
       const account = accounts.find(a => a.id === t.accountId);
       const category = categories.find(c => c.id === t.categoryId);
       const catName = category?.name || "Unknown";
-      const key = account?.type === "credit_card" ? `${catName} (Card)` : catName;
+      const key =catName //account?.type === "credit_card" ? `${catName} (Card)` : catName;
       categoryMap[key] = (categoryMap[key] || 0) + parseFloat(t.amount);
     }
   });
@@ -114,79 +113,206 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white p-6">
-        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-6">📊 Dashboard</h1>
 
         {/* --- Balances --- */}
-        <div className="bg-white/10 rounded-2xl shadow-lg p-6 mb-6">
-          <h2 className="text-lg font-medium">Total Balance</h2>
-          <p className="text-2xl font-bold mt-2">${totalBalance.toFixed(2)}</p>
+        <div
+        className="rounded-2xl p-6 mb-6"
+        style={{
+          backdropFilter: "blur(12px)",
+          background: "rgba(255, 255, 255, 0.08)",
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+        }}
+      >
+        <h2 className="text-lg font-semibold">💰 Total Balance</h2>
+        <p className="text-2xl font-bold mt-2">₹{totalBalance.toFixed(2)}</p>
 
-          <div className="mt-4 grid md:grid-cols-2 gap-4">
-            {accounts.map(acc => (
-              <div key={acc.id} className="bg-white/10 rounded-xl p-4 flex justify-between">
-                <span>{acc.name} ({acc.type})</span>
-                <span className="font-semibold">${parseFloat(acc.balance || "0").toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
+        <div className="mt-4 grid md:grid-cols-2 gap-4">
+          {accounts.map((acc) => (
+            <div
+              key={acc.id}
+              className="rounded-xl p-4 flex justify-between"
+              style={{
+                background: "rgba(255, 255, 255, 0.06)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <span>
+                {acc.name} ({acc.type})
+              </span>
+              <span className="font-semibold">
+                ₹{parseFloat(acc.balance || "0").toFixed(2)}
+              </span>
+            </div>
+          ))}
         </div>
+      </div>
+
 
         {/* --- Filters --- */}
         <div className="flex flex-wrap gap-4 mb-6">
-          <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="text-black rounded-lg px-3 py-2">
-            {months.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
-          </select>
-          <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="text-black rounded-lg px-3 py-2">
-            {Array.from({ length: 5 }).map((_, i) => {
-              const year = today.getFullYear() - 2 + i;
-              return <option key={year} value={year}>{year}</option>;
-            })}
-          </select>
-          <select value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} className="text-black rounded-lg px-3 py-2">
-            <option value="all">All</option>
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+        <div className="flex flex-col">
+          <label className="text-sm font-medium mb-1">Month</label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="text-black rounded-lg px-3 py-2"
+          >
+            {months.map((m, i) => (
+              <option key={i} value={i + 1}>
+                {m}
+              </option>
+            ))}
           </select>
         </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium mb-1">Year</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="text-black rounded-lg px-3 py-2"
+          >
+            {Array.from({ length: 5 }).map((_, i) => {
+              const year = today.getFullYear() - 2 + i;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium mb-1">Account</label>
+          <select
+            value={selectedAccount}
+            onChange={(e) => setSelectedAccount(e.target.value)}
+            className="text-black rounded-lg px-3 py-2"
+          >
+            <option value="all">All</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
 
         {/* --- Charts --- */}
         <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-white/10 rounded-2xl shadow-lg p-4">
-            <h2 className="text-lg font-medium mb-2">Category Spending</h2>
-            <PieSpendingChart data={pieData} />
-          </div>
-          <div className="bg-white/10 rounded-2xl shadow-lg p-4">
-            <h2 className="text-lg font-medium mb-2">Monthly Trends</h2>
-            <LineTrendChart data={lineData} />
-          </div>
+          <div
+      style={{
+        backdropFilter: "blur(12px)",
+        background: "rgba(255, 255, 255, 0.08)",
+        borderRadius: "16px",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+        padding: "1rem",
+        color: "#fff",
+        fontFamily: "Inter, sans-serif",
+        transition: "box-shadow 0.3s ease",
+      }}
+    >
+      <div
+        style={{
+          marginBottom: "0.5rem",
+          fontSize: "1.2rem",
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+        }}
+      >
+        🍕 Spending Breakdown
+      </div>
+      {pieData.length === 0 ?(
+        <p className="text-gray-300">No Transaction found for this period</p>
+      ):( <PieSpendingChart data={pieData} />)}
+     
+    </div>
+
+          <div
+      style={{
+        backdropFilter: "blur(12px)",
+        background: "rgba(255, 255, 255, 0.08)",
+        borderRadius: "16px",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+        padding: "1rem",
+        color: "#fff",
+        fontFamily: "Inter, sans-serif",
+        transition: "box-shadow 0.3s ease",
+      }}
+    >
+      <div
+        style={{
+          marginBottom: "0.5rem",
+          fontSize: "1.2rem",
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+        }}
+      >
+        📊 Daily Flow
+      </div>
+      {lineData.length === 0 ?(
+        <p className="text-gray-300">No Transaction found for this period</p>
+      ):(
+      <LineTrendChart data={lineData} />)}
+    </div>
+
+
         </div>
 
         {/* --- Budget Utilization --- */}
-        <div className="bg-white/10 rounded-2xl shadow-lg p-6 mt-6">
-          <h2 className="text-lg font-medium mb-4">Budget Utilization</h2>
-          {budgetUtilizations.length === 0 ? (
-            <p className="text-gray-300">No budgets found for this period</p>
-          ) : (
-            <ul className="space-y-4">
-              {budgetUtilizations.map(b => {
-                const category = categories.find(c => c.id === b.categoryId);
-                return (
-                  <li key={b.budgetId}>
-                    <div className="flex justify-between mb-1">
-                      <span>{category?.name || "Unknown"}</span>
-                      <span>{b.spent}/{b.amount} ({b.percent}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-3">
-                      <div
-                        className={`h-3 rounded-full ${b.percent > 100 ? "bg-red-500" : "bg-green-400"}`}
-                        style={{ width: `${Math.min(b.percent, 100)}%` }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        <div
+      className="rounded-2xl p-6 mt-6 text-white"
+      style={{
+        backdropFilter: "blur(12px)",
+        background: "rgba(255, 255, 255, 0.08)",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+      }}
+    >
+      <h2 className="text-lg font-semibold mb-4">📦 Budget Utilization</h2>
+
+      {budgetUtilizations.length === 0 ? (
+        <p className="text-gray-300">No budgets found for this period</p>
+      ) : (
+        <ul className="space-y-4">
+          {budgetUtilizations.map((b) => {
+            const category = categories.find((c) => c.id === b.categoryId);
+            const isOverBudget = b.percent > 100;
+            const barColor = isOverBudget ? "bg-red-500" : "bg-green-400";
+            const percentDisplay = Math.min(b.percent, 100);
+
+            return (
+              <li key={b.budgetId}>
+                <div className="flex justify-between mb-1 text-sm font-medium">
+                  <span>{category?.name || "Unknown"}</span>
+                  <span>
+                    {b.spent} / {b.amount} ({b.percent}%)
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-300 ease-in-out ${barColor}`}
+                    style={{ width: `${percentDisplay}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+
       </div>
     </Layout>
   );

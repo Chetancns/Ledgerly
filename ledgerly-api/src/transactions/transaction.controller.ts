@@ -55,15 +55,16 @@ async transfer(
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('categoryId') categoryId?: string,
-    @Query('type') type?: 'expense' | 'income',
+    @Query('accountId') accountId?:string,
+    @Query('type') type?: 'expense' | 'income' | 'savings',
   ) {
-    console.log(user);
-    return this.service.findByUser(user.userId, { from, to, categoryId, type });
+    //console.log(user,from,to,categoryId,accountId,type);
+    return this.service.findByUser(user.userId, { from, to, categoryId,accountId, type });
   }
 
   @Delete(':id')
   remove(@GetUser() user: { userId: string, email: string, name: string }, @Param('id') id: string) {
-    console.log("delete",id,user);
+    //console.log("delete",id,user);
     return this.service.delete(user.userId, id);
   }
 }

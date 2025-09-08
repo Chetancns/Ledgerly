@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import TransactionForm from "../components/TransactionForm";
-import { getTransactions, onDelete } from "../services/transactions";
+import { getTransactions, onDelete ,getFilterTransactions} from "../services/transactions";
 import { Transaction, TransactionType } from "@/models/Transaction";
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
 import { Category } from "@/models/category";
 import { getUserCategory } from "@/services/category";
 import { TrashIcon } from '@heroicons/react/24/solid';
+import dayjs from "dayjs";
 
 
 export default function Transactions() {
@@ -15,6 +16,12 @@ export default function Transactions() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const today = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [selectedAccount, setSelectedAccount] = useState<string>("all");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 const formatDateForUI = (dateString: string) => {  
   if (!dateString) return "";
   const [year, month, day] = dateString.split("-");
@@ -46,16 +53,51 @@ const formatDateForUI = (dateString: string) => {
 
   const load = async () => {
     const [txRes, accRes, catRes] = await Promise.all([
-      getTransactions(),
+      fetchTransaction(),
       getUserAccount(),
       getUserCategory()
     ]);
-    setTransactions(txRes.data);
     setAccounts(accRes);
     setCategories(catRes);
   };
+const fetchTransaction = async () => {
+      try {
+        const date = `${selectedYear}-${selectedMonth}-01`;
+        const dayjsDate = dayjs(date);
+  //console.log(dayjsDate);
+  if (!dayjsDate.isValid()) {
+    throw new Error(`Invalid date: ${date}`);
+  }
+  // determine range
+  let from = dayjsDate.startOf('month');
+  let to = dayjsDate.endOf('month');
+        console.log("fetch got triggered")
+        if (selectedAccount === 'all'){
+          const [txRes] = await Promise.all([
+    getFilterTransactions({ from: from.format('YYYY-MM-DD'), to: to.format('YYYY-MM-DD') })
+  ]);
+  setTransactions(txRes.data);
 
+        }else{
+           const [txRes] = await Promise.all([
+    getFilterTransactions({
+      accountId: selectedAccount,
+      from: from.format('YYYY-MM-DD'),
+      to: to.format('YYYY-MM-DD')
+    })
+  ]);
+  setTransactions(txRes.data);
+
+        }
+      } catch (err) {
+        console.error("Error loading budget utilizations", err);
+      }
+    };
   useEffect(() => { load(); }, []);
+ useEffect(() => {
+    fetchTransaction();
+  }, [selectedMonth, selectedYear,selectedAccount]);
+
 
   return (
     <Layout>
@@ -66,6 +108,56 @@ const formatDateForUI = (dateString: string) => {
           <TransactionForm onCreated={load} />
 
           <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
+            <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex flex-col">
+          <label className="text-sm font-medium mb-1">Month</label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="text-black rounded-lg px-3 py-2"
+          >
+            {months.map((m, i) => (
+              <option key={i} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium mb-1">Year</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="text-black rounded-lg px-3 py-2"
+          >
+            {Array.from({ length: 5 }).map((_, i) => {
+              const year = today.getFullYear() - 2 + i;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium mb-1">Account</label>
+          <select
+            value={selectedAccount}
+            onChange={(e) => setSelectedAccount(e.target.value)}
+            className="text-black rounded-lg px-3 py-2"
+          >
+            <option value="all">All</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
             <ul className="flex flex-wrap gap-4 px-4">
               {transactions.map((t) => {
                 const account = accounts.find(a => a.id === t.accountId);

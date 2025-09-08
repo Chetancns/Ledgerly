@@ -1,3 +1,3 @@
 import api from "./api";
 export const parseTransaction = (input: string) =>
-  api.post("/ai/parse", { input });
+  api.post("/ai/parse-transaction", { text:input });
