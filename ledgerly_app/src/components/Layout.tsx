@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import Head from "next/head";
 
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -27,20 +28,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-indigo-800 text-white p-4 flex gap-4">
-        <Link href="/">Dashboard</Link>
-        <Link href="/transactions">Transactions</Link>
-        <Link href="/accounts">Accounts</Link>
-        <Link href="/categories">Categories</Link>
-        <Link href="/budgets">Budget</Link>
-        <span className="ml-auto font-semibold">{user.name || "Guest"}</span>
-        <button onClick={logout} className="ml-4 bg-red-600 hover:bg-red-700 px-3 py-1 rounded">
-  Logout
-</button>
 
-      </nav>
-      <main>{children}</main>
-    </div>
+      <><Head>
+      <title>💰 Ledgerly </title>
+    </Head><div className="min-h-screen bg-gray-50">
+        <nav className="bg-indigo-800 text-white p-4 flex items-center gap-4">
+           {/* Branded App Name */}
+          <span className="text-2xl font-extrabold tracking-wide text-white drop-shadow-sm">
+            💰 Ledgerly - Budget with Style  
+          </span>
+
+          <Link href="/" className="font-extrabold hover:underline" >Dashboard</Link>
+          <Link href="/transactions" className="font-extrabold hover:underline">Transactions</Link>
+          <Link href="/accounts" className="font-extrabold hover:underline">Accounts</Link>
+          <Link href="/categories" className="font-extrabold hover:underline">Categories</Link>
+          <Link href="/budgets"  className="font-extrabold hover:underline">Budget</Link>
+          <span className="ml-auto font-extrabold">{user.name || "Guest"}</span>
+          <button onClick={logout} className="ml-4 bg-red-600 font-extrabold hover:bg-red-800 px-3 py-1 rounded transition duration-200">
+            Logout
+          </button>
+
+        </nav>
+        <main>{children}</main>
+      </div></>
   );
 }

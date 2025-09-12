@@ -1,5 +1,5 @@
 import Layout from "../components/Layout";
-import { LineTrendChart, PieSpendingChart } from "@/components/Chart";
+import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent } from "@/components/Chart";
 import { Transaction } from "@/models/Transaction";
 import { Account } from "@/models/account";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
@@ -10,7 +10,7 @@ import { getUserCategory } from "@/services/category";
 import { getTransactions } from "@/services/transactions";
 import { ChartDataPoint, DailyTotals } from "@/models/chat";
 import { getBudgetUtilizations } from "@/services/budget"; // 🔹 new service
-
+import { getBudgetReports } from "@/services/reports";
 export default function Dashboard() {
   useAuthRedirect();
 
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgetUtilizations, setBudgetUtilizations] = useState<any[]>([]);
-
+  const [budgetReports, setBudgetReports] = useState<any>(null);
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
@@ -50,6 +50,23 @@ export default function Dashboard() {
     };
     fetchUtilizations();
   }, [selectedMonth, selectedYear]);
+
+  // 🔹 fetch budget vs actual reports
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        console.log("calling API");
+        const res = await getBudgetReports("monthly",selectedMonth, selectedYear, );
+        setBudgetReports(res.data);
+        console.log(res.data);
+      } catch (err) {
+        console.error("Error loading budget reports", err);
+      }
+
+    };
+    fetchReports();
+  }, [selectedMonth, selectedYear]);
+
 
   // --- Account balances ---
   const totalBalance = accounts.reduce(
@@ -157,7 +174,7 @@ export default function Dashboard() {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="text-black rounded-lg px-3 py-2"
+            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
           >
             {months.map((m, i) => (
               <option key={i} value={i + 1}>
@@ -172,7 +189,7 @@ export default function Dashboard() {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="text-black rounded-lg px-3 py-2"
+            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
           >
             {Array.from({ length: 5 }).map((_, i) => {
               const year = today.getFullYear() - 2 + i;
@@ -190,7 +207,7 @@ export default function Dashboard() {
           <select
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
-            className="text-black rounded-lg px-3 py-2"
+            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
           >
             <option value="all">All</option>
             {accounts.map((a) => (
@@ -312,8 +329,54 @@ export default function Dashboard() {
         </ul>
       )}
     </div>
+      {/* --- Budget vs Actual --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+  {/* Bar Chart */}
+    <div
+      className="rounded-2xl p-6 text-white"
+    style={{
+      backdropFilter: "blur(12px)",
+      background: "rgba(255, 255, 255, 0.08)",
+      border: "1px solid rgba(255, 255, 255, 0.2)",
+      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+    }}
+    >
+      <h2 className="text-lg font-semibold mb-4">📦 Budget by Category</h2>
+      {budgetReports?.categories ? (
+  <BarChartComponent data={budgetReports.categories} />
+) : (
+  <p className="text-gray-300">Loading budget data...</p>
+)}
 
-      </div>
+    </div>
+
+    {/* Pie Chart */}
+    <div
+      className="rounded-2xl p-6 text-white"
+    style={{
+      backdropFilter: "blur(12px)",
+      background: "rgba(255, 255, 255, 0.08)",
+      border: "1px solid rgba(255, 255, 255, 0.2)",
+      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+    }}
+    >
+      <h2 className="text-lg font-semibold mb-4">🧮 Total Budget Breakdown</h2>
+      {budgetReports?.totals ? (
+  <PieChartComponent
+    data={[
+      { name: "Actual", value: budgetReports.totals.totalActual, fill: "#69a7fd" },
+      { name: "Overspent", value: budgetReports.totals.overspentAmount, fill: "#ff6b6b" },
+      { name: "Unbudgeted", value: budgetReports.totals.unbudgeted, fill: "#ffc107" },
+    ]}
+  />
+) : (
+  <p className="text-gray-300">Loading totals...</p>
+)}
+
+    </div>
+  </div>
+
+  </div>
     </Layout>
   );
 }

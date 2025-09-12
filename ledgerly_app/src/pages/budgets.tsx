@@ -196,7 +196,7 @@ export default function Budgets() {
               const category = categories.find(c => c.id === b.categoryId);
               const isEditing = editingId === b.id;
               return (
-                <li key={b.id} className="bg-white w-[2s00px] p-4 rounded-lg shadow border border-gray-200 flex flex-col">
+                <li key={b.id} className="bg-white w-[200px] p-4 rounded-lg shadow border border-gray-200 flex flex-col">
                   {isEditing ? (
                     <>
                       <select

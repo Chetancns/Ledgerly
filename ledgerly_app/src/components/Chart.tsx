@@ -12,6 +12,9 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Legend,
+  Bar,
+  BarChart,
+  LabelList,
 } from "recharts";
 import { ChartDataPoint,CategorySpending } from "@/models/chat";
 
@@ -19,7 +22,8 @@ import { ChartDataPoint,CategorySpending } from "@/models/chat";
 const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9D4EDD"];
 
 export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
-  
+  const totalIncome = data.reduce((sum, point) => sum + (point.income || 0), 0);
+  const totalExpense = data.reduce((sum, point) => sum + (point.expense || 0), 0);  
   return (
     <ResponsiveContainer width="100%" height={250}>
       <LineChart data={data}>
@@ -55,7 +59,7 @@ export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
           stroke="url(#incomeGradient)"
           strokeWidth={2}
           dot={{ r: 2 }}
-          name="💰 Income"
+          name={`💰 Income: ${totalIncome.toFixed(2)}`}
         />
         <Line
           type="monotone"
@@ -63,7 +67,7 @@ export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
           stroke="url(#expenseGradient)"
           strokeWidth={2}
           dot={{ r: 2 }}
-          name="💸 Expense"
+          name={`💸 Expense: ${totalExpense.toFixed(2)}`}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -121,3 +125,105 @@ const dynamicColors = generateUniqueColors(data.length);
     </ResponsiveContainer>
   );
 }
+export function BarChartComponent({ data }: { data: any[] }) {
+  const chartData = data.map((c) => ({
+  name: c.categoryName,
+  Budget: c.budget > 0 ? c.budget : 0.1,
+  Actual: c.actual > 0 ? c.actual : 0.1,
+}));
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={chartData} barCategoryGap="20%">
+        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
+        <XAxis dataKey="name" stroke="#fff" tick={{ fontSize: 10 }} />
+        
+        {/* Logarithmic Y-axis */}
+        <YAxis scale="log" domain={["auto", "auto"]} stroke="#fff" allowDataOverflow />
+
+        <Tooltip
+          formatter={(value: number) => `₹${value.toFixed(2)}`}
+          contentStyle={{
+            backgroundColor: "#ffffff22",
+            border: "none",
+            borderRadius: "8px",
+            color: "#fff",
+            backdropFilter: "blur(6px)",
+          }}
+        />
+        <Legend verticalAlign="top" height={36} />
+
+        <Bar
+          dataKey="Budget"
+          fill="#69a7fd"
+          radius={[4, 4, 0, 0]}
+          animationDuration={800}
+        >
+          <LabelList
+  dataKey="Budget"
+  position="top"
+  formatter={(label: any) =>
+    label != null ? `${Number(label).toFixed(2)}` : ""
+  }
+  style={{ fill: "#fff", fontSize: 10 }}
+/>
+        </Bar>
+
+        <Bar
+          dataKey="Actual"
+          fill="#6bffae"
+          radius={[4, 4, 0, 0]}
+          animationDuration={800}
+        >
+          <LabelList
+  dataKey="Actual"
+  position="top"
+  formatter={(label: any) =>
+    label != null ? `${Number(label).toFixed(2)}` : ""
+  }
+  style={{ fill: "#fff", fontSize: 10 }}
+/>
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+export function PieChartComponent({ data }: { data: { name: string; value: number; fill: string }[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Tooltip
+          formatter={(value: number) => `₹${value.toFixed(2)}`}
+          contentStyle={{
+            backgroundColor: "#ffffff22",
+            border: "none",
+            borderRadius: "8px",
+            color: "#fff",
+            backdropFilter: "blur(6px)",
+          }}
+        />
+        <Legend verticalAlign="bottom" height={36} />
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={100}
+          innerRadius={60}
+          label={({ name, percent }) =>
+  percent != null ? `${name}: ${(percent * 100).toFixed(0)}%` : `${name}`
+}
+          isAnimationActive={true}
+          animationDuration={1000}
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.fill} />
+          ))}
+        </Pie>
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+

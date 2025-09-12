@@ -16,6 +16,7 @@ import { UserModule } from './users/user.module';
 import { TransactionsModule } from './transactions/transaction.module';
 import { BudgetModule } from './budgets/budget.module';
 // import { RecurringModule } from './recurring/recurring.module';
+import {ReportsModule} from './reports/reports.module'
 import { AIModule } from './AIChat/AIChat.module';
 
 @Module({
@@ -49,7 +50,8 @@ import { AIModule } from './AIChat/AIChat.module';
      CategoryModule,
      TransactionsModule,
      BudgetModule,
-     AIModule
+     AIModule,
+     ReportsModule
     // RecurringModule,
   ],
 })

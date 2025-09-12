@@ -110,11 +110,11 @@ const fetchTransaction = async () => {
           <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
             <div className="flex flex-wrap gap-4 mb-6">
         <div className="flex flex-col">
-          <label className="text-sm font-medium mb-1">Month</label>
+          <label className="text-sm font-medium text-white mb-1">Month</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="text-black rounded-lg px-3 py-2"
+            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
           >
             {months.map((m, i) => (
               <option key={i} value={i + 1}>
@@ -125,11 +125,11 @@ const fetchTransaction = async () => {
         </div>
 
         <div className="flex flex-col">
-          <label className="text-sm font-medium mb-1">Year</label>
+          <label className="text-sm font-medium text-white mb-1">Year</label>
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="text-black rounded-lg px-3 py-2"
+            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
           >
             {Array.from({ length: 5 }).map((_, i) => {
               const year = today.getFullYear() - 2 + i;
@@ -143,11 +143,11 @@ const fetchTransaction = async () => {
         </div>
 
         <div className="flex flex-col">
-          <label className="text-sm font-medium mb-1">Account</label>
+          <label className="text-sm font-medium text-white mb-1">Account</label>
           <select
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
-            className="text-black rounded-lg px-3 py-2"
+            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
           >
             <option value="all">All</option>
             {accounts.map((a) => (
@@ -166,7 +166,7 @@ const fetchTransaction = async () => {
                 return (
                   <li
                     key={t.id}
-                    className={`bg-white w-[300px] p-4 rounded-lg shadow border border-gray-200 flex flex-col justify-between transition-opacity duration-300 ${
+                    className={`bg-white/80 backdrop-blur-lg w-[300px] font-semibold p-4 rounded-lg shadow border border-gray-200 flex flex-col justify-between transition-opacity duration-300 ${
                       deletingId === t.id ? 'opacity-0' : 'opacity-100'
                     }`}
                   >

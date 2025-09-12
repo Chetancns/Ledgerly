@@ -108,7 +108,7 @@ const CallAIbackendAPI = async () => {
   }
 
   return (
-    <div className="bg-white/20 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full border border-white/30 p-8 md:p-12">
+    <div className="bg-white/1 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full border border-white/30 p-8 md:p-12">
       <h2 className="text-2xl font-semibold text-white mb-6">Add Transaction</h2>
 
       {successMessage && (
