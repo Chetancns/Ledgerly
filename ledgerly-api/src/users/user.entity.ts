@@ -13,6 +13,7 @@ import { Category } from '../categories/category.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Budget } from '../budgets/budget.entity';
 import { RecurringTransaction } from '../recurring/recurring.entity';
+import { Debt } from 'src/debts/debt.entity';
 
 @Entity('dbo.users')
 export class User {
@@ -35,6 +36,7 @@ export class User {
   @OneToMany(() => Category, (c) => c.user) categories: Category[];
   @OneToMany(() => Transaction, (t) => t.user) transactions: Transaction[];
   @OneToMany(() => Budget, (b) => b.user) budgets: Budget[];
+  @OneToMany(()=> Debt,(d)=>d.user) debts:Debt[];
   @OneToMany(() => RecurringTransaction, (r) => r.user)
   recurring: RecurringTransaction[];
 }

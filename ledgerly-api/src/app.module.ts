@@ -18,7 +18,9 @@ import { BudgetModule } from './budgets/budget.module';
 // import { RecurringModule } from './recurring/recurring.module';
 import {ReportsModule} from './reports/reports.module'
 import { AIModule } from './AIChat/AIChat.module';
-
+import { Debt } from './debts/debt.entity';
+import { DebtUpdate } from './debts/debt-update.entity';
+import { DebtModule } from './debts/debt.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -39,6 +41,8 @@ import { AIModule } from './AIChat/AIChat.module';
           Transaction,
           Budget,
           RecurringTransaction,
+          Debt,
+          DebtUpdate
         ],
         synchronize: false, // true for dev only; use migrations instead
         ssl: process.env.DB_SSL === 'true',
@@ -51,7 +55,8 @@ import { AIModule } from './AIChat/AIChat.module';
      TransactionsModule,
      BudgetModule,
      AIModule,
-     ReportsModule
+     ReportsModule,
+     DebtModule
     // RecurringModule,
   ],
 })

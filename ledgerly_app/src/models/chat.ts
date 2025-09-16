@@ -14,3 +14,17 @@ export interface CategorySpending {
 export interface DailyTotals {
   [date: string]: { income: number; expense: number; creditCardExpense: number; };
 }
+
+export interface CashflowRow  {
+        date: string;
+        income: number;
+        expense: number;
+        savings: number;
+        netChange: number;
+    }
+
+export interface CategoryRow  {
+  categoryId: string;
+  categoryName: string;
+  total: number;
+};

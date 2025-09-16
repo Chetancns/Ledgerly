@@ -16,14 +16,15 @@ import {
   BarChart,
   LabelList,
 } from "recharts";
-import { ChartDataPoint,CategorySpending } from "@/models/chat";
+import { ChartDataPoint,CategorySpending, CashflowRow, CategoryRow } from "@/models/chat";
 
 
 const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9D4EDD"];
 
 export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
   const totalIncome = data.reduce((sum, point) => sum + (point.income || 0), 0);
-  const totalExpense = data.reduce((sum, point) => sum + (point.expense || 0), 0);  
+  const totalExpense = data.reduce((sum, point) => sum + (point.expense || 0), 0);
+
   return (
     <ResponsiveContainer width="100%" height={250}>
       <LineChart data={data}>
@@ -52,14 +53,25 @@ export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
             backdropFilter: "blur(6px)",
           }}
         />
-        <Legend verticalAlign="top" height={36} />
+        <Legend
+          verticalAlign="top"
+          height={36}
+          formatter={(value: string) => {
+            if (value === "income") {
+              return `💰 Income: ${totalIncome.toFixed(2)}`;
+            }
+            if (value === "expense") {
+              return `💸 Expense: ${totalExpense.toFixed(2)}`;
+            }
+            return value;
+          }}
+        />
         <Line
           type="monotone"
           dataKey="income"
           stroke="url(#incomeGradient)"
           strokeWidth={2}
           dot={{ r: 2 }}
-          name={`💰 Income: ${totalIncome.toFixed(2)}`}
         />
         <Line
           type="monotone"
@@ -67,12 +79,11 @@ export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
           stroke="url(#expenseGradient)"
           strokeWidth={2}
           dot={{ r: 2 }}
-          name={`💸 Expense: ${totalExpense.toFixed(2)}`}
+          
         />
       </LineChart>
     </ResponsiveContainer>
   );
-
 }
 
 export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
@@ -226,4 +237,138 @@ export function PieChartComponent({ data }: { data: { name: string; value: numbe
   );
 }
 
+export function ChashFlowLine({
+  data,
+}: {
+  data: CashflowRow[];
+}) {
+  return (
+  <ResponsiveContainer width="100%" height={250}>
+    <LineChart data={data}>
+      <defs>
+        <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#69a7fd" stopOpacity={1} />
+          <stop offset="100%" stopColor="#69a7fd" stopOpacity={0.2} />
+        </linearGradient>
+        <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#6bffae" stopOpacity={1} />
+          <stop offset="100%" stopColor="#6bffae" stopOpacity={0.2} />
+        </linearGradient>
+        <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffb347" stopOpacity={1} />
+          <stop offset="100%" stopColor="#ffb347" stopOpacity={0.2} />
+        </linearGradient>
+        <linearGradient id="netChangeGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity={1} />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity={0.2} />
+        </linearGradient>
+      </defs>
 
+      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
+      <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} />
+      <YAxis stroke="#fff" />
+      <Tooltip
+        formatter={(value: number) => `${value.toFixed(2)}`}
+        labelFormatter={(label) => `📅 ${label}`}
+        contentStyle={{
+          backgroundColor: "#ffffff22",
+          border: "none",
+          borderRadius: "8px",
+          color: "#fff",
+          backdropFilter: "blur(6px)",
+        }}
+      />
+      <Legend verticalAlign="top" height={36} />
+      <Line
+        type="monotone"
+        dataKey="income"
+        stroke="url(#incomeGradient)"
+        strokeWidth={2}
+        dot={{ r: 2 }}
+        name={`💰 Income`}
+      />
+      <Line
+        type="monotone"
+        dataKey="expense"
+        stroke="url(#expenseGradient)"
+        strokeWidth={2}
+        dot={{ r: 2 }}
+        name={`💸 Expense`}
+      />
+      <Line
+
+
+        type="monotone"
+        dataKey="savings"
+        stroke="url(#savingsGradient)"
+        strokeWidth={2}
+        dot={{ r: 2 }}
+        name={`📈 Savings`}
+      />
+      <Line
+        type="monotone"
+        dataKey="netChange"
+        stroke="url(#netChangeGradient)"
+        strokeWidth={2}
+        dot={{ r: 2 }}
+        name={`🧮 Net Change`}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+);
+
+}
+
+export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
+  function generateUniqueColors(count: number): string[] {
+    const colors = new Set<string>();
+    while (colors.size < count) {
+      const color = `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
+      colors.add(color);
+    }
+    return Array.from(colors);
+  }
+
+  const dynamicColors = generateUniqueColors(data.length);
+
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="total"
+          nameKey="categoryName"
+          cx="50%"
+          cy="50%"
+          outerRadius={100}
+          labelLine={false}
+          label={({ categoryName, total }) =>
+            `${categoryName}: ${total.toFixed(2)}`
+          }
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={dynamicColors[index]} />
+          ))}
+        </Pie>
+        <Tooltip
+          formatter={(value: number, name: string) => [
+            `${value.toFixed(2)}`,
+            `📂 ${name}`,
+          ]}
+          contentStyle={{
+            backgroundColor: "#ffffff22",
+            border: "none",
+            borderRadius: "8px",
+            color: "#fff",
+            backdropFilter: "blur(6px)",
+          }}
+          itemStyle={{ color: "#fff", fontSize: 12 }}
+          labelStyle={{ color: "#fff", fontWeight: "bold" }}
+        />
+        {/* Optional: Add styled legend if needed */}
+        {/* <Legend verticalAlign="bottom" height={36} /> */}
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+ 

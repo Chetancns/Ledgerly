@@ -1,5 +1,5 @@
 import Layout from "../components/Layout";
-import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent } from "@/components/Chart";
+import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent, ChashFlowLine, CatHeatmapPie } from "@/components/Chart";
 import { Transaction } from "@/models/Transaction";
 import { Account } from "@/models/account";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
@@ -8,9 +8,9 @@ import { Category } from "@/models/category";
 import { getUserAccount } from "@/services/accounts";
 import { getUserCategory } from "@/services/category";
 import { getTransactions } from "@/services/transactions";
-import { ChartDataPoint, DailyTotals } from "@/models/chat";
+import { CashflowRow, CategoryRow, ChartDataPoint, DailyTotals } from "@/models/chat";
 import { getBudgetUtilizations } from "@/services/budget"; // 🔹 new service
-import { getBudgetReports } from "@/services/reports";
+import { getBudgetReports, getCashflowTimeline, getCategoryHeatmap } from "@/services/reports";
 export default function Dashboard() {
   useAuthRedirect();
 
@@ -23,7 +23,8 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
-
+  const [cashflowData, setCashFlowData]  = useState<CashflowRow[]>([]);
+  const [catHeatmap,setCatHeatmap] = useState<CategoryRow[]>([]);
   useEffect(() => {
     const fetchData = async () => {
       const [accRes, catRes, txRes] = await Promise.all([
@@ -67,7 +68,25 @@ export default function Dashboard() {
     fetchReports();
   }, [selectedMonth, selectedYear]);
 
-
+  useEffect(() =>{
+    const fetchCashflow = async () =>{
+      try{
+        console.log("Cashflow has been called");
+      const res = await getCashflowTimeline("daily",selectedMonth,selectedYear);
+      setCashFlowData(res.data.timeline);
+      }catch(err){
+        console.error("Error Loading Cashflow data",err);
+      }
+      
+    };
+    fetchCashflow();
+  },[selectedMonth,selectedYear]);
+  useEffect(()=>{
+    const fetchCatHeatmap = async () =>{
+      const res = await getCategoryHeatmap(selectedMonth,selectedYear);
+      setCatHeatmap(res.data.categories)
+    };fetchCatHeatmap();
+  },[selectedMonth,selectedYear]);
   // --- Account balances ---
   const totalBalance = accounts.reduce(
     (sum, acc) => sum + parseFloat(acc.balance || "0"),
@@ -145,7 +164,7 @@ export default function Dashboard() {
         <h2 className="text-lg font-semibold">💰 Total Balance</h2>
         <p className="text-2xl font-bold mt-2">₹{totalBalance.toFixed(2)}</p>
 
-        <div className="mt-4 grid md:grid-cols-2 gap-4">
+        <div className="mt-4 grid md:grid-cols-3 gap-4">
           {accounts.map((acc) => (
             <div
               key={acc.id}
@@ -330,53 +349,93 @@ export default function Dashboard() {
       )}
     </div>
       {/* --- Budget vs Actual --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-  {/* Bar Chart */}
-    <div
-      className="rounded-2xl p-6 text-white"
+   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      
+        <div
+            className="rounded-2xl p-6 text-white"
+          style={{
+            backdropFilter: "blur(12px)",
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+          }}>
+          <h2 className="text-lg font-semibold mb-4">📦 Budget by Category</h2>
+          {budgetReports?.categories ? (
+            <BarChartComponent data={budgetReports.categories} />
+          ) : (
+            <p className="text-gray-300">Loading budget data...</p>
+          )}
+
+        </div>
+
+        {/* Pie Chart */}
+        <div
+            className="rounded-2xl p-6 text-white"
+          style={{
+            backdropFilter: "blur(12px)",
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+          }}>
+          <h2 className="text-lg font-semibold mb-4">🧮 Total Budget Breakdown</h2>
+          {budgetReports?.totals ? (
+              <PieChartComponent
+                data={[
+                  { name: "Actual", value: budgetReports.totals.totalActual, fill: "#69a7fd" },
+                  { name: "Overspent", value: budgetReports.totals.overspentAmount, fill: "#ff6b6b" },
+                  { name: "Unbudgeted", value: budgetReports.totals.unbudgeted, fill: "#ffc107" },
+                ]}
+              />
+            ) : (
+              <p className="text-gray-300">Loading totals...</p>
+            )}
+
+        </div>
+    </div>
+      {/* --- Cash Flow Reports --- */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+  {/* Line Chart */}
+  <div
+    className="rounded-2xl p-6 text-white"
     style={{
       backdropFilter: "blur(12px)",
       background: "rgba(255, 255, 255, 0.08)",
       border: "1px solid rgba(255, 255, 255, 0.2)",
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
     }}
-    >
-      <h2 className="text-lg font-semibold mb-4">📦 Budget by Category</h2>
-      {budgetReports?.categories ? (
-  <BarChartComponent data={budgetReports.categories} />
-) : (
-  <p className="text-gray-300">Loading budget data...</p>
-)}
+  >
+    <h2 className="text-lg font-semibold mb-4">📈 Cash Flow Timeline</h2>
+    {cashflowData ? (
+      <ChashFlowLine data={cashflowData} />
+    ) : (
+      <p className="text-gray-300">Loading timeline...</p>
+    )}
+  </div>
 
-    </div>
-
-    {/* Pie Chart */}
-    <div
-      className="rounded-2xl p-6 text-white"
+  {/* Summary Card */}
+  <div
+    className="rounded-2xl p-6 text-white"
     style={{
       backdropFilter: "blur(12px)",
       background: "rgba(255, 255, 255, 0.08)",
       border: "1px solid rgba(255, 255, 255, 0.2)",
       boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
     }}
-    >
-      <h2 className="text-lg font-semibold mb-4">🧮 Total Budget Breakdown</h2>
-      {budgetReports?.totals ? (
-  <PieChartComponent
-    data={[
-      { name: "Actual", value: budgetReports.totals.totalActual, fill: "#69a7fd" },
-      { name: "Overspent", value: budgetReports.totals.overspentAmount, fill: "#ff6b6b" },
-      { name: "Unbudgeted", value: budgetReports.totals.unbudgeted, fill: "#ffc107" },
-    ]}
-  />
-) : (
-  <p className="text-gray-300">Loading totals...</p>
-)}
-
-    </div>
+  >
+    <h2 className="text-lg font-semibold mb-4">📊 Spending by Category</h2>
+    {
+      catHeatmap?(
+        <CatHeatmapPie data={catHeatmap} />
+      ):(<p className="text-gray-300">Loading summary...</p>)
+    }
+      
+    
   </div>
+</div>
+ 
 
   </div>
+  
     </Layout>
   );
 }

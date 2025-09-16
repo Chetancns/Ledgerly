@@ -183,7 +183,7 @@ export class ReportsService {
       },
       { income: 0, expense: 0, savings: 0, netChange: 0 },
     );
-
+    timeline.sort((a, b) => dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1);
     return { interval, start, end, timeline, totals };
   }
 
