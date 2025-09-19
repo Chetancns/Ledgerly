@@ -26,7 +26,6 @@ export class BudgetsService {
 
     const where: any = {
       userId,
-      type: 'expense',
       transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
     };
     if (b.categoryId) where.categoryId = b.categoryId;
@@ -152,7 +151,6 @@ async allUtilizations(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly'
   for (const b of budgets) {
     const where: any = {
       userId,
-      type: 'expense',
       transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
     };
     if (b.categoryId) where.categoryId = b.categoryId;

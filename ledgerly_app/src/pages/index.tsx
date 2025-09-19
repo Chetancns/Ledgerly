@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [cashflowData, setCashFlowData]  = useState<CashflowRow[]>([]);
   const [catHeatmap,setCatHeatmap] = useState<CategoryRow[]>([]);
+  const [view, setView] = useState<"income" | "expense">("expense");
   useEffect(() => {
     const fetchData = async () => {
       const [accRes, catRes, txRes] = await Promise.all([
@@ -272,39 +273,69 @@ export default function Dashboard() {
      
     </div>
 
-          <div
+    <div
+  style={{
+    backdropFilter: "blur(12px)",
+    background: "rgba(255, 255, 255, 0.08)",
+    borderRadius: "16px",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+    padding: "1rem",
+    color: "#fff",
+    fontFamily: "Inter, sans-serif",
+    transition: "box-shadow 0.3s ease",
+  }}
+>
+  <div
+    style={{
+      marginBottom: "0.5rem",
+      fontSize: "1.2rem",
+      fontWeight: 600,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "0.5rem",
+    }}
+  >
+    <span>📊 Daily Flow</span>
+    <button
+      onClick={() => setView(view === "income" ? "expense" : "income")}
       style={{
-        backdropFilter: "blur(12px)",
-        background: "rgba(255, 255, 255, 0.08)",
-        borderRadius: "16px",
-        border: "1px solid rgba(255, 255, 255, 0.2)",
-        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-        padding: "1rem",
+        backgroundColor: "#ffffff22",
         color: "#fff",
-        fontFamily: "Inter, sans-serif",
-        transition: "box-shadow 0.3s ease",
+        border: "none",
+        borderRadius: "6px",
+        padding: "0.3rem 0.6rem",
+        fontSize: "0.9rem",
+        cursor: "pointer",
+        backdropFilter: "blur(6px)",
       }}
     >
-      <div
-        style={{
-          marginBottom: "0.5rem",
-          fontSize: "1.2rem",
-          fontWeight: 600,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-        }}
-      >
-        📊 Daily Flow
-      </div>
-      {lineData.length === 0 ?(
-        <p className="text-gray-300">No Transaction found for this period</p>
-      ):(
-      <LineTrendChart data={lineData} />)}
+      {view === "income" ? "💸 Show Expense" : "💰 Show Income"}
+    </button>
+  </div>
+
+  {lineData.length === 0 ? (
+    <p className="text-gray-300">No Transaction found for this period</p>
+  ) : (
+    <>
+    <LineTrendChart data={lineData} view={view} />
+    <div
+      style={{
+        marginTop: "0.75rem",
+        textAlign: "center",
+        fontSize: "0.95rem",
+        fontWeight: 500,
+        color: "#ffffffcc",
+      }}
+    >
+      {view === "income" ? "💰 Viewing Daily Income Trends" : "💸 Viewing Daily Expense Trends"}
     </div>
+</>
+  )}
+</div>
 
-
-        </div>
+  </div>
 
         {/* --- Budget Utilization --- */}
         <div

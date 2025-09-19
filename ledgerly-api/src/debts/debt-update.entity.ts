@@ -1,21 +1,30 @@
 // debts/debt-update.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Debt } from './debt.entity';
+import { Transaction } from '../transactions/transaction.entity';
 
 @Entity('dbo.debt_updates')
 export class DebtUpdate {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Debt, (d) => d.updates, { onDelete: 'CASCADE' })
-  debt: Debt;
-
-  @Column('uuid')
+  @Column()
   debtId: string;
 
-  @Column('date')
-  dueDate: string; // The date this update corresponds to
+  @ManyToOne(() => Debt, debt => debt.updates, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'debtId' })
+  debt: Debt;
 
-  @Column('boolean', { default: false })
-  applied: boolean;
+  @Column({ type: 'date' })
+  updateDate: string;
+
+  @Column({ nullable: true })
+  transactionId: string;
+
+  @ManyToOne(() => Transaction, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'transactionId' })
+  transaction?: Transaction;
+
+  @Column({ type: 'enum', enum: ['paid', 'pending', 'skipped'], default: 'pending' })
+  status: 'paid' | 'pending' | 'skipped';
 }

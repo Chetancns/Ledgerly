@@ -44,6 +44,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <Link href="/accounts" className="font-extrabold hover:underline">Accounts</Link>
     <Link href="/categories" className="font-extrabold hover:underline">Categories</Link>
     <Link href="/budgets" className="font-extrabold hover:underline">Budget</Link>
+    <Link href="/debts" className="font-extrabold hover:underline">Debts</Link> 
   </div>
 
   <div className="ml-auto flex items-center gap-2">

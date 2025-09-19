@@ -55,7 +55,6 @@ export class ReportsService {
   const txs = await this.txRepo.find({
     where: {
       userId,
-      type: 'expense',
       transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
     },
   });
@@ -200,6 +199,7 @@ export class ReportsService {
     const transactions = await this.txRepo.find({
       where:{
         userId,
+        type: 'expense',
       transactionDate: Between(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')),
       },
     relations: ['category'],
@@ -219,7 +219,7 @@ export class ReportsService {
         };
       }
 
-      if (t.type === 'expense' ) {
+      if (t.type === 'expense') {
         grouped[t.categoryId].total += Number(t.amount);
       }
     });

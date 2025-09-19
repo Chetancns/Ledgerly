@@ -7,8 +7,10 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Module } from '@nestjs/common';
 import { Debt } from "./debt.entity";
 import { DebtUpdate } from "./debt-update.entity";
+import { TransactionsModule } from "src/transactions/transaction.module";
 @Module({
-  imports: [TypeOrmModule.forFeature([Debt,DebtUpdate,Transaction, Budget,Category])],
+  imports: [TypeOrmModule.forFeature([Debt,DebtUpdate,Transaction, Budget,Category]),
+            TransactionsModule],
   providers: [DebtService],
   controllers: [DebtController],
 })

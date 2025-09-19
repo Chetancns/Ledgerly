@@ -23,10 +23,12 @@ export class Debt {
 
   @Column()
   name: string; // "Chase Credit Card" or "Car Loan"
-
+  @Column('decimal', { precision: 12, scale: 2 })
+  principal: number;
   @Column('numeric', { precision: 12, scale: 2, default: 0 })
   currentBalance: string;
-
+  @Column({ type: 'int', nullable: true })
+  term: number; 
   @Column('numeric', { precision: 12, scale: 2 })
   installmentAmount: string; // amount due each cycle
 
@@ -36,6 +38,9 @@ export class Debt {
   @Column('date')
   startDate: string; // when payments started
 
-  @OneToMany(() => DebtUpdate, (u) => u.debt)
-  updates: DebtUpdate[];
+  @Column('date')
+  nextDueDate: string; 
+
+  @OneToMany(() => DebtUpdate, update => update.debt)
+updates: DebtUpdate[];
 }

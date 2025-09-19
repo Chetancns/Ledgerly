@@ -15,13 +15,20 @@ import {
   Bar,
   BarChart,
   LabelList,
+  Brush,
 } from "recharts";
 import { ChartDataPoint,CategorySpending, CashflowRow, CategoryRow } from "@/models/chat";
 
 
 const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9D4EDD"];
 
-export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
+export function LineTrendChart({
+  data,
+  view,
+}: {
+  data: ChartDataPoint[];
+  view: "income" | "expense";
+}) {
   const totalIncome = data.reduce((sum, point) => sum + (point.income || 0), 0);
   const totalExpense = data.reduce((sum, point) => sum + (point.expense || 0), 0);
 
@@ -56,35 +63,35 @@ export function LineTrendChart({ data }: { data: ChartDataPoint[] }) {
         <Legend
           verticalAlign="top"
           height={36}
-          formatter={(value: string) => {
-            if (value === "income") {
-              return `💰 Income: ${totalIncome.toFixed(2)}`;
-            }
-            if (value === "expense") {
-              return `💸 Expense: ${totalExpense.toFixed(2)}`;
-            }
-            return value;
-          }}
+          formatter={() =>
+            `💰 Income: ${totalIncome.toFixed(2)} | 💸 Expense: ${totalExpense.toFixed(2)}`
+          }
         />
-        <Line
-          type="monotone"
-          dataKey="income"
-          stroke="url(#incomeGradient)"
-          strokeWidth={2}
-          dot={{ r: 2 }}
-        />
-        <Line
-          type="monotone"
-          dataKey="expense"
-          stroke="url(#expenseGradient)"
-          strokeWidth={2}
-          dot={{ r: 2 }}
-          
-        />
+        {view === "income" && (
+    <Line
+      type="monotone"
+      dataKey="income"
+      stroke="url(#incomeGradient)"
+      strokeWidth={2}
+      dot={{ r: 2 }}
+    />
+  )}
+
+  {view === "expense" && (
+    <Line
+      type="monotone"
+      dataKey="expense"
+      stroke="url(#expenseGradient)"
+      strokeWidth={2}
+      dot={{ r: 2 }}
+    />
+  )}
+
       </LineChart>
     </ResponsiveContainer>
   );
 }
+
 
 export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
   function generateUniqueColors(count: number): string[] {
@@ -113,7 +120,7 @@ const dynamicColors = generateUniqueColors(data.length);
           cx="50%"
           cy="50%"
           labelLine={false}
-          label={({ name, value }) => `${name}: ${value}`}
+          label={({ name, value }) => `${name}: ${typeof value === "number" ? value.toFixed(2) : "N/A"}`}
           outerRadius={90}
           dataKey="value"
         >
@@ -263,7 +270,7 @@ export function ChashFlowLine({
           <stop offset="100%" stopColor="#ffffff" stopOpacity={0.2} />
         </linearGradient>
       </defs>
-
+      <Brush dataKey="date" height={10} stroke="#8884d8" />
       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
       <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} />
       <YAxis stroke="#fff" />

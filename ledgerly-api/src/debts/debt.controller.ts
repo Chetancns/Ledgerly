@@ -29,11 +29,19 @@ export class DebtController {
   async catchUpOne(@Param('id') id: string) {
     return this.debtService.catchUpDebt(id);
   }
-
+  @Get(':id/updates')
+  async getDebtUpdates(@Param('id') id: string){
+    return this.debtService.getDebtUpdates(id);
+  }
+  
   /** 🔄 Run catch-up for all debts */
   @Post('catch-up')
   async catchUpAll(@GetUser() user: { userId: string }) {
     const userId = user.userId;
     return this.debtService.catchUpAllDebts(userId);
+  }
+  @Get(':id/pay-early')
+  async payearly(@Param('id') id :string){
+    return this.debtService.payEarly(id);
   }
 }

@@ -5,10 +5,12 @@ import {
   ManyToOne,
   CreateDateColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
+import { DebtUpdate } from 'src/debts/debt-update.entity';
 
 export type TxType = 'expense' | 'income' | 'savings';
 
@@ -43,4 +45,7 @@ export class Transaction {
   constructor(partial: Partial<Transaction>) {
     Object.assign(this, partial);
   }
+
+  @OneToMany(() => DebtUpdate, (u) => u.debt, { cascade: true })
+    updates: DebtUpdate[];
 }
