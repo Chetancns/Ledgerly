@@ -19,6 +19,7 @@ export const onDeleteCategory = async (id: string) => {
   return await api.delete(`categories/${id}`);
 };
 
-export const updateCategory = async (id: string, data: Partial<Category>) => {
+export const updateCategory = async (id: string, data: { name: string; type: CategoryType }) => {
+  console.log(data);
   return await api.put<Category>(`categories/${id}`, data);
 };

@@ -33,3 +33,11 @@ export class copyperviousDto{
   endDate?: string;
 
 }
+
+export type BudgetCategory = {
+  categoryId: string;
+  categoryName: string;
+  budget: number;
+  actual: number;
+  status: 'overspent' | 'within_budget' | 'no_budget';
+};

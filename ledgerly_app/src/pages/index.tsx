@@ -1,5 +1,5 @@
 import Layout from "../components/Layout";
-import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent, ChashFlowLine, CatHeatmapPie } from "@/components/Chart";
+import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent, ChashFlowLine, CatHeatmapPie, SummaryCard } from "@/components/Chart";
 import { Transaction } from "@/models/Transaction";
 import { Account } from "@/models/account";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
@@ -11,6 +11,8 @@ import { getTransactions } from "@/services/transactions";
 import { CashflowRow, CategoryRow, ChartDataPoint, DailyTotals } from "@/models/chat";
 import { getBudgetUtilizations } from "@/services/budget"; // 🔹 new service
 import { getBudgetReports, getCashflowTimeline, getCategoryHeatmap } from "@/services/reports";
+import toast from "react-hot-toast";
+import { BudgetCategory } from "@/models/budget";
 export default function Dashboard() {
   useAuthRedirect();
 
@@ -26,6 +28,25 @@ export default function Dashboard() {
   const [cashflowData, setCashFlowData]  = useState<CashflowRow[]>([]);
   const [catHeatmap,setCatHeatmap] = useState<CategoryRow[]>([]);
   const [view, setView] = useState<"income" | "expense">("expense");
+  const [filter, setFilter] = useState<'all' | 'overspent' |'within_budget' | 'no_budget'>('all');
+
+  const filteredCategories = budgetReports?.categories?.filter((c: BudgetCategory) => {
+  if (filter === 'all') return true;
+  return c.status === filter;
+});
+
+useEffect(() => {
+  if (filter === 'overspent') {
+    toast('Showing overspent categories — brace yourself 😬',{
+  position: "bottom-center"
+});
+  } else if (filter === 'no_budget') {
+    toast('Showing unbudgeted spending — time to plan better 💡',{
+  position: "bottom-center"
+});
+  }
+}, [filter]);
+
   useEffect(() => {
     const fetchData = async () => {
       const [accRes, catRes, txRes] = await Promise.all([
@@ -149,7 +170,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white p-6">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white px-4 sm:px-6 py-6">
         <h1 className="text-3xl font-bold mb-6">📊 Dashboard</h1>
 
         {/* --- Balances --- */}
@@ -163,7 +184,7 @@ export default function Dashboard() {
         }}
       >
         <h2 className="text-lg font-semibold">💰 Total Balance</h2>
-        <p className="text-2xl font-bold mt-2">₹{totalBalance.toFixed(2)}</p>
+        <p className="text-xl sm:text-2xl font-bold mt-2">₹{totalBalance.toFixed(2)}</p>
 
         <div className="mt-4 grid md:grid-cols-3 gap-4">
           {accounts.map((acc) => (
@@ -241,7 +262,7 @@ export default function Dashboard() {
 
 
         {/* --- Charts --- */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div
       style={{
         backdropFilter: "blur(12px)",
@@ -380,49 +401,54 @@ export default function Dashboard() {
       )}
     </div>
       {/* --- Budget vs Actual --- */}
-   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-      
-        <div
-            className="rounded-2xl p-6 text-white"
-          style={{
-            backdropFilter: "blur(12px)",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-          }}>
-          <h2 className="text-lg font-semibold mb-4">📦 Budget by Category</h2>
-          {budgetReports?.categories ? (
-            <BarChartComponent data={budgetReports.categories} />
-          ) : (
-            <p className="text-gray-300">Loading budget data...</p>
-          )}
+   {budgetReports?.totals && <SummaryCard totals={budgetReports.totals} />}
+{budgetReports?.categories && (
+  <>
+    <div className="flex gap-2 mb-4">
+      {['all','within_budget', 'overspent', 'no_budget'].map((f) => (
+        <button
+          key={f}
+          onClick={() => setFilter(f as any)}
+          className={`px-4 py-1 rounded-full text-sm transition ${
+            filter === f ? 'bg-white text-black font-semibold' : 'bg-white/10 text-white'
+          }`}
+        >
+          {f === 'all'
+  ? 'All Categories'
+  : f === 'within_budget'
+  ? 'Budgeted'
+  : f === 'overspent'
+  ? 'Overspent'
+  : 'Unbudgeted'}
 
-        </div>
-
-        {/* Pie Chart */}
-        <div
-            className="rounded-2xl p-6 text-white"
-          style={{
-            backdropFilter: "blur(12px)",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-          }}>
-          <h2 className="text-lg font-semibold mb-4">🧮 Total Budget Breakdown</h2>
-          {budgetReports?.totals ? (
-              <PieChartComponent
-                data={[
-                  { name: "Actual", value: budgetReports.totals.totalActual, fill: "#69a7fd" },
-                  { name: "Overspent", value: budgetReports.totals.overspentAmount, fill: "#ff6b6b" },
-                  { name: "Unbudgeted", value: budgetReports.totals.unbudgeted, fill: "#ffc107" },
-                ]}
-              />
-            ) : (
-              <p className="text-gray-300">Loading totals...</p>
-            )}
-
-        </div>
+        </button>
+      ))}
     </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div className="rounded-2xl p-6 text-white" style={{
+            backdropFilter: "blur(12px)",
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+          }}>
+        <h2 className="text-lg font-semibold mb-4">📦 Budget by Category</h2>
+        <BarChartComponent data={filteredCategories} />
+      </div>
+
+      <div className="rounded-2xl p-6 text-white" style={{
+            backdropFilter: "blur(12px)",
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+          }}>
+        <h2 className="text-lg font-semibold mb-4">🧮 Total Budget Breakdown</h2>
+        <PieChartComponent data={budgetReports.categories} />
+      </div>
+    </div>
+  </>
+)}
+
       {/* --- Cash Flow Reports --- */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
   {/* Line Chart */}

@@ -6,7 +6,7 @@ import { Account } from "@/models/account";
 import { Category } from "@/models/category";
 import { getUserCategory } from "@/services/category";
 import { parseTransaction } from "@/services/ai";
-
+import toast, { Toaster } from "react-hot-toast";
 type TransactionFormData = Omit<Transaction, "id">;
 
 export default function TransactionForm({ onCreated }: { onCreated: () => void }) {
@@ -74,7 +74,7 @@ const toISOStringWithoutOffset = (dateString: string) => {
         await createTransaction({...form,transactionDate:toISOStringWithoutOffset(form.transactionDate),});
       }
 
-      setSuccessMessage("✅ Transaction added successfully!");
+       toast.success("✅ Transaction added successfully!");
       onCreated();
 
       // Reset form
@@ -90,7 +90,7 @@ const toISOStringWithoutOffset = (dateString: string) => {
 
       setTimeout(() => setSuccessMessage(""), 4000);
     } catch (error) {
-      setErrorMessage("Transaction creation failed: " + error);
+      toast.error("Transaction creation failed: " + error);
       setTimeout(() => setErrorMessage(""), 4000);
     }
   };
@@ -108,7 +108,7 @@ const CallAIbackendAPI = async () => {
   }
 
   return (
-    <div className="bg-white/1 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full border border-white/30 p-8 md:p-12">
+    <div className="bg-white/1 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full border border-white/30 p-8 ">
       <h2 className="text-2xl font-semibold text-white mb-6">Add Transaction</h2>
 
       {successMessage && (
@@ -123,97 +123,134 @@ const CallAIbackendAPI = async () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <select
-          name="accountId"
-          value={form.accountId}
-          onChange={handleChange}
-          className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-        >
-          <option>Select Account</option>
-          {accounts.map((acc: Account) => (
-            <option key={acc.id} value={acc.id}>{acc.name}</option>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+
+  <div>
+    <label htmlFor="accountId" className="block text-white font-medium">Account</label>
+    <p className="text-xs text-white/60 mt-1">Choose the account this transaction belongs to.</p>
+    <select
+      id="accountId"
+      name="accountId"
+      value={form.accountId}
+      onChange={handleChange}
+      className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+    >
+      <option>Select Account</option>
+      {accounts.map((acc: Account) => (
+        <option key={acc.id} value={acc.id}>{acc.name}</option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label htmlFor="categoryId" className="block text-white font-medium">Category</label>
+    <p className="text-xs text-white/60 mt-1">Select the category that best describes this transaction.</p>
+    <select
+      id="categoryId"
+      name="categoryId"
+      value={form.categoryId}
+      onChange={handleChange}
+      className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+    >
+      <option>Select Category</option>
+      {categories.map((cat: Category) => (
+        <option key={cat.id} value={cat.id}>{cat.name}</option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label htmlFor="amount" className="block text-white font-medium">Amount</label>
+    <p className="text-xs text-white/60 mt-1">Enter the transaction amount in your base currency.</p>
+    <input
+      id="amount"
+      name="amount"
+      placeholder="Amount"
+      value={form.amount}
+      onChange={handleChange}
+      className="w-full px-4 py-3 rounded-lg bg-white/20 placeholder-white/70 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+    />
+  </div>
+
+  <div>
+    <label htmlFor="description" className="block text-white font-medium">Description</label>
+    <p className="text-xs text-white/60 mt-1">Add a short note or label to describe the transaction.</p>
+    <input
+      id="description"
+      name="description"
+      placeholder="Description"
+      value={form.description ?? ""}
+      onChange={handleChange}
+      className="w-full px-4 py-3 rounded-lg bg-white/20 placeholder-white/70 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+    />
+  </div>
+
+  <div className="md:col-span-2">
+    <label htmlFor="transactionDate" className="block text-white font-medium">Transaction Date</label>
+    <p className="text-xs text-white/60 mt-1">Pick the date when the transaction occurred.</p>
+    <input
+      type="date"
+      id="transactionDate"
+      name="transactionDate"
+      value={form.transactionDate}
+      onChange={handleChange}
+      className="w-full px-4 py-3 rounded-lg bg-white/20 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+    />
+  </div>
+
+  <div >
+    <label className="flex items-center gap-2 text-white font-medium">
+      <input
+        type="checkbox"
+        checked={isCreditCardPayment}
+        onChange={() => setIsCreditCardPayment(!isCreditCardPayment)}
+        className="accent-yellow-300"
+      />
+      Credit Card Payment
+    </label>
+    <p className="text-sm text-white/70 mt-1">Check this if the transaction is a credit card payment.</p>
+  </div>
+
+  {isCreditCardPayment && (
+    <div >
+      <label htmlFor="payFromAccountId" className="block text-white font-medium">Source Account</label>
+      <p className="text-xs text-white/60 mt-1">Select the account used to pay off the credit card.</p>
+      <select
+        id="payFromAccountId"
+        name="payFromAccountId"
+        value={payFromAccountId}
+        onChange={(e) => setPayFromAccountId(e.target.value)}
+        className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+      >
+        <option>Select Source Account</option>
+        {accounts
+          .filter((a: Account) => a.type !== "credit_card")
+          .map((acc: Account) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.name} ({acc.type})
+            </option>
           ))}
-        </select>
+      </select>
+    </div>
+  )}
 
-        <select
-          name="categoryId"
-          value={form.categoryId}
-          onChange={handleChange}
-          className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-        >
-          <option>Select Category</option>
-          {categories.map((cat: Category) => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
+  <div className="flex gap-4 md:col-span-2">
+    <button
+      type="submit"
+      className="w-4/5 py-3 bg-yellow-300 text-indigo-900 font-semibold rounded-lg hover:bg-yellow-400 transition"
+    >
+      Add Transaction
+    </button>
+    <button
+      type="button"
+      onClick={() => setShowImportPopup(true)}
+      className="w-1/5 py-3 bg-indigo-500 text-white font-semibold rounded-lg hover:bg-indigo-600 transition"
+    >
+      📥 AI Import Transactions
+    </button>
+  </div>
+</form>
 
-        <input
-          name="amount"
-          placeholder="Amount"
-          value={form.amount}
-          onChange={handleChange}
-          className="w-full px-4 py-3 rounded-lg bg-white/20 placeholder-white/70 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-        />
-
-        <input
-          name="description"
-          placeholder="Description"
-          value={form.description ?? ""}
-          onChange={handleChange}
-          className="w-full px-4 py-3 rounded-lg bg-white/20 placeholder-white/70 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-        />
-
-        <input
-          type="date"
-          name="transactionDate"
-          value={form.transactionDate}
-          onChange={handleChange}
-          className="w-full px-4 py-3 rounded-lg bg-white/20 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition md:col-span-2"
-        />
-
-        <label className="flex items-center gap-2 text-white">
-          <input
-            type="checkbox"
-            checked={isCreditCardPayment}
-            onChange={() => setIsCreditCardPayment(!isCreditCardPayment)}
-            className="accent-yellow-300"
-          />
-          Credit Card Payment
-        </label>
-
-        {isCreditCardPayment && (
-          <select
-            name="payFromAccountId"
-            value={payFromAccountId}
-            onChange={(e) => setPayFromAccountId(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-          >
-            <option>Select Source Account</option>
-            {accounts
-              .filter((a: Account) => a.type !== "credit_card")
-              .map((acc: Account) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.type})
-                </option>
-              ))}
-          </select>
-        )}
-<div className="flex gap-4 md:col-span-2">
-        <button
-          type="submit"
-          className="w-4/5 py-3 bg-yellow-300 text-indigo-900 font-semibold rounded-lg hover:bg-yellow-400 transition md:col-span-2"
-        >
-          Add Transaction
-        </button>
-        <button
-  type="button"
-  onClick={() => setShowImportPopup(true)}
-  className="w-1/5 py-3 bg-indigo-500 text-white font-semibold rounded-lg hover:bg-indigo-600 transition md:col-span-2"
->
-  📥 AI Import Transactions
-</button></div>
-      </form>
       {showImportPopup && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     {/* Modal container */}

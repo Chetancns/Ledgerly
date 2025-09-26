@@ -89,6 +89,7 @@ export function LineTrendChart({
 
       </LineChart>
     </ResponsiveContainer>
+    
   );
 }
 
@@ -145,14 +146,17 @@ const dynamicColors = generateUniqueColors(data.length);
 }
 export function BarChartComponent({ data }: { data: any[] }) {
   const chartData = data.map((c) => ({
-  name: c.categoryName,
-  Budget: c.budget > 0 ? c.budget : 0.1,
-  Actual: c.actual > 0 ? c.actual : 0.1,
-}));
+    name: c.categoryName,
+    Budget: c.budget > 0 ? c.budget : 0.1,
+    Actual: c.actual > 0 ? c.actual : 0.1,
+    Overspent: c.status === 'overspent' ? c.actual - c.budget : 0.1,
+  }));
+
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={chartData} barCategoryGap="20%">
+      
+        <BarChart data={chartData} barCategoryGap="20%">
         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
         <XAxis dataKey="name" stroke="#fff" tick={{ fontSize: 10 }} />
         
@@ -160,7 +164,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
         <YAxis scale="log" domain={["auto", "auto"]} stroke="#fff" allowDataOverflow />
 
         <Tooltip
-          formatter={(value: number) => `₹${value.toFixed(2)}`}
+          formatter={(value: number) => `${value.toFixed(2)}`}
           contentStyle={{
             backgroundColor: "#ffffff22",
             border: "none",
@@ -202,14 +206,44 @@ export function BarChartComponent({ data }: { data: any[] }) {
   style={{ fill: "#fff", fontSize: 10 }}
 />
         </Bar>
+        <Bar dataKey="Overspent" fill="#ff6b6b" radius={[4, 4, 0, 0]} animationDuration={800}>
+  <LabelList
+    dataKey="Overspent"
+    position="top"
+    formatter={(label: any) => label > 0 ? `+${label.toFixed(2)}` : ""}
+    style={{ fill: "#fff", fontSize: 10 }}
+  />
+</Bar>
+
       </BarChart>
+      
+      
     </ResponsiveContainer>
   );
 }
-export function PieChartComponent({ data }: { data: { name: string; value: number; fill: string }[] }) {
+export function PieChartComponent({ data }: { data: any[] }) {
+  const pieData = [
+  {
+    name: 'Overspent',
+    value: data.filter((d) => d.status === 'overspent').reduce((sum, d) => sum + d.actual - d.budget, 0),
+    fill: '#ee0202ff',
+  },
+  {
+    name: 'Within Budget',
+    value: data.filter((d) => d.status === 'within_budget').reduce((sum, d) => sum + d.actual, 0),
+    fill: '#6bffae',
+  },
+  {
+    name: 'Unbudgeted',
+    value: data.filter((d) => d.status === 'no_budget').reduce((sum, d) => sum + d.actual, 0),
+    fill: '#ffc107',
+  },
+];
+
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <PieChart>
+      
+        <PieChart>
         <Tooltip
           formatter={(value: number) => `₹${value.toFixed(2)}`}
           contentStyle={{
@@ -222,7 +256,7 @@ export function PieChartComponent({ data }: { data: { name: string; value: numbe
         />
         <Legend verticalAlign="bottom" height={36} />
         <Pie
-          data={data}
+          data={pieData}
           dataKey="value"
           nameKey="name"
           cx="50%"
@@ -235,11 +269,13 @@ export function PieChartComponent({ data }: { data: { name: string; value: numbe
           isAnimationActive={true}
           animationDuration={1000}
         >
-          {data.map((entry, index) => (
+          {pieData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.fill} />
           ))}
         </Pie>
       </PieChart>
+      
+      
     </ResponsiveContainer>
   );
 }
@@ -251,7 +287,8 @@ export function ChashFlowLine({
 }) {
   return (
   <ResponsiveContainer width="100%" height={250}>
-    <LineChart data={data}>
+    
+      <LineChart data={data}>
       <defs>
         <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#69a7fd" stopOpacity={1} />
@@ -321,6 +358,8 @@ export function ChashFlowLine({
         name={`🧮 Net Change`}
       />
     </LineChart>
+    
+    
   </ResponsiveContainer>
 );
 
@@ -340,7 +379,8 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={250}>
-      <PieChart>
+      
+        <PieChart>
         <Pie
           data={data}
           dataKey="total"
@@ -375,7 +415,33 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
         {/* Optional: Add styled legend if needed */}
         {/* <Legend verticalAlign="bottom" height={36} /> */}
       </PieChart>
+      
+      
     </ResponsiveContainer>
   );
+  
+
 }
- 
+
+export function SummaryCard({ totals }: { totals: any }) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white mb-3 mt-6">
+      <div className="bg-[#69a7fd22] p-4 rounded-xl">
+        <h4 className="text-sm">Total Budget</h4>
+        <p className="text-lg font-bold">₹{totals.totalBudget.toFixed(2)}</p>
+      </div>
+      <div className="bg-[#6bffae22] p-4 rounded-xl">
+        <h4 className="text-sm">Total Actual</h4>
+        <p className="text-lg font-bold">₹{totals.totalActual.toFixed(2)}</p>
+      </div>
+      <div className="bg-[#ff6b6b22] p-4 rounded-xl">
+        <h4 className="text-sm">Overspent</h4>
+        <p className="text-lg font-bold">₹{totals.overspentAmount.toFixed(2)}</p>
+      </div>
+      <div className="bg-[#ffc10722] p-4 rounded-xl">
+        <h4 className="text-sm">Unbudgeted</h4>
+        <p className="text-lg font-bold">₹{totals.unbudgeted.toFixed(2)}</p>
+      </div>
+    </div>
+  );
+}

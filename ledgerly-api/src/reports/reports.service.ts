@@ -49,7 +49,7 @@ export class ReportsService {
 //   .getMany();
 
   // 3. Load all categories
-  const categories = await this.catRepo.find({ where: { userId ,type: 'expense'} });
+  const categories = await this.catRepo.find({ where: { userId } });
 
   // 4. Load expenses in this window
   const txs = await this.txRepo.find({
@@ -104,7 +104,14 @@ export class ReportsService {
     unbudgeted += amount;
   }
 
-  const overspentAmount = Math.max(0, totalActual - totalBudget);
+  const overspentAmount = categoriesResult.reduce((sum, cat) => {
+    if (cat.status === 'overspent') {
+      return sum + (cat.actual - cat.budget);
+    }
+    return sum;
+  }, 0);
+
+
 
   return {
     categories: categoriesResult,
