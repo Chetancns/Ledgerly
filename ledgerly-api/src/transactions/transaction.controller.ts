@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards, Put } from '@nestjs/common';
 import { TransactionsService } from './transaction.service';
 import { CreateTransactionDto ,TransferDto} from './dto/create-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -18,29 +18,17 @@ async transfer(
 ) {
   const now = new Date().toISOString();
 
-  // Debit bank account
-  const debit = await this.service.create({
+   // Create a single transfer transaction
+  return this.service.create({
     userId: user.userId,
     accountId: dto.from,
+    toAccountId: dto.to, // Add this field to your entity/DTO
     categoryId: dto.cat,
-    type: 'expense',
+    type: 'transfer',
     amount: dto.amount,
-    description: `Amount debited for ${dto.amount}`,
+    description: dto.description,
     transactionDate: dto.date,
   });
-
-  // Credit credit card account
-  const credit = await this.service.create({
-    userId: user.userId,
-    accountId: dto.to,
-    categoryId: dto.cat,
-    type: 'income',
-    amount: dto.amount,
-    description: `Amount credited with ${dto.amount}`,
-    transactionDate: dto.date,
-  });
-
-  return { message: 'Transfer successful', debit, credit };
 }
   @Post()
   create(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: Partial<CreateTransactionDto>) {
@@ -49,6 +37,14 @@ async transfer(
     return this.service.create(dto);
   }
 
+  @Put(':id')
+update(
+  @GetUser() user: { userId: string, email: string, name: string },
+  @Param('id') id: string,
+  @Body() dto: Partial<CreateTransactionDto>
+) {
+  return this.service.update(user.userId, id, dto);
+}
   @Get()
   list(
     @GetUser() user: { userId: string, email: string, name: string },
@@ -56,9 +52,9 @@ async transfer(
     @Query('to') to?: string,
     @Query('categoryId') categoryId?: string,
     @Query('accountId') accountId?:string,
-    @Query('type') type?: 'expense' | 'income' | 'savings',
+    @Query('type') type?: 'expense' | 'income' | 'savings'|'transfer',
   ) {
-    //console.log(user,from,to,categoryId,accountId,type);
+    console.log(user,from,to,categoryId,accountId,type);
     return this.service.findByUser(user.userId, { from, to, categoryId,accountId, type });
   }
 

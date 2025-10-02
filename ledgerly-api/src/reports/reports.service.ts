@@ -1,7 +1,7 @@
 // reports.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, Not } from 'typeorm';
 import dayjs from 'dayjs';
 import { Budget } from '../budgets/budget.entity';
 import { Transaction } from '../transactions/transaction.entity';
@@ -56,6 +56,7 @@ export class ReportsService {
     where: {
       userId,
       transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
+      type: Not('transfer'), // exclude transfers
     },
   });
 
@@ -147,6 +148,7 @@ export class ReportsService {
     // Group by chosen interval
     const grouped: Record<string, any> = {};
     transactions.forEach((t) => {
+      if (t.type === 'transfer') return; // Exclude transfers
       let bucket: string;
       if (interval === 'daily') {
         bucket = dayjs(t.transactionDate).format('YYYY-MM-DD');
@@ -164,7 +166,7 @@ export class ReportsService {
         };
       }
       const isCreditCard = t.account?.type === 'credit_card';
-      if (t.type === 'income' && !isCreditCard)  grouped[bucket].income += Number(t.amount);
+      if (t.type === 'income' )  grouped[bucket].income += Number(t.amount);
       if (t.type === 'expense') {
         grouped[bucket].expense += Number(t.amount);}
       if (t.type === 'savings') grouped[bucket].savings += Number(t.amount);

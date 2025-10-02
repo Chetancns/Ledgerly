@@ -12,7 +12,7 @@ import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
 import { DebtUpdate } from 'src/debts/debt-update.entity';
 
-export type TxType = 'expense' | 'income' | 'savings';
+export type TxType = 'expense' | 'income' | 'savings' | 'transfer';
 
 @Entity('dbo.transactions')
 export class Transaction {
@@ -41,6 +41,7 @@ export class Transaction {
 
   @Index() @Column({ type: 'date' }) transactionDate: string;
 
+  @Column({ type:'uuid', nullable: true }) toAccountId: string | null;
   @CreateDateColumn() createdAt: Date;
   constructor(partial: Partial<Transaction>) {
     Object.assign(this, partial);

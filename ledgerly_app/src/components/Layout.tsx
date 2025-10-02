@@ -31,7 +31,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <><Head>
       <title>💰 Ledgerly - Budget with Style </title>
-    </Head><div className="min-h-screen bg-gray-50">
+    </Head><div className="min-h-screen bg-gray-50 overflow-x-hidden">
         <nav className="bg-indigo-800 text-white p-4 flex flex-wrap items-center gap-2 md:gap-4">
   {/* Branded App Name */}
   <span className="text-lg md:text-2xl font-extrabold tracking-wide text-white drop-shadow-sm w-full md:w-auto">

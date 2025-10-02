@@ -9,7 +9,9 @@ export const transfer = (par:{
         to: string, 
         cat: string,
         amount: string,
-        date:string
+        date:string,
+        description:string,
+        type?: 'transfer' | 'savings'
       }) => api.post("/transactions/transfers",par);
 export const getFilterTransactions = ({
   from,
@@ -34,3 +36,5 @@ export const getFilterTransactions = ({
   console.log(params);
   return api.get("/transactions", { params });
 };
+
+export const updateTransaction = (id:string, data:Partial<Transaction>)=> api.put(`/transactions/${id}`,data);

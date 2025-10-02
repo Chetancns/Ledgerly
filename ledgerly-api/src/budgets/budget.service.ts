@@ -30,7 +30,9 @@ export class BudgetsService {
     };
     if (b.categoryId) where.categoryId = b.categoryId;
     console.log(where);
-    const txs = await this.txRepo.find({ where });
+    const txs = await this.txRepo.find({ where:{
+      ...where, type: 'expense'
+    } });
     console.log(txs);
     const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
     const pct = b.amount ? (spent / Number(b.amount)) * 100 : 0;
@@ -154,7 +156,9 @@ async allUtilizations(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly'
       transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
     };
     if (b.categoryId) where.categoryId = b.categoryId;
-    const txs = await this.txRepo.find({ where });
+    const txs = await this.txRepo.find({ where:{
+      ...where, type: 'expense'
+    } });
     const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
     const pct = b.amount ? (spent / Number(b.amount)) * 100 : 0;
     results.push({

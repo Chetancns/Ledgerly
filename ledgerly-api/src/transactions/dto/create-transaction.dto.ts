@@ -5,9 +5,10 @@ export class CreateTransactionDto {
   @IsOptional() @IsUUID() accountId?: string;
   @IsOptional() @IsUUID() categoryId?: string;
   @IsNumberString() amount: string;
-  @IsOptional() @IsIn(['expense' , 'income' , 'savings']) type: 'expense' | 'income' | 'savings';
+  @IsOptional() @IsIn(['expense' , 'income' , 'savings','transfer']) type: 'expense' | 'income' | 'savings' | 'transfer';
   @IsOptional() @IsDateString() transactionDate: string;
   @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsUUID() toAccountId?: string | null; // for transfers, the destination account
 }
 
 export class TransferDto {
@@ -31,4 +32,5 @@ export class TransferDto {
   @IsOptional()
   type?: 'transfer'; // Optional, but still validated if present
   @IsOptional() @IsDateString() date: string;
+  description: string;
 }

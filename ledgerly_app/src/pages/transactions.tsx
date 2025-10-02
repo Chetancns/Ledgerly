@@ -21,7 +21,11 @@ export default function Transactions() {
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
+const handleEdit = (tx: Transaction) => {
+  setEditingTransaction(tx);
+};
 const formatDateForUI = (dateString: string) => {  
   if (!dateString) return "";
   const [year, month, day] = dateString.split("-");
@@ -35,13 +39,15 @@ const formatDateForUI = (dateString: string) => {
   const tLabels: Record<TransactionType, string> = {
     income: 'Income',
     expense: 'Expense',
-    savings: 'Savings'
+    savings: 'Savings',
+    transfer: 'Transfer',
   };
 
   const typeStyleMap: Record<TransactionType, string> = {
     income: 'bg-green-100 text-green-600',
     savings: 'bg-green-100 text-green-600',
     expense: 'bg-red-100 text-red-600',
+    transfer: 'bg-blue-100 text-blue-600',
   };
 
   const handleDelete = async (id: string) => {
@@ -105,7 +111,16 @@ const fetchTransaction = async () => {
         <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
           <h1 className="text-3xl font-bold text-white mb-6">Transactions</h1>
 
-          <TransactionForm onCreated={load} />
+          {editingTransaction ? (
+            <TransactionForm
+              transaction={editingTransaction}
+              onUpdated={load}
+              onCancel={() => setEditingTransaction(null)}
+              onCreated={load} // fallback
+            />
+          ) : (
+            <TransactionForm onCreated={load} />
+          )}
 
           <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
             <div className="flex flex-wrap gap-4 mb-6">
@@ -160,48 +175,67 @@ const fetchTransaction = async () => {
       </div>
             <ul className="flex flex-wrap gap-4 px-4">
               {transactions.map((t) => {
-                const account = accounts.find(a => a.id === t.accountId);
-                const category = categories.find(c => c.id === t.categoryId);
+  const account = accounts.find(a => a.id === t.accountId);
+  const category = categories.find(c => c.id === t.categoryId);
+  const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
 
-                return (
-                  <li
-                    key={t.id}
-                    className={`bg-white/80 backdrop-blur-lg w-[300px] font-semibold p-4 rounded-lg shadow border border-gray-200 flex flex-col justify-between transition-opacity duration-300 ${
-                      deletingId === t.id ? 'opacity-0' : 'opacity-100'
-                    }`}
-                  >
-                    <div>
-                      <p className="font-semibold text-gray-800"> {t.amount}</p>
-                      <span className="text-xs text-gray-500">
-                        {formatDateForUI(t.transactionDate)}
-                      </span>
-                      <span className="text-xs text-gray-700 ml-2">
-                        {account ? `${account.name} (${account.type})` : "Unknown Account"}
-                      </span>
-                      <span className="text-xs text-gray-800 ml-2">
-                        : {category ? category.name : "Unknown Category"}
-                      </span>
-                      <p className="text-m text-green-800">{t.description}</p>
-                    </div>
+  return (
+    <li
+      key={t.id}
+      className={`bg-white/80 backdrop-blur-lg w-[300px] font-semibold p-4 rounded-lg shadow border border-gray-200 flex flex-col justify-between transition-opacity duration-300 ${
+        deletingId === t.id ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      <div>
+        <p className="font-semibold text-gray-800">💲 {t.amount}</p>
+        <span className="text-xs text-gray-500">
+          {formatDateForUI(t.transactionDate)}
+        </span>
 
-                    <div className="flex justify-between items-center mt-4">
-                      <span className={`px-2 py-1 rounded-full text-sm font-medium ${t.type ? typeStyleMap[t.type] : 'bg-gray-100 text-gray-500'}`}>
-                        {t.type ? tLabels[t.type] : 'Unknown'}
-                      </span>
+        {/* 🔹 Source account */}
+        <span className="text-xs text-gray-700 ml-2">
+          {account ? `${account.name} (${account.type})` : "Unknown Account"}
+        </span>
 
-                      <button
-  onClick={() => handleDelete(t.id)}
-  className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
-  title="Delete"
->
-  <TrashIcon className="h-5 w-5" />
+        {/* 🔹 Show arrow for transfers */}
+        {toAccount && (
+          <span className="text-xs text-blue-600 ml-2">
+            → {toAccount.name} ({toAccount.type})
+          </span>
+        )}
 
-</button>
+        {/* 🔹 Category */}
+        <span className="text-xs text-gray-800 ml-2">
+          : {category ? category.name : "Unknown Category"}
+        </span>
 
-                    </div>
-                  </li>
-                );
-              })}
+        <p className="text-m text-green-800">{t.description}</p>
+      </div>
+
+      <div className="flex justify-between items-center mt-4">
+        <span className={`px-2 py-1 rounded-full text-sm font-medium ${t.type ? typeStyleMap[t.type] : 'bg-gray-100 text-gray-500'}`}>
+          {t.type ? tLabels[t.type] : 'Unknown'}
+        </span>
+
+        <button
+          onClick={() => handleEdit(t)}
+          className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
+          title="Edit"
+        >
+          ✏️
+        </button>
+
+        <button
+          onClick={() => handleDelete(t.id)}
+          className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
+          title="Delete"
+        >
+          <TrashIcon className="h-5 w-5" />
+        </button>
+      </div>
+    </li>
+  );
+})}
             </ul>
           </div>
         </div>

@@ -170,7 +170,7 @@ useEffect(() => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white px-4 sm:px-6 py-6">
+      <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white px-4 sm:px-6 py-6">
         <h1 className="text-3xl font-bold mb-6">📊 Dashboard</h1>
 
         {/* --- Balances --- */}
