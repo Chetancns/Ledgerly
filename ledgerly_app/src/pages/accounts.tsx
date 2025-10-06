@@ -93,24 +93,24 @@ export default function Accounts() {
               Add New Account
             </h2>
             <input
-              className="p-2 rounded-lg"
+              className="p-2 rounded-lg text-black"
               placeholder="Account Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             <select
-              className="p-2 rounded-lg"
+              className="p-2 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
               value={type}
               onChange={(e) => setType(e.target.value as AccountType)}
             >
               {accountTypes.map((acct) => (
-                <option key={acct} value={acct}>
+                <option key={acct} value={acct} >
                   {accountLabels[acct]}
                 </option>
               ))}
             </select>
             <input
-              className="p-2 rounded-lg"
+              className="p-2 rounded-lg text-black"
               placeholder="Balance"
               value={balance}
               onChange={(e) => setBalance(e.target.value)}

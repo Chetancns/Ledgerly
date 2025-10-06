@@ -26,4 +26,6 @@ export class Category {
   @Column({ length: 50, nullable: true }) icon?: string;
 
   @CreateDateColumn() createdAt: Date;
+
+  @Column({ type: 'boolean', default: false}) IsDeleted: boolean;
 }

@@ -49,7 +49,7 @@ export class ReportsService {
 //   .getMany();
 
   // 3. Load all categories
-  const categories = await this.catRepo.find({ where: { userId } });
+  const categories = await this.catRepo.find({ where: { userId ,IsDeleted:false} });
 
   // 4. Load expenses in this window
   const txs = await this.txRepo.find({

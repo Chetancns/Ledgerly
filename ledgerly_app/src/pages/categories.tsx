@@ -67,14 +67,14 @@ const openModal = (category: Category) => {
               placeholder="Category name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300"
+              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
               required
             />
 
             <select
               value={type}
               onChange={(e) => setType(e.target.value as CategoryType)}
-              className="px-3 py-2 rounded-lg border border-gray-300"
+              className="px-3 py-2 rounded-lg border border-gray-300 bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
             >
               <option value="expense">Expense</option>
               <option value="income">Income</option>

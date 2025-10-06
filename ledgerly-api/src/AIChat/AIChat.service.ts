@@ -61,7 +61,7 @@ Your task:
 `;
 console.log(systemPrompt);
     const response = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-nano",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: input },

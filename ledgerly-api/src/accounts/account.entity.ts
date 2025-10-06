@@ -30,5 +30,7 @@ export class Account {
 
   @Column({ length: 10, default: 'USD' }) currency: string;
 
+  @Column({ type: 'boolean', default: false}) IsDeleted: boolean;
+
   @CreateDateColumn() createdAt: Date;
 }

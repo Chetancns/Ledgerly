@@ -12,19 +12,20 @@ export class CategoryService {
       ...category,
       userId: userId,
       createdAt: new Date,
-      icon:"",
+      icon: "",
+      IsDeleted: false, // ensure not deleted
     });
     return this.repo.save(cat);
   }
 
   async findAll(): Promise<Category[]> {
-    return this.repo.find();
+    return this.repo.find({ where: { IsDeleted: false } });
   }
   async findAllByUser(userId: string): Promise<Category[] |null >{
-    return this.repo.find({ where: { userId } });
+    return this.repo.find({ where: { userId, IsDeleted: false } });
   }
   async findOne(id: string): Promise<Category | null> {
-    return this.repo.findOne({ where: { id } });
+    return this.repo.findOne({ where: { id, IsDeleted: false } });
   }
 
   async update(id: string, category: Partial<Category>): Promise<Category |null> {
@@ -33,6 +34,7 @@ export class CategoryService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.repo.delete(id);
+    // Soft delete: set IsDeleted to true
+    await this.repo.update(id, { IsDeleted: true });
   }
 }
