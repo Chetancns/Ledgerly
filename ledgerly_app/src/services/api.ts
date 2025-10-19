@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://192.168.1.50:3001", // NestJS backend
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.1.50:3001", // use env fallback to previous IP
   withCredentials: true,
 });
 
