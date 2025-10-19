@@ -20,3 +20,57 @@
 .animate-fade-in-out {
   animation: fade-in-out 5s ease-in-out forwards;
 }
+
+/* Fix bottom white space for mobile safe area */
+nav.fixed.bottom-0 {
+  padding-bottom: env(safe-area-inset-bottom);
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+}
+
+/* Prevent double background under navbar */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: transparent;
+  overscroll-behavior-y: none;
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+/* ensure the app background always matches the header/main gradient */
+:root {
+  --ledgerly-grad: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+}
+
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--ledgerly-grad);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* full height for mobile browsers with shrinking address bar */
+.app-fullheight {
+  min-height: 100svh;
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* bottom nav safe area */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+  backdrop-filter: blur(12px);
+}
+
+/* floating + button sits above nav + safe area */
+.fab-safe {
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}

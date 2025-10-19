@@ -202,7 +202,7 @@ export default function Budgets() {
                       <select
                         value={b.categoryId}
                         onChange={(e) => setBudgets(prev => prev.map(x => x.id === b.id ? { ...x, categoryId: e.target.value } : x))}
-                        className="mb-2 px-2 py-1 border rounded"
+                        className="mb-2 px-2 py-1 border rounded text-black"
                       >
                         {categories.map(cat => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -212,7 +212,9 @@ export default function Budgets() {
                         type="number"
                         value={b.amount}
                         onChange={(e) => setBudgets(prev => prev.map(x => x.id === b.id ? { ...x, amount: e.target.value } : x))}
-                        className="mb-2 px-2 py-1 border rounded"
+                        className="mb-2 px-2 py-1 border rounded text-black"
+                      />
+                      <select
                       />
                       <div className="flex justify-end gap-2">
                         <button onClick={() => handleEditSave(b)} className="text-green-600"><CheckIcon className="h-5 w-5"/></button>

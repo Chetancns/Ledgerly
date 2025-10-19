@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In } from 'typeorm';
 import { Budget, BudgetPeriod } from './budget.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import dayjs from 'dayjs';
@@ -31,7 +31,7 @@ export class BudgetsService {
     if (b.categoryId) where.categoryId = b.categoryId;
     console.log(where);
     const txs = await this.txRepo.find({ where:{
-      ...where, type: 'expense'
+      ...where, type: In(['expense', 'transfer'])
     } });
     console.log(txs);
     const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);

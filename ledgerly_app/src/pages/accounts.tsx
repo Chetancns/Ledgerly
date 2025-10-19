@@ -162,13 +162,13 @@ export default function Accounts() {
             <h2 className="text-white text-xl font-bold mb-4">Edit Account</h2>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <input
-                className="p-2 rounded-lg"
+                className="p-2 rounded-lg text-black"
                 placeholder="Account Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
               <select
-                className="p-2 rounded-lg"
+                className="p-2 rounded-lg text-black"
                 value={type}
                 onChange={(e) => setType(e.target.value as AccountType)}
               >
@@ -179,7 +179,7 @@ export default function Accounts() {
                 ))}
               </select>
               <input
-                className="p-2 rounded-lg"
+                className="p-2 rounded-lg text-black"
                 placeholder="Balance"
                 value={balance}
                 onChange={(e) => setBalance(e.target.value)}

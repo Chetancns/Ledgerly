@@ -131,13 +131,13 @@ const openModal = (category: Category) => {
       <h2 className="text-white text-xl font-bold mb-4">Edit Category</h2>
       <form onSubmit={handleCreate} className="flex flex-col gap-4">
         <input
-          className="p-2 rounded-lg"
+          className="p-2 rounded-lg text-black"
           placeholder="Category Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <select
-          className="p-2 rounded-lg"
+          className="p-2 rounded-lg text-black"
           value={type}
           onChange={(e) => setType(e.target.value as CategoryType)}
         >
