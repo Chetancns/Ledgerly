@@ -33,7 +33,7 @@ export const getFilterTransactions = ({
   if (categoryId) params.categoryId = categoryId;
   if (accountId) params.accountId = accountId;
   if (type) params.type = type;
-  console.log(params);
+  //console.log(params);
   return api.get("/transactions", { params });
 };
 

@@ -38,7 +38,7 @@ export const useAuth = () => {
 
   const doSignup = async (email: string, password: string, name: string) => {
     try {
-      console.log(email,password,name);
+      //console.log(email,password,name);
       const res = await signup(email, password, name);
       alert("sahfoie");
       const userData = res.data.user;

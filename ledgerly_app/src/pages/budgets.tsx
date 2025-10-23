@@ -84,7 +84,7 @@ export default function Budgets() {
   };
 
   const handleCopyPrevious = async () => {
-    console.log(form.period);
+    //console.log(form.period);
      const data = {
     period: form.period,
     startDate: form.startDate,
