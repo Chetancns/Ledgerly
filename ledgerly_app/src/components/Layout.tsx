@@ -8,7 +8,7 @@ import {
   FaCamera,
   FaEdit,
 } from "react-icons/fa";
-
+import { DevWarningBanner } from "./DevWarningBanner";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string }>({});
@@ -137,6 +137,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+          {/* Dev Warning Banner */}
+          <DevWarningBanner />
           {children}
         </main>
 

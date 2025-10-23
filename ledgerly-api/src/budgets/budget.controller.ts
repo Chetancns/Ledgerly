@@ -12,7 +12,7 @@ export class BudgetsController {
 
   @Post()
   createOrUpdate(@GetUser() user: { userId: string },@Body() dto: CreateBudgetDto) {
-    console.log("dto",dto);
+    //console.log("dto",dto);
     return this.budgetService.createOrUpdate(user.userId,dto);
   }
 
@@ -41,12 +41,12 @@ getBudget(
  @Delete(':id')
  deleteBudget(
    @Param('id') id: string){
-      console.log(id);
+      //console.log(id);
       return this.budgetService.deletebugets(id);
     }
     @Post('/copyPrevious')
     copyPrevious(@GetUser() user: { userId: string },@Body() body:CopyPreviousDto){
-      console.log(body);
+      //console.log(body);
       return this.budgetService.copyPrevious(user.userId,body.period,body.startDate,body.endDate);
     }
   @Get('/allutilization')
@@ -56,10 +56,10 @@ getBudget(
     @Query('year') year: string,
     @Query('period') period: 'monthly' | 'weekly' | 'bi-weekly' | 'yearly',
   ) {
-    console.log(month,year,period);
+    //console.log(month,year,period);
     const formattedMonth = month.padStart(2, '0'); 
     const date = `${year}-${formattedMonth}-01`;   // ✅ produces "2025-09-01"
-    console.log("Formatted date:", date);          // should log 2025-09-01
+    //console.log("Formatted date:", date);          // should log 2025-09-01
 
     return this.budgetService.allUtilizations(user.userId, period, date);
   }

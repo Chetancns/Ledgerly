@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import router from "next/router";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 export default function Signup() {
   const { doSignup } = useAuth();
@@ -12,19 +13,24 @@ export default function Signup() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try{
-    const success = await doSignup(email, password, name);
+    const signupPromise =  doSignup(email, password, name);
+    toast.promise(signupPromise, {
+    loading: 'Creating your account... Hang tight, our free-tier backend may take a moment to wake up.',
+    success: "Welcome aboard! Your account's ready—let's get started.",
+    error: 'Signup failed. Please check your details and try again.',
+    });
+
+    const success = await signupPromise;
     if (success) {
-          console.log("redirect called");
+          //console.log("redirect called");
     router.push('/'); // redirects to index page
-  }  else {
-    showError();
-  }}catch (err: unknown) {
+  } }catch (err: unknown) {
     showError();
     }
   };
 
     const showError = () =>{
-    console.error("Sign up Failed");
+    //console.error("Sign up Failed");
     setError("Account creation failed. If the issue persists, contact support.");
     setTimeout(() => setError(null), 5000);
     }

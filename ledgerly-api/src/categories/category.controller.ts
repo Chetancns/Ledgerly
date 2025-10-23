@@ -29,7 +29,7 @@ export class CategoryController {
 
   @Put(':id')
   update(@Param('id') id: string, @Body() category:Partial<Category>): Promise<Category |null> {
-    console.log(category,id)
+    //console.log(category,id)
     return this.categoryService.update(id, category);
   }
 

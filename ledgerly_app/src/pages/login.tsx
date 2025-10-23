@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import toast from "react-hot-toast";
 
 export default function Login() {
     
@@ -13,21 +14,29 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       //console.log(email,password);
-    try{  
-    const success = await doLogin(email, password); // assuming this returns true/false
+    try {
+  const loginPromise = doLogin(email, password); // returns a Promise<User>
+  
+  toast.promise(loginPromise, {
+    loading: 'Loading... Please wait, we are using a free tier backend which may take some time to wake up.',
+    success: 'You\'re in. Let\'s get started!',
+    error: 'Login didn’t go through. Let’s double-check your details.',
+  });
 
-      if (success) {
-          console.log("redirect called");
+  const user = await loginPromise;
+
+  if (user) {
+    //console.log("Logged in successfully!");
     router.push('/'); // redirects to index page
-  } else {
-    showError();
-  }}catch (err: unknown) {
-    showError();
-    }
+  } 
+} catch (err: unknown) {
+  showError();
+}
+
 
   };
   const showError = () =>{
-    console.error("Login failed");
+    //console.error("Login failed");
     setError("Login unsuccessful. Double-check your email and password.");
     setTimeout(() => setError(null), 5000);
   }

@@ -16,7 +16,7 @@ export class BudgetsService {
   async utilization(userId: string, budgetId: string) {
     const b = await this.budRepo.findOne({ where: { id: budgetId, userId } });
     if (!b) return null;
-    console.log(budgetId);
+    //console.log(budgetId);
     // Compute date window based on period
     const now = dayjs();
     let from = now.startOf('month');
@@ -29,18 +29,18 @@ export class BudgetsService {
       transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
     };
     if (b.categoryId) where.categoryId = b.categoryId;
-    console.log(where);
+    //console.log(where);
     const txs = await this.txRepo.find({ where:{
       ...where, type: In(['expense', 'transfer'])
     } });
-    console.log(txs);
+    //console.log(txs);
     const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
     const pct = b.amount ? (spent / Number(b.amount)) * 100 : 0;
 
     return { budgetId: b.id, amount: Number(b.amount), spent: Number(spent.toFixed(2)), percent: Number(pct.toFixed(1)) };
   }
   async createOrUpdate(userId: string, dto: CreateBudgetDto) {
-    console.log("budget called",dto);
+    //console.log("budget called",dto);
     let budget = await this.budRepo.findOne({
       where: { userId, categoryId: dto.categoryId, startDate:dto.startDate,endDate:dto.endDate },
     });
@@ -49,13 +49,13 @@ export class BudgetsService {
       budget.amount = dto.amount;
       return this.budRepo.save(budget);
     }
-    console.log(budget);
+    //console.log(budget);
     budget = this.budRepo.create({ ...dto, userId });
     return this.budRepo.save(budget);
   }
 
   async getBudgets(userId: string, startDate: string, endDate: string,period :string) {
-    console.log()
+    //console.log()
     return this.budRepo.find({
     where: {
       userId,
@@ -101,17 +101,17 @@ export class BudgetsService {
     }
   }
   async copyPrevious(userId: string, period: string, startDate: string, endDate: string) {
-    console.log(period,startDate,endDate)
+    //console.log(period,startDate,endDate)
   const lastBudget = await this.budRepo.findOne({
     where: { userId,period: period as BudgetPeriod },
     order: { createdAt: "DESC" },
   });
   if (!lastBudget) return [];
-console.log(lastBudget);
+  //console.log(lastBudget);
   const prevBudgets = await this.budRepo.find({
     where: { userId, period: period as BudgetPeriod, startDate: lastBudget.startDate, endDate: lastBudget.endDate },
   });
-console.log(prevBudgets);
+  //console.log(prevBudgets);
   const newBudgets = prevBudgets.map((b) =>
     this.budRepo.create({
       userId,
@@ -123,7 +123,7 @@ console.log(prevBudgets);
       carriedOver: false,
     })
   );
-console.log("new ",newBudgets);
+  // console.log("new ",newBudgets);
   return this.budRepo.save(newBudgets);
 }
 async deletebugets(id:string){
@@ -138,7 +138,7 @@ async allUtilizations(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly'
   // determine range
   let from = dayjsDate.startOf('month');
   let to = dayjsDate.endOf('month');
-  console.log(from,to);
+  //console.log(from,to);
   if (period === 'weekly') { from = dayjsDate.startOf('week'); to = dayjsDate.endOf('week'); }
   if (period === 'yearly') { from = dayjsDate.startOf('year'); to = dayjsDate.endOf('year'); }
   if (period === 'bi-weekly') {

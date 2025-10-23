@@ -50,7 +50,7 @@ export class TransactionsService {
   }
   
   async update(userId: string, id: string, dto: Partial<CreateTransactionDto>) {
-    console.log("Update is called in service",userId,id,dto); 
+    //console.log("Update is called in service",userId,id,dto); 
     const tx = await this.txRepo.findOne({ where: { id, userId } });
   if (!tx) throw new NotFoundException('Transaction not found');
 

@@ -18,7 +18,7 @@ export class AccountService {
       createdAt: new Date(),
       IsDeleted: false, // ensure not deleted
     });
-    console.log(acc);
+    //console.log(acc);
 
     return this.repo.save(acc);
   }
@@ -42,7 +42,7 @@ export class AccountService {
   }
 
   async findAllByUser(userId: string): Promise<Account[] | null>{
-    console.log(userId)
+    //console.log(userId)
     return this.repo.find({ where: { userId:userId, IsDeleted: false } });
   }
 }

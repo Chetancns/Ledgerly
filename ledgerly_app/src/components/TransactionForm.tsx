@@ -87,46 +87,38 @@ export default function TransactionForm({
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  e.preventDefault();
+  if (!form.accountId || !form.categoryId) {
+    toast.error("Please select both account and category.");
+    return;
+  }
 
-    if (!form.accountId || !form.categoryId) {
-      alert("Please select both account and category.");
-      return;
-    }
-
-    try {
-       if (transaction) {
-    // 🔹 Editing an existing transaction
-    if (kind === "transfer" || kind === "savings") {
-      if (!toAccountId) {
-        alert("Please select the destination account.");
-        return;
-      }
-      await updateTransaction(transaction.id, {
-        ...form,
-        toAccountId,
-        type: kind,
-        transactionDate: toISOStringWithoutOffset(form.transactionDate),
-      });
-    } else {
-      await updateTransaction(transaction.id, {
-        ...form,
-        transactionDate: toISOStringWithoutOffset(form.transactionDate),
-      });
-    }
-
-    toast.success("✅ Transaction updated!");
-    onUpdated?.();
-    onCancel?.();
-  } 
-       else if (kind === "transfer" || kind === "savings") {
-        // 🔹 Transfer or Savings flow
-        if (!toAccountId) {
-          alert("Please select the destination account.");
+  try {
+    const transactionPromise = (() => {
+      if (transaction) {
+        // 🔹 Editing existing transaction
+        if ((kind === "transfer" || kind === "savings") && !toAccountId) {
+          toast.error("Please select the destination account.");
           return;
         }
 
-        await transfer({
+        const payload = {
+          ...form,
+          transactionDate: toISOStringWithoutOffset(form.transactionDate),
+          ...(kind === "transfer" || kind === "savings" ? { toAccountId, type: kind } : {}),
+        };
+
+        return updateTransaction(transaction.id, payload);
+      }
+
+      // 🔹 Creating new transaction
+      if ((kind === "transfer" || kind === "savings") && !toAccountId) {
+        toast.error("Please select the destination account.");
+        return;
+      }
+
+      if (kind === "transfer" || kind === "savings") {
+        return transfer({
           from: form.accountId,
           to: toAccountId,
           cat: form.categoryId,
@@ -135,58 +127,73 @@ export default function TransactionForm({
           date: toISOStringWithoutOffset(form.transactionDate),
           type: kind,
         });
-
-        toast.success(`✅ ${kind === "transfer" ? "Transfer" : "Savings"} recorded!`);
-        onCreated();
-      } else {
-        // 🔹 Normal expense/income
-        await createTransaction({
-          ...form,
-          transactionDate: toISOStringWithoutOffset(form.transactionDate),
-        });
-
-        toast.success("✅ Transaction added!");
-        onCreated();
       }
 
-      // Reset form
-      setForm({
-        accountId: "",
-        categoryId: "",
-        amount: "",
-        description: "",
-        transactionDate: new Date().toISOString().split("T")[0],
+      return createTransaction({
+        ...form,
+        transactionDate: toISOStringWithoutOffset(form.transactionDate),
       });
-      setKind("normal");
-      setToAccountId("");
-    } catch (error) {
-      toast.error(
-        transaction
-          ? "Transaction update failed: " + error
-          : "Transaction creation failed: " + error
-      );
+    })();
+
+    if (!transactionPromise) return; // Guard for missing inputs
+
+    await toast.promise(transactionPromise, {
+      loading: "Processing transaction... hang tight!",
+      success: transaction
+        ? `✅ ${kind === "transfer" ? "Transfer" : kind === "savings" ? "Savings" : "Transaction"} updated!`
+        : `✅ ${kind === "transfer" ? "Transfer" : kind === "savings" ? "Savings" : "Transaction"} recorded!`,
+      error: transaction
+        ? "Transaction update failed. Please try again."
+        : "Transaction creation failed. Please check your inputs.",
+    });
+
+    if (transaction) {
+      onUpdated?.();
+      onCancel?.();
+    } else {
+      onCreated?.();
     }
-  };
+
+    // Reset form after success
+    setForm({
+      accountId: "",
+      categoryId: "",
+      amount: "",
+      description: "",
+      transactionDate: new Date().toISOString().split("T")[0],
+    });
+    setKind("normal");
+    setToAccountId("");
+  } catch (error) {
+    console.error("Transaction error:", error);
+  }
+};
 
   const CallAIbackendAPI = async () => {
-    try {
-      setImportLoading(true);
-      // small UX guard: if input empty, fail fast
-      if (!importInput.trim()) {
-        toast.error("Please paste transaction text to import.");
-        setImportLoading(false);
-        return;
-      }
+  // small UX guard: if input empty, fail fast
+  if (!importInput.trim()) {
+    toast.error("Please paste transaction text to import.");
+    return;
+  }
 
+  try {
+    const importPromise = (async () => {
+      setImportLoading(true);
       await parseTransaction(importInput);
-      toast.success("✅ Import submitted");
-      onCreated();
+      onCreated?.();
       setShowImportPopup(false);
-    } catch (err) {
-      toast.error("Import failed");
-    } finally {
-      setImportLoading(false);
-    }
+    })();
+
+    await toast.promise(importPromise, {
+      loading: "Analyzing and importing your transactions... please wait ⏳",
+      success: "✅ Import completed successfully!",
+      error: "❌ Import failed. Please try again or check the input.",
+    });
+  } catch (err) {
+    console.error("Import error:", err);
+  } finally {
+    setImportLoading(false);
+  }
   };
 
   return (
