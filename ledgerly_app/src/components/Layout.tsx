@@ -9,6 +9,7 @@ import {
   FaEdit,
 } from "react-icons/fa";
 import { DevWarningBanner } from "./DevWarningBanner";
+import { uploadReceiptImage, uploadAudioFile } from "../services/ai";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string }>({});
@@ -18,7 +19,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [previewAudio, setPreviewAudio] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
-
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);  
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const navItems = [
     { href: "/", label: "Dashboard", icon: "📊" },
     { href: "/transactions", label: "Transactions", icon: "↔️" },
@@ -40,31 +42,86 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const handleImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => setPreviewImage(reader.result as string);
-    reader.readAsDataURL(file);
-  };
+  setSelectedImageFile(file); // ✅ keep the file reference
+  const reader = new FileReader();
+  reader.onload = () => setPreviewImage(reader.result as string);
+  reader.readAsDataURL(file);
+};
+
 
   const confirmImageUpload = async () => {
-    setUploading(true);
-    // simulate upload delay
-    setTimeout(() => {
-      setUploading(false);
-      setShowModal(false);
-      setPreviewImage(null);
-    }, 1000);
-  };
+  if (!selectedImageFile) {
+    alert("Please select an image before confirming.");
+    return;
+  }
 
-  const startRecording = () => setRecording(true);
-  const stopRecording = () => setRecording(false);
-  const confirmAudioUpload = () => {
+  try {
     setUploading(true);
-    setTimeout(() => {
-      setUploading(false);
-      setShowModal(false);
-      setPreviewAudio(null);
-    }, 1000);
-  };
+    const response = await uploadReceiptImage(selectedImageFile);
+    console.log("✅ Image upload response:", response.data);
+
+    // Optionally: auto-fill transaction form using AI result
+    // setShowForm(true);
+    // setFormData(response.data.transaction);
+  } catch (err) {
+    console.error("❌ Image upload failed:", err);
+    alert("Image upload failed. Please try again.");
+  } finally {
+    setUploading(false);
+    setShowModal(false);
+    setPreviewImage(null);
+    setSelectedImageFile(null); // reset file
+  }
+};
+
+
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    const chunks: BlobPart[] = [];
+
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "audio/webm" });
+      setPreviewAudio(URL.createObjectURL(blob));
+      stream.getTracks().forEach((t) => t.stop());
+    };
+
+    recorder.start();
+    setMediaRecorder(recorder);
+    setRecording(true);
+  } catch (err) {
+    console.error("Audio recording failed:", err);
+    alert("Could not start recording. Please allow microphone access.");
+  }
+};
+
+const stopRecording = () => {
+  if (mediaRecorder) {
+    mediaRecorder.stop();
+    setRecording(false);
+  }
+};
+  const confirmAudioUpload = async () => {
+  if (!previewAudio) return;
+  try {
+    setUploading(true);
+    // Fetch the audio blob from the previewAudio URL
+    const responseBlob = await fetch(previewAudio).then((res) => res.blob());
+    const uploadResponse = await uploadAudioFile(responseBlob);
+
+    console.log("Audio upload response:", uploadResponse.data);
+    // setShowForm(true); setFormData(uploadResponse.data.transaction);
+  } catch (err) {
+    console.error("Audio upload failed:", err);
+    alert("Audio upload failed. Please try again.");
+  } finally {
+    setUploading(false);
+    setShowModal(false);
+    setPreviewAudio(null);
+  }
+};
 
   return (
     <>

@@ -32,7 +32,7 @@ async transfer(
 }
   @Post()
   create(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: Partial<CreateTransactionDto>) {
-    console.log("Createis called ",user.userId,dto)
+    //console.log("Create is called ",user.userId,dto)
     dto.userId = user.userId;
     return this.service.create(dto);
   }
@@ -54,7 +54,7 @@ update(
     @Query('accountId') accountId?:string,
     @Query('type') type?: 'expense' | 'income' | 'savings'|'transfer',
   ) {
-    console.log(user,from,to,categoryId,accountId,type);
+    //console.log(user,from,to,categoryId,accountId,type);
     return this.service.findByUser(user.userId, { from, to, categoryId,accountId, type });
   }
 

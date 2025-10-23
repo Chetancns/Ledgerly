@@ -78,10 +78,10 @@ useEffect(() => {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        console.log("calling API");
+        //console.log("calling API");
         const res = await getBudgetReports("monthly",selectedMonth, selectedYear, );
         setBudgetReports(res.data);
-        console.log(res.data);
+        //console.log(res.data);
       } catch (err) {
         console.error("Error loading budget reports", err);
       }
@@ -93,7 +93,7 @@ useEffect(() => {
   useEffect(() =>{
     const fetchCashflow = async () =>{
       try{
-        console.log("Cashflow has been called");
+        //console.log("Cashflow has been called");
       const res = await getCashflowTimeline("daily",selectedMonth,selectedYear);
       setCashFlowData(res.data.timeline);
       }catch(err){

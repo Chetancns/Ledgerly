@@ -2,7 +2,7 @@ import api from "./api";
 import { Account } from "../models/account";
 export async function getUserAccount() {
     const res = await api.get<Account[]>("/accounts/accountusers");
-    console.log(res);
+    //console.log(res);
     return res.data;
 }
 
@@ -15,7 +15,7 @@ export const createAccount = async (account: {
   type: string;
   balance: string;
 }) => {
-    console.log("create",account);
+    //console.log("create",account);
   return await api.post<Account>("/accounts", account);
 };
 
