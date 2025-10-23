@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { DevWarningBanner } from "./DevWarningBanner";
 import { uploadReceiptImage, uploadAudioFile } from "../services/ai";
+import toast from "react-hot-toast";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string }>({});
@@ -51,26 +52,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const confirmImageUpload = async () => {
   if (!selectedImageFile) {
-    alert("Please select an image before confirming.");
+    toast.error("Please select an image before confirming.");
     return;
   }
 
+  const uploadPromise = uploadReceiptImage(selectedImageFile);
+
+  toast.promise(uploadPromise, {
+    loading: "Receipt received! Summoning the AI for analysis… (Free-tier backend stretching its legs—this may take a moment.).... ⏳",
+    success: "✅ Transaction saved! AI isn’t flawless — take a moment to verify it in your Transactions.",
+    error: "❌ Upload or parsing failed. Please try again.",
+  });
+
   try {
     setUploading(true);
-    const response = await uploadReceiptImage(selectedImageFile);
-    console.log("✅ Image upload response:", response.data);
+    const response = await uploadPromise;
 
-    // Optionally: auto-fill transaction form using AI result
-    // setShowForm(true);
-    // setFormData(response.data.transaction);
+    console.log("✅ AI response:", response.data);
+
+    // If your backend saves the transaction automatically,
+    // you can navigate or refresh the Transactions page:
+    // router.push("/transactions");
+
   } catch (err) {
-    console.error("❌ Image upload failed:", err);
-    alert("Image upload failed. Please try again.");
+    console.error("❌ Image upload or AI processing failed:", err);
   } finally {
     setUploading(false);
     setShowModal(false);
     setPreviewImage(null);
-    setSelectedImageFile(null); // reset file
+    setSelectedImageFile(null);
   }
 };
 
@@ -104,18 +114,33 @@ const stopRecording = () => {
   }
 };
   const confirmAudioUpload = async () => {
-  if (!previewAudio) return;
+  if (!previewAudio) {
+    alert("Please record audio before confirming.");
+    return;
+  }
+
   try {
     setUploading(true);
-    // Fetch the audio blob from the previewAudio URL
-    const responseBlob = await fetch(previewAudio).then((res) => res.blob());
-    const uploadResponse = await uploadAudioFile(responseBlob);
 
-    console.log("Audio upload response:", uploadResponse.data);
-    // setShowForm(true); setFormData(uploadResponse.data.transaction);
+    // Convert the preview URL back into a Blob
+    const responseBlob = await fetch(previewAudio).then((res) => res.blob());
+    const uploadPromise = uploadAudioFile(responseBlob);
+
+    toast.promise(uploadPromise, {
+      loading: "Listening in… AI is gearing up to analyze your voice note. Free-tier backend stretching its legs—hang tight!... 🎤",
+      success:
+        "✅ Transaction saved! AI isn’t flawless — take a moment to verify it in your Transactions.",
+      error: "❌ Audio upload or parsing failed. Please try again.",
+    });
+
+    const response = await uploadPromise;
+    console.log("🎧 Audio upload response:", response.data);
+
+    // Optionally navigate or refresh after success
+    // router.push("/transactions");
+
   } catch (err) {
-    console.error("Audio upload failed:", err);
-    alert("Audio upload failed. Please try again.");
+    console.error("❌ Audio upload failed:", err);
   } finally {
     setUploading(false);
     setShowModal(false);

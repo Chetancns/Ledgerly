@@ -30,7 +30,8 @@ export default function Login() {
     router.push('/'); // redirects to index page
   } 
 } catch (err: unknown) {
-  showError();
+  //showError();
+  console.error("Login failed:", err);
 }
 
 
