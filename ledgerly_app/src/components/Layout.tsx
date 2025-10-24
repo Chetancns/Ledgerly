@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import {
   FaSignOutAlt,
   FaPlus,
