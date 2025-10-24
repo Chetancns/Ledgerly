@@ -17,7 +17,7 @@ export default function Signup() {
     toast.promise(signupPromise, {
     loading: 'Creating your account... Hang tight, our free-tier backend may take a moment to wake up.',
     success: "Welcome aboard! Your account's ready—let's get started.",
-    error: 'Signup failed. Please check your details and try again.',
+    error: 'Signup failed. Please check your details and try again. If the issue persists, contact support.',
     });
 
     const success = await signupPromise;
@@ -25,7 +25,7 @@ export default function Signup() {
           //console.log("redirect called");
     router.push('/'); // redirects to index page
   } }catch (err: unknown) {
-    showError();
+    console.error("Sign up failed:", err);
     }
   };
 
