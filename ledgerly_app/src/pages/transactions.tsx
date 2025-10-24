@@ -77,7 +77,7 @@ const fetchTransaction = async () => {
   // determine range
   let from = dayjsDate.startOf('month');
   let to = dayjsDate.endOf('month');
-        console.log("fetch got triggered")
+        //console.log("fetch got triggered")
         if (selectedAccount === 'all'){
           const [txRes] = await Promise.all([
     getFilterTransactions({ from: from.format('YYYY-MM-DD'), to: to.format('YYYY-MM-DD') })

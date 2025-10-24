@@ -11,6 +11,9 @@ import {
 import { DevWarningBanner } from "./DevWarningBanner";
 import { uploadReceiptImage, uploadAudioFile } from "../services/ai";
 import toast from "react-hot-toast";
+import TransactionForm from "./TransactionForm";
+import UploadReceipt from "./UploadReceipt";
+import UploadAudio from "./UploadAudio";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<{ name?: string }>({});
@@ -22,6 +25,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [recording, setRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);  
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const navItems = [
     { href: "/", label: "Dashboard", icon: "📊" },
     { href: "/transactions", label: "Transactions", icon: "↔️" },
@@ -243,15 +247,43 @@ const stopRecording = () => {
           })}
         </nav>
 
-        {/* Floating Add Menu */}
-        <div className="fixed fab-safe md:bottom-6 right-5 flex flex-col gap-3 z-50">
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-yellow-400 text-indigo-900 rounded-full w-16 h-16 flex items-center justify-center shadow-2xl hover:bg-yellow-300 transition"
-          >
-            <FaPlus className="text-3xl" />
-          </button>
-        </div>
+        {/* Floating Expandable FAB */}
+      {/* 🚀 Expandable Floating Action Button */}
+{/* 🚀 Expandable Floating Action Button */}
+<div className="fixed bottom-6 right-5 flex flex-col items-center gap-3 z-50">
+  {expanded && (
+    <div className="flex flex-col items-center gap-3 mb-2 transition-all duration-300">
+      {/* 📸 Upload Receipt */}
+      <UploadReceipt />
+
+      {/* 🎤 Record Audio */}
+      <UploadAudio />
+
+      {/* ✏️ Manual Entry */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="bg-white/90 text-indigo-900 rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-yellow-200 transition"
+        title="Add Manually"
+      >
+        <FaEdit className="text-lg" />
+      </button>
+    </div>
+  )}
+
+  {/* ➕ Main Expand Button */}
+  <button
+    onClick={() => setExpanded((prev) => !prev)}
+    className="bg-yellow-400 text-indigo-900 rounded-full w-16 h-16 flex items-center justify-center shadow-2xl hover:bg-yellow-300 transition"
+  >
+    <FaPlus
+      className={`text-2xl transform transition-transform ${
+        expanded ? "rotate-45" : ""
+      }`}
+    />
+  </button>
+</div>
+
+      
 
         {/* ===== Modal: Add Transaction Options ===== */}
         {showModal && (
@@ -348,11 +380,9 @@ const stopRecording = () => {
                     id="imageInput"
                     type="file"
                     accept="image/*"
-                    capture="environment"
                     className="hidden"
                     onChange={(e) =>
-                      e.target.files?.[0] &&
-                      handleImageUpload(e.target.files[0])
+                      e.target.files?.[0] && handleImageUpload(e.target.files[0])
                     }
                   />
 
@@ -378,6 +408,26 @@ const stopRecording = () => {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        )}
+        {/* ✅ Transaction Form Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-indigo-900/90 backdrop-blur-xl rounded-2xl p-6 w-full max-w-2xl relative shadow-xl border border-white/20">
+              <button
+                onClick={() => setShowForm(false)}
+                className="absolute top-3 right-3 text-white hover:text-yellow-300 text-xl"
+              >
+                ✖
+              </button>
+              <TransactionForm
+                onCreated={() => {
+                  setShowForm(false);
+                  router.push("/transactions");
+                }}
+                onCancel={() => setShowForm(false)}
+              />
             </div>
           </div>
         )}
