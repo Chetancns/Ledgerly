@@ -78,7 +78,6 @@ const openModal = (category: Category) => {
             >
               <option value="expense">Expense</option>
               <option value="income">Income</option>
-              <option value="savings">Savings</option>
             </select>
 
             <button
@@ -143,7 +142,6 @@ const openModal = (category: Category) => {
         >
           <option value="expense">Expense</option>
           <option value="income">Income</option>
-          <option value="savings">Savings</option>
         </select>
         <div className="flex gap-2">
           <button

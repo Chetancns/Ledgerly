@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Layout from "../components/Layout";
 import TransactionForm from "../components/TransactionForm";
 import { getTransactions, onDelete ,getFilterTransactions} from "../services/transactions";
@@ -9,7 +9,7 @@ import { Category } from "@/models/category";
 import { getUserCategory } from "@/services/category";
 import { TrashIcon } from '@heroicons/react/24/solid';
 import dayjs from "dayjs";
-
+import toast from "react-hot-toast";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -20,20 +20,22 @@ export default function Transactions() {
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [typeSummary, setTypeSummary] = useState<Partial<Record<TransactionType, number>>>({});
 
-const handleEdit = (tx: Transaction) => {
-  setEditingTransaction(tx);
-};
-const formatDateForUI = (dateString: string) => {  
-  if (!dateString) return "";
-  const [year, month, day] = dateString.split("-");
-  return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(
-    "en-US",
-    { year: "numeric", month: "short", day: "numeric" }
-  );
-};
+  const handleEdit = (tx: Transaction) => {
+    setEditingTransaction(tx);
+  };
+  const formatDateForUI = (dateString: string) => {  
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split("-");
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(
+      "en-US",
+      { year: "numeric", month: "short", day: "numeric" }
+    );
+  };
 
   
   const tLabels: Record<TransactionType, string> = {
@@ -58,52 +60,85 @@ const formatDateForUI = (dateString: string) => {
   };
 
   const load = async () => {
-    const [txRes, accRes, catRes] = await Promise.all([
-      fetchTransaction(),
+    const [ accRes, catRes] = await Promise.all([
+      //fetchTransaction(),
       getUserAccount(),
       getUserCategory()
     ]);
     setAccounts(accRes);
     setCategories(catRes);
   };
-const fetchTransaction = async () => {
+  const toastId = "fetch-transactions-toast";
+  const fetchTransaction = useCallback(() => {
+    const controller = new AbortController(); // optional: for cancellation
+    const fetchData = async () => {
+      toast.loading("Loading transactions...", { id: toastId });
+
       try {
         const date = `${selectedYear}-${selectedMonth}-01`;
         const dayjsDate = dayjs(date);
-  //console.log(dayjsDate);
-  if (!dayjsDate.isValid()) {
-    throw new Error(`Invalid date: ${date}`);
-  }
-  // determine range
-  let from = dayjsDate.startOf('month');
-  let to = dayjsDate.endOf('month');
-        //console.log("fetch got triggered")
-        if (selectedAccount === 'all'){
-          const [txRes] = await Promise.all([
-    getFilterTransactions({ from: from.format('YYYY-MM-DD'), to: to.format('YYYY-MM-DD') })
-  ]);
-  setTransactions(txRes.data);
-
-        }else{
-           const [txRes] = await Promise.all([
-    getFilterTransactions({
-      accountId: selectedAccount,
-      from: from.format('YYYY-MM-DD'),
-      to: to.format('YYYY-MM-DD')
-    })
-  ]);
-  setTransactions(txRes.data);
-
+        if (!dayjsDate.isValid()) {
+          throw new Error(`Invalid date: ${date}`);
         }
-      } catch (err) {
-        console.error("Error loading budget utilizations", err);
-      }
-    };
-  useEffect(() => { load(); }, []);
- useEffect(() => {
-    fetchTransaction();
-  }, [selectedMonth, selectedYear,selectedAccount]);
 
+        const from = dayjsDate.startOf('month');
+        const to = dayjsDate.endOf('month');
+
+        const filters: Record<string, any> = {
+          from: from.format('YYYY-MM-DD'),
+          to: to.format('YYYY-MM-DD'),
+        };
+
+        if (selectedAccount !== 'all') {
+          filters.accountId = selectedAccount;
+        }
+
+        if (selectedCategory !== 'all') {
+          filters.categoryId = selectedCategory;
+        }
+
+        const [txRes] = await Promise.all([
+          getFilterTransactions(filters, { signal: controller.signal }),
+        ]);
+        setTransactions(txRes.data);
+        const summary = txRes.data.reduce((acc: { [x: string]: any; }, tx: { amount: any; type: string | number; }) => {
+          const amt = Number(tx.amount) || 0;
+          acc[tx.type] = (acc[tx.type] || 0) + amt;
+          return acc;
+        }, {} as Record<TransactionType, number>);
+        setTypeSummary(summary);
+        toast.dismiss(toastId);
+
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Error loading transactions', err);
+          toast.dismiss(toastId);
+          toast.error('Failed to load transactions ❌');
+        }
+      }
+      return () => controller.abort();
+    };
+
+    fetchData();
+  }, [selectedMonth, selectedYear, selectedAccount, selectedCategory]);
+
+  // Debounce logic
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchTransaction();
+    }, 400); // adjust delay as needed
+  }, [fetchTransaction]);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  // useEffect(() => {
+  //   fetchTransaction();
+  // }, [selectedMonth, selectedYear, selectedAccount, selectedCategory]);
 
   return (
     <Layout>
@@ -123,7 +158,7 @@ const fetchTransaction = async () => {
           )}
 
           <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
-            <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-wrap gap-4 mb-6">
         <div className="flex flex-col">
           <label className="text-sm font-medium text-white mb-1">Month</label>
           <select
@@ -172,70 +207,99 @@ const fetchTransaction = async () => {
             ))}
           </select>
         </div>
+        
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-white mb-1">Category</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
+          >
+            <option value="all">All</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-4 mb-4 flex-wrap">
+          {Object.entries(typeSummary).map(([type, total]) => (
+            <div
+              key={type}
+              className={`px-4 py-2 rounded-lg shadow  font-semibold ${
+                typeStyleMap[type as TransactionType] || 'bg-gray-500'
+              }`}
+            >
+              {tLabels[type as TransactionType]}: ₹{Number(total).toFixed(2)}
+            </div>
+          ))}
+        </div>
+
       </div>
             <ul className="flex flex-wrap gap-4 px-4">
               {transactions.map((t) => {
-  const account = accounts.find(a => a.id === t.accountId);
-  const category = categories.find(c => c.id === t.categoryId);
-  const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
+    const account = accounts.find(a => a.id === t.accountId);
+    const category = categories.find(c => c.id === t.categoryId);
+    const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
 
-  return (
-    <li
-      key={t.id}
-      className={`bg-white/80 backdrop-blur-lg w-[300px] font-semibold p-4 rounded-lg shadow border border-gray-200 flex flex-col justify-between transition-opacity duration-300 ${
-        deletingId === t.id ? 'opacity-0' : 'opacity-100'
-      }`}
-    >
-      <div>
-        <p className="font-semibold text-gray-800">💲 {t.amount}</p>
-        <span className="text-xs text-gray-500">
-          {formatDateForUI(t.transactionDate)}
-        </span>
-
-        {/* 🔹 Source account */}
-        <span className="text-xs text-gray-700 ml-2">
-          {account ? `${account.name} (${account.type})` : "Unknown Account"}
-        </span>
-
-        {/* 🔹 Show arrow for transfers */}
-        {toAccount && (
-          <span className="text-xs text-blue-600 ml-2">
-            → {toAccount.name} ({toAccount.type})
+    return (
+      <li
+        key={t.id}
+        className={`bg-white/80 backdrop-blur-lg w-[300px] font-semibold p-4 rounded-lg shadow border border-gray-200 flex flex-col justify-between transition-opacity duration-300 ${
+          deletingId === t.id ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+        <div>
+          <p className="font-semibold text-gray-800">💲 {t.amount}</p>
+          <span className="text-xs text-gray-500">
+            {formatDateForUI(t.transactionDate)}
           </span>
-        )}
 
-        {/* 🔹 Category */}
-        <span className="text-xs text-gray-800 ml-2">
-          : {category ? category.name : "Unknown Category"}
-        </span>
+          {/* 🔹 Source account */}
+          <span className="text-xs text-gray-700 ml-2">
+            {account ? `${account.name} (${account.type})` : "Unknown Account"}
+          </span>
 
-        <p className="text-m text-green-800">{t.description}</p>
-      </div>
+          {/* 🔹 Show arrow for transfers */}
+          {toAccount && (
+            <span className="text-xs text-blue-600 ml-2">
+              → {toAccount.name} ({toAccount.type})
+            </span>
+          )}
 
-      <div className="flex justify-between items-center mt-4">
-        <span className={`px-2 py-1 rounded-full text-sm font-medium ${t.type ? typeStyleMap[t.type] : 'bg-gray-100 text-gray-500'}`}>
-          {t.type ? tLabels[t.type] : 'Unknown'}
-        </span>
+          {/* 🔹 Category */}
+          <span className="text-xs text-gray-800 ml-2">
+            : {category ? category.name : "Unknown Category"}
+          </span>
 
-        <button
-          onClick={() => handleEdit(t)}
-          className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
-          title="Edit"
-        >
-          ✏️
-        </button>
+          <p className="text-m text-green-800">{t.description}</p>
+        </div>
 
-        <button
-          onClick={() => handleDelete(t.id)}
-          className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
-          title="Delete"
-        >
-          <TrashIcon className="h-5 w-5" />
-        </button>
-      </div>
-    </li>
-  );
-})}
+        <div className="flex justify-between items-center mt-4">
+          <span className={`px-2 py-1 rounded-full text-sm font-medium ${t.type ? typeStyleMap[t.type] : 'bg-gray-100 text-gray-500'}`}>
+            {t.type ? tLabels[t.type] : 'Unknown'}
+          </span>
+
+          <button
+            onClick={() => handleEdit(t)}
+            className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
+            title="Edit"
+          >
+            ✏️
+          </button>
+
+          <button
+            onClick={() => handleDelete(t.id)}
+            className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
+            title="Delete"
+          >
+            <TrashIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </li>
+    );
+  })}
             </ul>
           </div>
         </div>
