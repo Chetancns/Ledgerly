@@ -1,3 +1,4 @@
+import { AxiosRequestConfig } from "axios";
 import api from "./api";
 import { Transaction } from "@/models/Transaction";
 
@@ -25,7 +26,7 @@ export const getFilterTransactions = ({
   categoryId?: string;
   accountId?: string;
   type?: string;
-}) => {
+},options?:AxiosRequestConfig) => {
   const params: Record<string, string> = {};
 
   if (from) params.from = from;
@@ -34,7 +35,7 @@ export const getFilterTransactions = ({
   if (accountId) params.accountId = accountId;
   if (type) params.type = type;
   //console.log(params);
-  return api.get("/transactions", { params });
+  return api.get("/transactions", { params , ...options });
 };
 
 export const updateTransaction = (id:string, data:Partial<Transaction>)=> api.put(`/transactions/${id}`,data);

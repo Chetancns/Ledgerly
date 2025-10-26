@@ -227,6 +227,7 @@ const stopRecording = () => {
           {/* Dev Warning Banner */}
           <DevWarningBanner />
           {children}
+          <SpeedInsights />
         </main>
 
         {/* Mobile Bottom Nav */}

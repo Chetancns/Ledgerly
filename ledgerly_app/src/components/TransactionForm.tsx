@@ -230,9 +230,11 @@ export default function TransactionForm({
             onChange={handleChange}
             className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
           >
-            <option>Select Category</option>
+            <option value="" disabled>Select Category</option>
             {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+              <option key={cat.id} value={cat.id} className="text-black">
+                {cat.type === "income" ? "💰" : "💸"} {cat.name}
+              </option>
             ))}
           </select>
         </div>
