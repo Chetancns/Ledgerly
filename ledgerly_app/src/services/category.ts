@@ -3,7 +3,7 @@ import { Category, CategoryType } from "../models/category";
 
 export async function getUserCategory() {
     const res = await api.get("categories/categoryuser");
-    console.log(res);
+    //console.log(res);
     return res.data;
 }
 
@@ -20,6 +20,6 @@ export const onDeleteCategory = async (id: string) => {
 };
 
 export const updateCategory = async (id: string, data: { name: string; type: CategoryType }) => {
-  console.log(data);
+  //console.log(data);
   return await api.put<Category>(`categories/${id}`, data);
 };

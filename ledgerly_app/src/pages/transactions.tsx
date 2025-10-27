@@ -149,12 +149,12 @@ export default function Transactions() {
           {editingTransaction ? (
             <TransactionForm
               transaction={editingTransaction}
-              onUpdated={load}
+              onUpdated={fetchTransaction}
               onCancel={() => setEditingTransaction(null)}
-              onCreated={load} // fallback
+              onCreated={fetchTransaction} // fallback
             />
           ) : (
-            <TransactionForm onCreated={load} />
+            <TransactionForm onCreated={fetchTransaction} />
           )}
 
           <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
