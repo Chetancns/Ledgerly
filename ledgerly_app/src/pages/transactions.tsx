@@ -55,7 +55,7 @@ export default function Transactions() {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     await onDelete(id);
-    await load();
+    await fetchTransaction();
     setDeletingId(null);
   };
 
