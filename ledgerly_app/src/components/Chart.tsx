@@ -18,6 +18,9 @@ import {
   Brush,
 } from "recharts";
 import { ChartDataPoint,CategorySpending, CashflowRow, CategoryRow } from "@/models/chat";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 
 
 const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9D4EDD"];
@@ -423,25 +426,170 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
 
 }
 
+ function AnimatedNumber({ value }: { value: number }) {
+  const motionValue = useMotionValue(0);
+  const rounded = useTransform(motionValue, (latest) => latest.toFixed(2));
+  useEffect(() => {
+    const controls = animate(motionValue, value || 0, { duration: 1, ease: "easeOut" });
+    return () => controls.stop();
+  }, [value]);
+  return <motion.span>{rounded}</motion.span>;
+}
+
 export function SummaryCard({ totals }: { totals: any }) {
+  const [showSummary, setShowSummary] = useState(true);
+
+  const collapse = {
+    hidden: { height: 0, opacity: 0 },
+    visible: { height: "auto", opacity: 1 },
+  };
+
+  const summaryCards = [
+    { label: "Total Budget", value: totals.totalBudget, color: "from-blue-500/30 to-indigo-500/20" },
+    { label: "Total Actual", value: totals.totalActual, color: "from-green-400/30 to-emerald-500/20" },
+    { label: "Overspent", value: totals.overspentAmount, color: "from-rose-400/30 to-pink-500/20" },
+    { label: "Unbudgeted", value: totals.unbudgeted, color: "from-amber-400/30 to-yellow-500/20" },
+  ];
+
+  // Helper function for percentage
+  const getPercentage = (actual: number, budget: number) => {
+    if (!budget || budget === 0) return 0;
+    return Math.min((actual / budget) * 100, 100);
+  };
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white mb-3 mt-6">
-      <div className="bg-[#69a7fd22] p-4 rounded-xl">
-        <h4 className="text-sm">Total Budget</h4>
-        <p className="text-lg font-bold">₹{totals.totalBudget.toFixed(2)}</p>
+    <div className="space-y-6 text-white mt-4 mb-4">
+      {/* ===== Top Summary ===== */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {summaryCards.map((c, i) => (
+          <motion.div
+            key={i}
+            whileHover={{ scale: 1.03 }}
+            className={`bg-gradient-to-br ${c.color} backdrop-blur-lg border border-white/10 rounded-2xl p-5 shadow-md`}
+          >
+            <h4 className="text-sm opacity-75">{c.label}</h4>
+            <p className="text-2xl font-semibold mt-1">
+              ₹<AnimatedNumber value={c.value || 0} />
+            </p>
+          </motion.div>
+        ))}
       </div>
-      <div className="bg-[#6bffae22] p-4 rounded-xl">
-        <h4 className="text-sm">Total Actual</h4>
-        <p className="text-lg font-bold">₹{totals.totalActual.toFixed(2)}</p>
+
+      {/* ===== Income & Expense Side by Side ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* === Income Summary === */}
+        <div className="bg-gradient-to-br from-lime-400/20 to-emerald-500/20 rounded-2xl border border-white/10 p-5 shadow-md">
+          <div
+            className="flex justify-between items-center cursor-pointer"
+            onClick={() => setShowSummary(!showSummary)}
+          >
+            <h3 className="text-lg font-semibold text-lime-300">Income Summary</h3>
+            <motion.div animate={{ rotate: showSummary ? 180 : 0 }} transition={{ duration: 0.3 }}>
+              <ChevronDown />
+            </motion.div>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {showSummary && (
+              <motion.div
+                variants={collapse}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden mt-4"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Budgeted Income */}
+                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                    <h4 className="text-sm opacity-75">Budgeted Income</h4>
+                    <p className="text-xl font-semibold mt-1">
+                      ₹<AnimatedNumber value={totals.totalBudgetIncome || 0} />
+                    </p>
+                  </div>
+
+                  {/* Actual Income */}
+                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                    <h4 className="text-sm opacity-75">Actual Income</h4>
+                    <p className="text-xl font-semibold mt-1">
+                      ₹<AnimatedNumber value={totals.totalActualIncome || 0} />
+                    </p>
+                    <ProgressBar
+                      percent={getPercentage(totals.totalActualIncome, totals.totalBudgetIncome)}
+                      label="of budget achieved"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* === Expense Summary === */}
+        <div className="bg-gradient-to-br from-orange-400/20 to-pink-500/20 rounded-2xl border border-white/10 p-5 shadow-md">
+          <div
+            className="flex justify-between items-center cursor-pointer"
+            onClick={() => setShowSummary(!showSummary)}
+          >
+            <h3 className="text-lg font-semibold text-amber-300">Expense Summary</h3>
+            <motion.div animate={{ rotate: showSummary ? 180 : 0 }} transition={{ duration: 0.3 }}>
+              <ChevronDown />
+            </motion.div>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {showSummary && (
+              <motion.div
+                variants={collapse}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden mt-4"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Budgeted Expense */}
+                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                    <h4 className="text-sm opacity-75">Budgeted Expense</h4>
+                    <p className="text-xl font-semibold mt-1">
+                      ₹<AnimatedNumber value={totals.totalBudgetExpense || 0} />
+                    </p>
+                  </div>
+
+                  {/* Actual Expense */}
+                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                    <h4 className="text-sm opacity-75">Actual Expense</h4>
+                    <p className="text-xl font-semibold mt-1">
+                      ₹<AnimatedNumber value={totals.totalActualExpense || 0} />
+                    </p>
+                    <ProgressBar
+                      percent={getPercentage(totals.totalActualExpense, totals.totalBudgetExpense)}
+                      label="of budget used"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-      <div className="bg-[#ff6b6b22] p-4 rounded-xl">
-        <h4 className="text-sm">Overspent</h4>
-        <p className="text-lg font-bold">₹{totals.overspentAmount.toFixed(2)}</p>
+    </div>
+  );
+}
+
+// Progress Bar Component
+function ProgressBar({ percent, label }: { percent: number; label: string }) {
+  return (
+    <div className="mt-2">
+      <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full bg-gradient-to-r from-green-400 to-lime-500"
+          initial={{ width: 0 }}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 1 }}
+        />
       </div>
-      <div className="bg-[#ffc10722] p-4 rounded-xl">
-        <h4 className="text-sm">Unbudgeted</h4>
-        <p className="text-lg font-bold">₹{totals.unbudgeted.toFixed(2)}</p>
-      </div>
+      <p className="text-xs text-white/70 mt-1">{percent.toFixed(0)}% {label}</p>
     </div>
   );
 }

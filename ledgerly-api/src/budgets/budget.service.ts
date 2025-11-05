@@ -31,7 +31,7 @@ export class BudgetsService {
     if (b.categoryId) where.categoryId = b.categoryId;
     //console.log(where);
     const txs = await this.txRepo.find({ where:{
-      ...where, type: In(['expense', 'transfer'])
+      ...where
     } });
     //console.log(txs);
     const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
@@ -157,7 +157,7 @@ async allUtilizations(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly'
     };
     if (b.categoryId) where.categoryId = b.categoryId;
     const txs = await this.txRepo.find({ where:{
-      ...where, type: 'expense'
+      ...where
     } });
     const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
     const pct = b.amount ? (spent / Number(b.amount)) * 100 : 0;

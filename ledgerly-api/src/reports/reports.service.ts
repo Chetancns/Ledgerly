@@ -1,7 +1,7 @@
 // reports.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Not } from 'typeorm';
+import { Repository, Between, Not, In } from 'typeorm';
 import dayjs from 'dayjs';
 import { Budget } from '../budgets/budget.entity';
 import { Transaction } from '../transactions/transaction.entity';
@@ -15,115 +15,143 @@ export class ReportsService {
     @InjectRepository(Category) private catRepo: Repository<Category>,
   ) {}
 
-  async budgetVsActual(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly' | 'yearly', month?: string, year?: string) {
-    // 1. Compute period window
-  let from = dayjs().startOf('month');
-  let to = dayjs().endOf('month');
-  if (period === 'weekly') { from = dayjs().startOf('week'); to = dayjs().endOf('week'); }
-  if (period === 'yearly') {
-    from = dayjs(`${year || dayjs().year()}-01-01`);
-    to = from.endOf('year');
-  }
-  if (period === 'monthly' && year && month) {
-    const formattedMonth = month.padStart(2, '0');
-    from = dayjs(`${year}-${formattedMonth}-01`);
-    to = from.endOf('month');
-  }
+  async budgetVsActual(
+    userId: string,
+    period: 'monthly' | 'weekly' | 'bi-weekly' | 'yearly',
+    month?: string,
+    year?: string
+  ) {
+    // 1️⃣ Compute period window
+    let from = dayjs().startOf('month');
+    let to = dayjs().endOf('month');
 
-  // 2. Load budgets for this user
-  const budgets = await this.budgetRepo.find({
-    where: { userId, period,
-        startDate:from.format('YYYY-MM-DD'),
-        endDate:to.format('YYYY-MM-DD')
-     },
-    relations: ['category'],
-  });
-// const budgets = await this.budgetRepo
-//   .createQueryBuilder('budget')
-//   .leftJoinAndSelect('budget.category', 'category')
-//   .where('budget.userId = :userId', { userId })
-//   .andWhere('budget.period = :period', { period })
-//   .andWhere('budget.startDate = :startDate', { startDate: from.format('YYYY-MM-DD') })
-//   .andWhere('budget.endDate = :endDate', { endDate: to.format('YYYY-MM-DD') })
-//   .andWhere('category.type != :type', { type: 'income' }) // 👈 exclude income categories
-//   .getMany();
-
-  // 3. Load all categories
-  const categories = await this.catRepo.find({ where: { userId ,IsDeleted:false} });
-
-  // 4. Load expenses in this window
-  const txs = await this.txRepo.find({
-    where: {
-      userId,
-      transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
-      type: Not('transfer'), // exclude transfers
-    },
-  });
-
-  const actualMap: Record<string, number> = {};
-  txs.forEach((t) => {
-    const key = t.categoryId || 'uncategorized';
-    actualMap[key] = (actualMap[key] || 0) + Number(t.amount);
-  });
-
-  // 5. Merge budgets + actuals
-  const categoriesResult: any[] = [];
-  let totalBudget = 0;
-  let totalActual = 0;
-  let unbudgeted = 0;
-
-  for (const b of budgets) {
-    const actual = actualMap[b.categoryId] || 0;
-    const budget = Number(b.amount);
-
-    totalBudget += budget;
-    totalActual += actual;
-
-    categoriesResult.push({
-      categoryId: b.categoryId || 'uncategorized',
-      categoryName: b.category?.name || 'Uncategorized',
-      budget,
-      actual,
-      status: actual > budget ? 'overspent' : 'within_budget',
-    });
-
-    delete actualMap[b.categoryId];
-  }
-
-  // Categories with spending but no budget
-  for (const [catId, amount] of Object.entries(actualMap)) {
-    const cat = categories.find((c) => c.id === catId);
-    categoriesResult.push({
-      categoryId: catId,
-      categoryName: cat?.name || 'Uncategorized',
-      budget: 0,
-      actual: amount,
-      status: 'no_budget',
-    });
-
-    totalActual += amount;
-    unbudgeted += amount;
-  }
-
-  const overspentAmount = categoriesResult.reduce((sum, cat) => {
-    if (cat.status === 'overspent') {
-      return sum + (cat.actual - cat.budget);
+    if (period === 'weekly') {
+      from = dayjs().startOf('week');
+      to = dayjs().endOf('week');
+    } else if (period === 'yearly') {
+      from = dayjs(`${year || dayjs().year()}-01-01`);
+      to = from.endOf('year');
+    } else if (period === 'monthly' && year && month) {
+      const formattedMonth = month.padStart(2, '0');
+      from = dayjs(`${year}-${formattedMonth}-01`);
+      to = from.endOf('month');
     }
-    return sum;
-  }, 0);
 
+    // 2️⃣ Load budgets (for this user + period)
+    const budgets = await this.budgetRepo.find({
+      where: {
+        userId,
+        period,
+        startDate: from.format('YYYY-MM-DD'),
+        endDate: to.format('YYYY-MM-DD'),
+      },
+      relations: ['category'],
+    });
 
+    // 3️⃣ Load categories
+    const categories = await this.catRepo.find({
+      where: { userId, IsDeleted: false },
+    });
 
-  return {
-    categories: categoriesResult,
-    totals: {
-      totalBudget,
-      totalActual,
-      overspentAmount,
-      unbudgeted,
-    },
-  };
+    // 4️⃣ Load transactions in this window
+    const txs = await this.txRepo.find({
+      where: {
+        userId,
+        transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
+      },
+    });
+
+    // 🧮 Compute actual spending per category
+    const actualMap: Record<string, number> = {};
+    txs.forEach((t) => {
+      const key = t.categoryId || 'uncategorized';
+      actualMap[key] = (actualMap[key] || 0) + Number(t.amount);
+    });
+
+    // 5️⃣ Merge budgets + actuals + compute totals
+    const categoriesResult: any[] = [];
+
+    let totalBudget = 0;
+    let totalActual = 0;
+    let totalBudgetIncome = 0;
+    let totalBudgetExpense = 0;
+    let totalActualIncome = 0;
+    let totalActualExpense = 0;
+    let unbudgeted = 0;
+
+    for (const b of budgets) {
+      const actual = actualMap[b.categoryId] || 0;
+      const budget = Number(b.amount);
+      const type = b.category?.type || 'expense'; // default to expense
+
+      totalBudget += budget;
+      totalActual += actual;
+
+      if (type === 'income') {
+        totalBudgetIncome += budget;
+        totalActualIncome += actual;
+      } else {
+        totalBudgetExpense += budget;
+        totalActualExpense += actual;
+      }
+
+      categoriesResult.push({
+        categoryId: b.categoryId || 'uncategorized',
+        categoryName: b.category?.name || 'Uncategorized',
+        type,
+        budget,
+        actual,
+        status: actual > budget ? 'overspent' : 'within_budget',
+      });
+
+      delete actualMap[b.categoryId];
+    }
+
+    // 6️⃣ Handle categories with actuals but no budget
+    for (const [catId, amount] of Object.entries(actualMap)) {
+      const cat = categories.find((c) => c.id === catId);
+      const type = cat?.type || 'expense';
+
+      if (type === 'income') totalActualIncome += amount;
+      else totalActualExpense += amount;
+
+      categoriesResult.push({
+        categoryId: catId,
+        categoryName: cat?.name || 'Uncategorized',
+        type,
+        budget: 0,
+        actual: amount,
+        status: 'no_budget',
+      });
+
+      totalActual += amount;
+      unbudgeted += amount;
+    }
+
+    // 7️⃣ Compute overspent
+    const overspentAmount = categoriesResult.reduce((sum, cat) => {
+      if (cat.status === 'overspent' && cat.type !== 'income') {
+        return sum + (cat.actual - cat.budget);
+      }
+      return sum;
+    }, 0);
+
+    // ✅ Final return
+    return {
+      categories: categoriesResult,
+      totals: {
+        totalBudget,
+        totalActual,
+        totalBudgetIncome,
+        totalBudgetExpense,
+        totalActualIncome,
+        totalActualExpense,
+        overspentAmount,
+        unbudgeted,
+      },
+    };
   }
+
 
   async getCashflowTimeline(userId: string,
     interval:'daily'| 'monthly' | 'weekly' | 'bi-weekly' | 'yearly',
@@ -208,8 +236,8 @@ export class ReportsService {
     const transactions = await this.txRepo.find({
       where:{
         userId,
-        type: 'expense',
       transactionDate: Between(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')),
+      type: In(['expense','savings','transfer']),
       },
     relations: ['category'],
     });
@@ -228,9 +256,8 @@ export class ReportsService {
         };
       }
 
-      if (t.type === 'expense') {
         grouped[t.categoryId].total += Number(t.amount);
-      }
+      
     });
 
     const categories = Object.entries(grouped).map(([categoryId, data]) => ({
