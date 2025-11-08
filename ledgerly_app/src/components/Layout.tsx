@@ -15,9 +15,11 @@ import toast from "react-hot-toast";
 import TransactionForm from "./TransactionForm";
 import UploadReceipt from "./UploadReceipt";
 import UploadAudio from "./UploadAudio";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
+import { useAuth } from "@/hooks/useAuth";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<{ name?: string }>({});
+  //const [user, setUser] = useState<{ name?: string }>({});
   const [showModal, setShowModal] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -36,14 +38,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/debts", label: "Debts", icon: "⚖️" },
     { href: "/help", label: "Help", icon: "❓" },
   ];
-
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-  }, []);
-
-  const logout = () => {
-    localStorage.removeItem("user");
+  const { user, loading, logoutapi } = useAuth();
+  useAuthRedirect(user, loading);
+ console.log("Layout user:", user);
+  const logout = async () => {
+    await logoutapi();
     router.push("/login");
   };
 
@@ -172,7 +171,7 @@ const stopRecording = () => {
           }}
         >
           <span className="text-lg md:text-2xl font-extrabold tracking-wide text-white drop-shadow-md mr-6">
-            💰 Ledgerly
+            <a href="/">💰 Ledgerly</a>
           </span>
 
           <div className="flex gap-4 flex-1">
@@ -197,7 +196,7 @@ const stopRecording = () => {
 
           <div className="ml-auto flex items-center gap-3">
             <span className="font-semibold text-sm md:text-base text-white/90">
-              {user.name || "Guest"}
+              {user?.name || "Guest"}
             </span>
             <button
               onClick={logout}
@@ -212,7 +211,7 @@ const stopRecording = () => {
         <div className="flex items-center justify-between px-4 py-3 md:hidden bg-black/40 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
           <span className="text-lg font-extrabold">💰 Ledgerly</span>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm">{user.name || "Guest"}</span>
+            <span className="font-semibold text-sm">{user?.name || "Guest"}</span>
             <button
               onClick={logout}
               className="bg-red-600 px-3 py-1 rounded text-sm font-semibold hover:bg-red-700"

@@ -6,9 +6,10 @@ import {AiService} from './AIChat.service'
 import { AiController } from './AIChat.controller';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Transaction, Account,Category])],
+  imports: [TypeOrmModule.forFeature([Transaction, Account,Category]), AuthModule],
   providers: [AiService,TransactionsService],
   controllers: [AiController],
 })

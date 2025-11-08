@@ -1,64 +1,58 @@
 // src/hooks/useAuth.ts
 import { useState, useEffect } from "react";
-import { login, signup } from "../services/auth";
 import { User } from "../models/User";
+import { login, signup, logout as apiLogout, getCurrentUser, initCsrf } from "../services/auth";
+import css from "styled-jsx/css";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on mount
+  // Load current user using HttpOnly cookie
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const fetchUser = async () => {
+      try {
+        const res = await getCurrentUser();
+        setUser(res.data.user || null);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
   }, []);
 
-  const doLogin = async (email: string, password: string) => {
-      try {
-          //alert("api called ", email, password);
-          const res = await login(email, password);
-          //console.log("api called end ", res);
-      const userData = res.data.user;
-        setUser(userData);
-        //alert("sahfoie");
-        localStorage.setItem("accessToken", res.data.accessToken);
-          localStorage.setItem("user", JSON.stringify(userData));
-          //console.log(localStorage.getItem("accessToken"));
-      return userData;
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-    throw new Error(err?.message || "Signup failed");
+ const ensureCsrfToken = async () => {
+  try {
+    await initCsrf(); // endpoint that just returns OK
+    console.log("CSRF token initialized");
+  } catch (e) {
+    console.error("CSRF init failed", e);
   }
-  throw new Error("Login failed");
-    }
-  };
+};
 
-  const doSignup = async (email: string, password: string, name: string) => {
-    try {
-      //console.log(email,password,name);
-      const res = await signup(email, password, name);
-      alert("sahfoie");
-      const userData = res.data.user;
-        setUser(userData);
-        localStorage.setItem("accessToken", res.data.accessToken);
-      localStorage.setItem("user", JSON.stringify(userData));
-      return userData;
-    } catch (err: unknown) {
-        if (err instanceof Error) {
-    throw new Error(err?.message || "Signup failed");
-  }
-  throw new Error("Login failed");
-      
-    }
-  };
+const doLogin = async (email: string, password: string) => {
+  await ensureCsrfToken(); // make sure cookie is set first
+  await new Promise((r) => setTimeout(r, 100)); // slight delay to ensure cookie is set
+  const res = await login(email, password);
+  console.log("Login response:", res);
+  setUser(res.data.user);
+  console.log("User logged in:", res.data.user);
+  return res.data.user;
+};
 
-  const logout = () => {
+const doSignup = async (email: string, password: string, name: string) => {
+  await ensureCsrfToken();
+  const res = await signup(email, password, name);
+  setUser(res.data.user);
+  return res.data.user;
+};
+
+  const logoutapi = async () => {
+    await apiLogout();
     setUser(null);
-    localStorage.removeItem("user");
   };
 
-  return { user, loading, doLogin, doSignup, logout };
+  return { user, loading, doLogin, doSignup, logoutapi };
 };

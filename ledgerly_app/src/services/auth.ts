@@ -1,8 +1,15 @@
+// src/services/auth.ts
 import api from "./api";
 import { LoginResponse } from "@/models/Auth";
 
 export const login = (email: string, password: string) =>
-    api.post<LoginResponse>("/auth/login", { email, password });
+  api.post<LoginResponse>("/auth/login", { email, password });
 
 export const signup = (email: string, password: string, name: string) =>
   api.post<LoginResponse>("/auth/register", { email, password, name });
+
+export const logout = () => api.post("/auth/logout");
+
+export const getCurrentUser = () => api.get("/auth/me");
+
+export const initCsrf = () => api.get("/auth/csrf-token");
