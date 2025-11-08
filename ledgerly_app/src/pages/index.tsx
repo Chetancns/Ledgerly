@@ -3,7 +3,7 @@ import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent, 
 import { Transaction } from "@/models/Transaction";
 import { Account } from "@/models/account";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Category } from "@/models/category";
 import { getUserAccount } from "@/services/accounts";
 import { getUserCategory } from "@/services/category";
@@ -13,9 +13,8 @@ import { getBudgetUtilizations } from "@/services/budget"; // 🔹 new service
 import { getBudgetReports, getCashflowTimeline, getCategoryHeatmap } from "@/services/reports";
 import toast from "react-hot-toast";
 import { BudgetCategory } from "@/models/budget";
+import { useAuth } from "@/hooks/useAuth";
 export default function Dashboard() {
-  useAuthRedirect();
-
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);

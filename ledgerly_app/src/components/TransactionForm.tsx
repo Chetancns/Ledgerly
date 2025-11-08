@@ -266,7 +266,7 @@ export default function TransactionForm({
         </div>
 
         {/* Date */}
-        <div className="md:col-span-2">
+        <div >
           <label htmlFor="transactionDate" className="block text-white font-medium">Transaction Date</label>
           <input
             type="date"
@@ -277,6 +277,29 @@ export default function TransactionForm({
             className="w-full px-4 py-3 rounded-lg bg-white/20 text-white focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
           />
         </div>
+        {/* Destination Account (only when needed) */}
+    {(kind === "transfer" || kind === "savings") && (
+      <div>
+        <label htmlFor="toAccountId" className="block text-white font-medium">
+          {kind === "transfer" ? "Destination Account" : "Savings Account"}
+        </label>
+        <select
+          id="toAccountId"
+          value={toAccountId}
+          onChange={(e) => setToAccountId(e.target.value)}
+          className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+        >
+          <option>Select Account</option>
+          {accounts
+            .filter((acc) => acc.id !== form.accountId)
+            .map((acc) => (
+              <option key={acc.id} value={acc.id}>
+                {acc.name} ({acc.type})
+              </option>
+            ))}
+        </select>
+      </div>
+    )}
 
         {/* Transaction Type + Destination Account */}
 <div className="md:col-span-2">
@@ -302,29 +325,7 @@ export default function TransactionForm({
       ))}
     </div>
 
-    {/* Destination Account (only when needed) */}
-    {(kind === "transfer" || kind === "savings") && (
-      <div>
-        <label htmlFor="toAccountId" className="block text-white font-medium mb-2">
-          {kind === "transfer" ? "Destination Account" : "Savings Account"}
-        </label>
-        <select
-          id="toAccountId"
-          value={toAccountId}
-          onChange={(e) => setToAccountId(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-        >
-          <option>Select Account</option>
-          {accounts
-            .filter((acc) => acc.id !== form.accountId)
-            .map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name} ({acc.type})
-              </option>
-            ))}
-        </select>
-      </div>
-    )}
+    
   </div>
 </div>
 

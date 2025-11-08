@@ -1,13 +1,13 @@
+// src/hooks/useAuthRedirect.ts
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
-export const useAuthRedirect = () => {
+export const useAuthRedirect = (user: any, loading: boolean) => {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.replace("/login"); // redirect to login
+    if (!loading && !user) {
+      router.replace("/login");
     }
-  }, [router]);
+  }, [user, loading, router]);
 };

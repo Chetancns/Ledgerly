@@ -426,7 +426,7 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
 
 }
 
- function AnimatedNumber({ value }: { value: number }) {
+function AnimatedNumber({ value }: { value: number }) {
   const motionValue = useMotionValue(0);
   const rounded = useTransform(motionValue, (latest) => latest.toFixed(2));
   useEffect(() => {
@@ -437,7 +437,8 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
 }
 
 export function SummaryCard({ totals }: { totals: any }) {
-  const [showSummary, setShowSummary] = useState(true);
+  const [showIncome, setShowIncome] = useState(true);
+  const [showExpense, setShowExpense] = useState(true);
 
   const collapse = {
     hidden: { height: 0, opacity: 0 },
@@ -451,10 +452,9 @@ export function SummaryCard({ totals }: { totals: any }) {
     { label: "Unbudgeted", value: totals.unbudgeted, color: "from-amber-400/30 to-yellow-500/20" },
   ];
 
-  // Helper function for percentage
   const getPercentage = (actual: number, budget: number) => {
     if (!budget || budget === 0) return 0;
-    return Math.min((actual / budget) * 100, 100);
+    return (actual / budget) * 100;
   };
 
   return (
@@ -481,16 +481,16 @@ export function SummaryCard({ totals }: { totals: any }) {
         <div className="bg-gradient-to-br from-lime-400/20 to-emerald-500/20 rounded-2xl border border-white/10 p-5 shadow-md">
           <div
             className="flex justify-between items-center cursor-pointer"
-            onClick={() => setShowSummary(!showSummary)}
+            onClick={() => setShowIncome(!showIncome)}
           >
             <h3 className="text-lg font-semibold text-lime-300">Income Summary</h3>
-            <motion.div animate={{ rotate: showSummary ? 180 : 0 }} transition={{ duration: 0.3 }}>
+            <motion.div animate={{ rotate: showIncome ? 180 : 0 }} transition={{ duration: 0.3 }}>
               <ChevronDown />
             </motion.div>
           </div>
 
           <AnimatePresence initial={false}>
-            {showSummary && (
+            {showIncome && (
               <motion.div
                 variants={collapse}
                 initial="hidden"
@@ -517,6 +517,7 @@ export function SummaryCard({ totals }: { totals: any }) {
                     <ProgressBar
                       percent={getPercentage(totals.totalActualIncome, totals.totalBudgetIncome)}
                       label="of budget achieved"
+                      isExpense={false}
                     />
                   </div>
                 </div>
@@ -529,16 +530,16 @@ export function SummaryCard({ totals }: { totals: any }) {
         <div className="bg-gradient-to-br from-orange-400/20 to-pink-500/20 rounded-2xl border border-white/10 p-5 shadow-md">
           <div
             className="flex justify-between items-center cursor-pointer"
-            onClick={() => setShowSummary(!showSummary)}
+            onClick={() => setShowExpense(!showExpense)}
           >
             <h3 className="text-lg font-semibold text-amber-300">Expense Summary</h3>
-            <motion.div animate={{ rotate: showSummary ? 180 : 0 }} transition={{ duration: 0.3 }}>
+            <motion.div animate={{ rotate: showExpense ? 180 : 0 }} transition={{ duration: 0.3 }}>
               <ChevronDown />
             </motion.div>
           </div>
 
           <AnimatePresence initial={false}>
-            {showSummary && (
+            {showExpense && (
               <motion.div
                 variants={collapse}
                 initial="hidden"
@@ -565,6 +566,7 @@ export function SummaryCard({ totals }: { totals: any }) {
                     <ProgressBar
                       percent={getPercentage(totals.totalActualExpense, totals.totalBudgetExpense)}
                       label="of budget used"
+                      isExpense={true}
                     />
                   </div>
                 </div>
@@ -577,19 +579,39 @@ export function SummaryCard({ totals }: { totals: any }) {
   );
 }
 
-// Progress Bar Component
-function ProgressBar({ percent, label }: { percent: number; label: string }) {
+// ===== Progress Bar Component with Dynamic Colors =====
+function ProgressBar({
+  percent,
+  label,
+  isExpense,
+}: {
+  percent: number;
+  label: string;
+  isExpense?: boolean;
+}) {
+  const getBarColor = () => {
+    if (percent > 100) return "from-red-500 to-rose-500"; // overspent
+    if (percent > 90) return "from-amber-400 to-yellow-500"; // near limit
+    return isExpense
+      ? "from-green-400 to-emerald-500"
+      : "from-sky-400 to-cyan-500"; // healthy
+  };
+
+  const displayPercent = percent > 150 ? 150 : percent; // prevent overflow visual
+
   return (
     <div className="mt-2">
       <div className="h-2 bg-white/20 rounded-full overflow-hidden">
         <motion.div
-          className="h-full bg-gradient-to-r from-green-400 to-lime-500"
+          className={`h-full bg-gradient-to-r ${getBarColor()}`}
           initial={{ width: 0 }}
-          animate={{ width: `${percent}%` }}
+          animate={{ width: `${displayPercent}%` }}
           transition={{ duration: 1 }}
         />
       </div>
-      <p className="text-xs text-white/70 mt-1">{percent.toFixed(0)}% {label}</p>
+      <p className="text-xs text-white/70 mt-1">
+        {Math.min(percent, 150).toFixed(0)}% {label}
+      </p>
     </div>
   );
 }

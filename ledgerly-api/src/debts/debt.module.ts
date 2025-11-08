@@ -8,9 +8,10 @@ import { Module } from '@nestjs/common';
 import { Debt } from "./debt.entity";
 import { DebtUpdate } from "./debt-update.entity";
 import { TransactionsModule } from "src/transactions/transaction.module";
+import { AuthModule } from "src/auth/auth.module";
 @Module({
   imports: [TypeOrmModule.forFeature([Debt,DebtUpdate,Transaction, Budget,Category]),
-            TransactionsModule],
+            TransactionsModule, AuthModule],
   providers: [DebtService],
   controllers: [DebtController],
 })

@@ -53,7 +53,7 @@ const openModal = (category: Category) => {
     await load();
     setDeletingId(null);
   };
-
+  
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2">
