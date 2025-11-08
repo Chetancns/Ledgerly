@@ -15,6 +15,7 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction) 
     const existingToken = req.cookies[CSRF_COOKIE_NAME];
     if (!existingToken) {
       const newToken = randomBytes(32).toString("hex");
+      console.log("sameSite CSRF token set:", process.env.NODE_ENV === "production" ? "none" : "lax", );  
       res.cookie(CSRF_COOKIE_NAME, newToken, {
         httpOnly: false,
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", 

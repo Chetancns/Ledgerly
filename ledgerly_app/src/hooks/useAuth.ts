@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { User } from "../models/User";
 import { login, signup, logout as apiLogout, getCurrentUser, initCsrf } from "../services/auth";
 import css from "styled-jsx/css";
-
+import Cookies from "js-cookie";
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +25,12 @@ export const useAuth = () => {
 
  const ensureCsrfToken = async () => {
   try {
-    await initCsrf(); // endpoint that just returns OK
+     const res = await initCsrf(); 
+     const token = res.data.csrfToken;
+     if (token){
+      console.log("CSRF token:", token);
+      Cookies.set("XSRF-TOKEN", token);
+     }
     console.log("CSRF token initialized");
   } catch (e) {
     console.error("CSRF init failed", e);

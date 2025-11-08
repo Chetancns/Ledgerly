@@ -8,9 +8,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get("csrf-token")
-  getCsrfToken(@Res() res: express.Response) {
-    // This triggers the csrfMiddleware to send a new cookie
-    res.send({ ok: true });
+  getCsrfToken(@Req() req: express.Request, @Res() res: express.Response) {
+    const token = req.cookies["XSRF-TOKEN"];
+    return res.json({ csrfToken: token });
   }
 
   @Post('register')
