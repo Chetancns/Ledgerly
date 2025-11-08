@@ -2,7 +2,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const api = axios.create({
-  baseURL: "http://192.168.1.50:3001", // same IP as backend
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.1.50:3001", // use env fallback to previous IP, // same IP as backend
   withCredentials: true, // important for cookies
 });
 
