@@ -15,7 +15,7 @@ import { UserModule } from './users/user.module';
  import { CategoryModule } from './categories/category.module';
 import { TransactionsModule } from './transactions/transaction.module';
 import { BudgetModule } from './budgets/budget.module';
-// import { RecurringModule } from './recurring/recurring.module';
+import { RecurringModule } from './recurring/recurring.module';
 import {ReportsModule} from './reports/reports.module'
 import { AIModule } from './AIChat/AIChat.module';
 import { Debt } from './debts/debt.entity';
@@ -56,8 +56,8 @@ import { DebtModule } from './debts/debt.module';
      BudgetModule,
      AIModule,
      ReportsModule,
-     DebtModule
-    // RecurringModule,
+     DebtModule,
+     RecurringModule,
   ],
 })
 export class AppModule {}
