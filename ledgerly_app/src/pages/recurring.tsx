@@ -150,58 +150,104 @@ export default function Recurring() {
 
           <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
             <ul className="flex flex-wrap gap-4">
-              {transactions.map((tx) => (
-                <li
-                  key={tx.id}
-                  className="bg-white p-4 rounded-lg shadow border border-gray-200 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-800">
-                      {tx.description || "(No description)"} - ${tx.amount}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {tx.frequency} • Next: {tx.nextOccurrence} • {tx.type} •{" "}
-                      <span
-                        className={`font-semibold ${
-                          tx.status === "active" ? "text-green-600" : "text-yellow-600"
-                        }`}
-                      >
-                        {tx.status}
-                      </span>
-                    </p>
-                  </div>
+              {transactions.map((tx) => {
+              const account = accounts.find(a => a.id === tx.accountId);
+              const category = categories.find(c => c.id === tx.categoryId);
+              return (
+  <li
+    key={tx.id}
+    className="group relative bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
+               rounded-2xl p-5 shadow-md hover:shadow-lg hover:shadow-blue-500/10 
+               transition-all duration-300 flex justify-between items-start gap-4"
+  >
+    {/* Left side: transaction details */}
+    <div className="space-y-1.5">
+      <p className="text-base font-semibold text-white/90 tracking-tight">
+        {tx.description || "(No description)"}{" "}
+        <span className="text-blue-400 font-bold">₹{tx.amount}</span>
+      </p>
 
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => openModal(tx)}
-                      className="text-yellow-500 hover:text-yellow-700 transition-transform hover:scale-110"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
+      <div className="text-sm text-gray-400 flex flex-wrap gap-2">
+        <span>
+          Frequency: <span className="text-gray-200">{tx.frequency}</span>
+        </span>
+        <span>•</span>
+        <span>
+          Type:{" "}
+          <span
+            className={`font-medium ${
+              tx.type === "income" ? "text-green-400" : "text-red-400"
+            }`}
+          >
+            {tx.type}
+          </span>
+        </span>
+        <span>•</span>
+        <span>
+          Status:{" "}
+          <span
+            className={`font-semibold ${
+              tx.status === "active"
+                ? "text-emerald-400"
+                : "text-yellow-400"
+            }`}
+          >
+            {tx.status}
+          </span>
+        </span>
+      </div>
 
-                    <button
-                      onClick={() => handlePauseResume(tx.id, tx.status)}
-                      className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
-                      title={tx.status === "active" ? "Pause" : "Resume"}
-                    >
-                      {tx.status === "active" ? (
-                        <PauseIcon className="h-5 w-5" />
-                      ) : (
-                        <PlayIcon className="h-5 w-5" />
-                      )}
-                    </button>
+      <p className="text-sm text-gray-400">
+        Next Occurrence:{" "}
+        <span className="text-gray-200 font-medium">
+          {tx.nextOccurrence}
+        </span>
+      </p>
 
-                    <button
-                      onClick={() => handleDelete(tx.id)}
-                      className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
-                      title="Delete"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </li>
-              ))}
+      <p className="text-sm text-gray-400">
+        Account: <span className="text-gray-200 font-medium">{account?.name}</span>
+      </p>
+
+      <p className="text-sm text-gray-400">
+        Category: <span className="text-gray-200 font-medium">{category?.name}</span>
+      </p>
+    </div>
+
+    {/* Right side: action buttons */}
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => openModal(tx)}
+        className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-yellow-400"
+        title="Edit"
+      >
+        ✏️
+      </button>
+
+      <button
+        onClick={() => handlePauseResume(tx.id, tx.status)}
+        className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-blue-400"
+        title={tx.status === "active" ? "Pause" : "Resume"}
+      >
+        {tx.status === "active" ? (
+          <PauseIcon className="h-5 w-5" />
+        ) : (
+          <PlayIcon className="h-5 w-5" />
+        )}
+      </button>
+
+      <button
+        onClick={() => handleDelete(tx.id)}
+        className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-red-400"
+        title="Delete"
+      >
+        <TrashIcon className="h-5 w-5" />
+      </button>
+    </div>
+
+    {/* Glow border on hover */}
+    <div className="absolute inset-0 rounded-2xl ring-1 ring-transparent group-hover:ring-blue-500/30 transition-all duration-300" />
+  </li>
+);              })}
             </ul>
           </div>
         </div>

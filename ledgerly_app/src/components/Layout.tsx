@@ -223,7 +223,7 @@ const stopRecording = () => {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+        <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))]">
           {/* Dev Warning Banner */}
           <DevWarningBanner />
           {children}

@@ -142,9 +142,9 @@ export default function Transactions() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2">
-        <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
-          <h1 className="text-3xl font-bold text-white mb-6">Transactions</h1>
+      {/*<div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2">*/}
+        <div className="mx-auto p-4">
+          <h1 className="text-3xl font-bold text-white mb-2">Transactions</h1>
 
           {editingTransaction ? (
             <TransactionForm
@@ -157,7 +157,7 @@ export default function Transactions() {
             <TransactionForm onCreated={fetchTransaction} />
           )}
 
-          <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
+          <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4 mt-2">
       <div className="flex flex-wrap items-end gap-4 mb-6">
         {/* Month */}
         <div className="flex flex-col">
@@ -309,7 +309,7 @@ export default function Transactions() {
             </ul>
           </div>
         </div>
-      </div>
+      {/*</div>*/}
     </Layout>
   );
 }
