@@ -158,7 +158,8 @@ export default function Transactions() {
           )}
 
           <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-wrap items-end gap-4 mb-6">
+        {/* Month */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-white mb-1">Month</label>
           <select
@@ -174,6 +175,7 @@ export default function Transactions() {
           </select>
         </div>
 
+        {/* Year */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-white mb-1">Year</label>
           <select
@@ -192,6 +194,7 @@ export default function Transactions() {
           </select>
         </div>
 
+        {/* Account */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-white mb-1">Account</label>
           <select
@@ -207,7 +210,8 @@ export default function Transactions() {
             ))}
           </select>
         </div>
-        
+
+        {/* Category */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-white mb-1">Category</label>
           <select
@@ -223,21 +227,23 @@ export default function Transactions() {
             ))}
           </select>
         </div>
-        <div className="flex gap-4 mb-4 flex-wrap">
+
+        {/* Summary inline */}
+        <div className="flex flex-wrap items-center gap-3 ml-auto">
           {Object.entries(typeSummary).map(([type, total]) => (
             <div
               key={type}
-              className={`px-4 py-2 rounded-lg shadow  font-semibold ${
-                typeStyleMap[type as TransactionType] || 'bg-gray-500'
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-sm font-medium border border-white/10 backdrop-blur-lg transition-transform hover:scale-105 ${
+                typeStyleMap[type as TransactionType] || "bg-gray-700 text-white"
               }`}
             >
-              {tLabels[type as TransactionType]}: ₹{Number(total).toFixed(2)}
+              <span>{tLabels[type as TransactionType]}</span>
+              <span className="text-black/90">₹{Number(total).toFixed(2)}</span>
             </div>
           ))}
         </div>
-
       </div>
-            <ul className="flex flex-wrap gap-4 px-4">
+      <ul className="flex flex-wrap justify-evenly gap-4 px-4">
               {transactions.map((t) => {
     const account = accounts.find(a => a.id === t.accountId);
     const category = categories.find(c => c.id === t.categoryId);

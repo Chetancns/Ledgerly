@@ -15,7 +15,7 @@ async function bootstrap() {
     allowedHeaders: ["Content-Type", "X-CSRF-Token"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
-  console.log("CORS origins:", process.env.FRONTEND_ORIGIN?.split(","));
+  //console.log("CORS origins:", process.env.FRONTEND_ORIGIN?.split(","));
   app.use(helmet());
   app.use(cookieParser());
   app.use(csrfMiddleware);

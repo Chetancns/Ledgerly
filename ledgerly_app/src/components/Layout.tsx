@@ -36,6 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/categories", label: "Categories", icon: "📂" },
     { href: "/budgets", label: "Budget", icon: "💰" },
     { href: "/debts", label: "Debts", icon: "⚖️" },
+    { href: "/recurring", label: "Recurring", icon: "🔁" },
     { href: "/help", label: "Help", icon: "❓" },
   ];
   const { user, loading, logoutapi } = useAuth();
@@ -251,7 +252,7 @@ const stopRecording = () => {
         {/* Floating Expandable FAB */}
       {/* 🚀 Expandable Floating Action Button */}
 {/* 🚀 Expandable Floating Action Button */}
-<div className="fixed bottom-6 right-5 flex flex-col items-center gap-3 z-50">
+<div className="fixed bottom-10 right-5 flex flex-col items-center gap-3 z-50">
   {expanded && (
     <div className="flex flex-col items-center gap-3 mb-2 transition-all duration-300">
       {/* 📸 Upload Receipt */}
