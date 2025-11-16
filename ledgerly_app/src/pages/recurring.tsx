@@ -114,24 +114,38 @@ export default function Recurring() {
   };
 
   const openModal = (tx?: RecurringTransaction) => {
-    if (tx) {
-      setEditingId(tx.id);
-      setForm(tx);
-    } else {
-      setEditingId(null);
-      setForm({
-        accountId: "",
-        categoryId: "",
-        amount: "",
-        frequency: "monthly",
-        type: "expense",
-        nextOccurrence: "",
-        description: "",
-        status: "active",
-      });
-    }
-    setShowModal(true);
-  };
+  if (tx) {
+    setEditingId(tx.id);
+
+    setForm({
+      accountId: tx.accountId ?? "",
+      categoryId: tx.categoryId ?? "",
+      amount: tx.amount ?? "",
+      frequency: tx.frequency ?? "monthly",
+      type: tx.type ?? "expense",
+      nextOccurrence: tx.nextOccurrence
+        ? tx.nextOccurrence.split("T")[0]   // important! fix date
+        : "",
+      description: tx.description ?? "",
+      status: tx.status ?? "active",
+    });
+  } else {
+    setEditingId(null);
+    setForm({
+      accountId: "",
+      categoryId: "",
+      amount: "",
+      frequency: "monthly",
+      type: "expense",
+      nextOccurrence: "",
+      description: "",
+      status: "active",
+    });
+  }
+
+  setShowModal(true);
+};
+
 
   return (
     <Layout>
@@ -245,7 +259,8 @@ export default function Recurring() {
     </div>
 
     {/* Glow border on hover */}
-    <div className="absolute inset-0 rounded-2xl ring-1 ring-transparent group-hover:ring-blue-500/30 transition-all duration-300" />
+    <div className="absolute inset-0 rounded-2xl ring-1 ring-transparent group-hover:ring-blue-500/30 
+     transition-all duration-300 pointer-events-none" />
   </li>
 );              })}
             </ul>
