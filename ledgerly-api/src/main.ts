@@ -23,8 +23,10 @@ async function bootstrap() {
     credentials: true,
     allowedHeaders: ["Content-Type", "X-CSRF-Token", "Authorization", "x-csrf-token"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Set-Cookie"],
   });
-
+  const adapter = app.getHttpAdapter();
+  adapter.getInstance().options("*", (req, res) => res.sendStatus(204));
   app.use(helmet());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
