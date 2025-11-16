@@ -9,5 +9,5 @@ export const signup = (email: string, password: string, name: string) =>
   api.post<LoginResponse>("/auth/register", { email, password, name });
 
 export const logout = () => api.post("/auth/logout");
-
 export const getCurrentUser = () => api.get("/auth/me");
+export const initCsrf = () => api.get("/auth/csrf-token"); // still useful for explicit fetch
