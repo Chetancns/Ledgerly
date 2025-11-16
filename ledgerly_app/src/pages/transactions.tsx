@@ -10,6 +10,8 @@ import { getUserCategory } from "@/services/category";
 import { TrashIcon } from '@heroicons/react/24/solid';
 import dayjs from "dayjs";
 import toast from "react-hot-toast";
+import {motion,AnimatePresence} from "framer-motion";
+import clsx from "clsx";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -24,6 +26,7 @@ export default function Transactions() {
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [typeSummary, setTypeSummary] = useState<Partial<Record<TransactionType, number>>>({});
+  const [viewMode, setViewMode] = useState<"list" | "table">("list");
 
   const handleEdit = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -36,7 +39,20 @@ export default function Transactions() {
       { year: "numeric", month: "short", day: "numeric" }
     );
   };
+  // Load setting on mount
+    useEffect(() => {
+      const saved = localStorage.getItem("viewMode");
+      if (saved === "list" || saved === "table") {
+        setViewMode(saved);
+      }else {
+        setViewMode("list");
+      }
+    }, []);
 
+    // Save when changed
+    useEffect(() => {
+      localStorage.setItem("viewMode", viewMode);
+    }, [viewMode]);
   
   const tLabels: Record<TransactionType, string> = {
     income: 'Income',
@@ -141,175 +157,350 @@ export default function Transactions() {
   // }, [selectedMonth, selectedYear, selectedAccount, selectedCategory]);
 
   return (
-    <Layout>
-      {/*<div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2">*/}
-        <div className="mx-auto p-4">
-          <h1 className="text-3xl font-bold text-white mb-2">Transactions</h1>
+  <Layout>
+    <div className="mx-auto p-4">
 
-          {editingTransaction ? (
-            <TransactionForm
-              transaction={editingTransaction}
-              onUpdated={fetchTransaction}
-              onCancel={() => setEditingTransaction(null)}
-              onCreated={fetchTransaction} // fallback
-            />
-          ) : (
-            <TransactionForm onCreated={fetchTransaction} />
-          )}
+      {/* Header */}
+      <h1 className="text-4xl font-extrabold text-white tracking-tight mb-6 drop-shadow-lg">
+        Transactions
+      </h1>
 
-          <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4 mt-2">
-      <div className="flex flex-wrap items-end gap-4 mb-6">
-        {/* Month */}
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-white mb-1">Month</label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
-          >
-            {months.map((m, i) => (
-              <option key={i} value={i + 1}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Transaction Form */}
+      <div className="mb-6">
+        {editingTransaction ? (
+          <TransactionForm
+            transaction={editingTransaction}
+            onUpdated={fetchTransaction}
+            onCancel={() => setEditingTransaction(null)}
+            onCreated={fetchTransaction}
+          />
+        ) : (
+          <TransactionForm onCreated={fetchTransaction} />
+        )}
+      </div>
 
-        {/* Year */}
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-white mb-1">Year</label>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
-          >
-            {Array.from({ length: 5 }).map((_, i) => {
-              const year = today.getFullYear() - 2 + i;
-              return (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+      {/* --- Filters + Summary --- */}
+      <div className="
+        bg-white/10 backdrop-blur-2xl shadow-xl
+        rounded-3xl border border-white/20
+        p-6 mb-6
+      ">
+        <div className="flex flex-wrap items-end gap-6">
 
-        {/* Account */}
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-white mb-1">Account</label>
-          <select
-            value={selectedAccount}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
-          >
-            <option value="all">All</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Category */}
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-white mb-1">Category</label>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
-          >
-            <option value="all">All</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Summary inline */}
-        <div className="flex flex-wrap items-center gap-3 ml-auto">
-          {Object.entries(typeSummary).map(([type, total]) => (
-            <div
-              key={type}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-sm text-sm font-medium border border-white/10 backdrop-blur-lg transition-transform hover:scale-105 ${
-                typeStyleMap[type as TransactionType] || "bg-gray-700 text-white"
-              }`}
+          {/* Filter Select Field */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-white mb-1">Month</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="
+                bg-white/20 backdrop-blur-xl border border-white/30
+                px-3 py-2 rounded-xl text-black
+                hover:bg-white/30 transition
+              "
             >
-              <span>{tLabels[type as TransactionType]}</span>
-              <span className="text-black/90">₹{Number(total).toFixed(2)}</span>
+              {months.map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-white mb-1">Year</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="
+                bg-white/20 backdrop-blur-xl border border-white/30
+                px-3 py-2 rounded-xl text-black
+                hover:bg-white/30 transition
+              "
+            >
+              {Array.from({ length: 5 }).map((_, i) => {
+                const year = today.getFullYear() - 2 + i;
+                return <option key={year} value={year}>{year}</option>;
+              })}
+            </select>
+          </div>
+
+          {/* Account */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-white mb-1">Account</label>
+            <select
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+              className="
+                bg-white/20 backdrop-blur-xl border border-white/30
+                px-3 py-2 rounded-xl text-black
+                hover:bg-white/30 transition
+              "
+            >
+              <option value="all">All</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Category */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-white mb-1">Category</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="
+                bg-white/20 backdrop-blur-xl border border-white/30
+                px-3 py-2 rounded-xl text-black
+                hover:bg-white/30 transition
+              "
+            >
+              <option value="all">All</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Summary Boxes */}
+          <div className="flex flex-wrap items-center gap-3 ml-auto">
+            {Object.entries(typeSummary).map(([type, total]) => (
+              <div
+                key={type}
+                className="
+                  px-4 py-2 rounded-xl shadow-lg
+                  text-sm font-semibold border border-white/10
+                  backdrop-blur-xl bg-white/20
+                  flex items-center gap-2
+                "
+              >
+                <span className={clsx(
+                  type === 'income' ? 'text-green-800' :
+                  type === 'expense' ? 'text-red-800' :
+                  'text-blue-800'
+                )}>{tLabels[type as TransactionType]}</span>
+                <span className="text-black font-bold">
+                  ₹{Number(total).toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="ml-auto flex items-center">
+            <div className="flex bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl p-1 shadow-inner relative">
+              
+              {/* Sliding highlight */}
+              <motion.div
+                layout
+                className="absolute top-[4px] bottom-[4px] w-[45%] bg-white/40 rounded-xl shadow-md"
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                style={{ left: viewMode === "list" ? "4px" : "calc(50% + 4px)" }}
+              />
+
+              {/* List Button */}
+              <label
+                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold text-white"
+              >
+                <input
+                  type="radio"
+                  name="view-toggle"
+                  value="list"
+                  checked={viewMode === "list"}
+                  onChange={() => setViewMode("list")}
+                  className="hidden"
+                />
+                📑 List
+              </label>
+
+              {/* Table Button */}
+              <label
+                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold text-white"
+              >
+                <input
+                  type="radio"
+                  name="view-toggle"
+                  value="table"
+                  checked={viewMode === "table"}
+                  onChange={() => setViewMode("table")}
+                  className="hidden"
+                />
+                📊 Table
+              </label>
             </div>
-          ))}
+          </div>
+
+
         </div>
       </div>
-      <ul className="flex flex-wrap justify-evenly gap-4 px-4">
-              {transactions.map((t) => {
+
+<AnimatePresence mode="wait">
+  {viewMode === "list" && (
+    <motion.div
+     key="list"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.25 }}
+    >
+      <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 px-2">
+  {transactions.map((t) => {
     const account = accounts.find(a => a.id === t.accountId);
     const category = categories.find(c => c.id === t.categoryId);
     const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
 
+    // Type colors & icons
+    const typeColor = t.type === 'income' ? 'green' :
+                      t.type === 'expense' ? 'red' : 
+                      t.type === 'savings' ? 'blue' : 
+                      t.type === 'transfer' ? 'gray' : 'white';
+    const typeIcon = t.type === 'income' ? '💰' :
+                     t.type === 'expense' ? '💸' : '🔁';
+
     return (
       <li
         key={t.id}
-        className={`bg-white/80 backdrop-blur-lg w-[300px] font-semibold p-4 rounded-lg shadow border border-gray-200 flex flex-col justify-between transition-opacity duration-300 ${
-          deletingId === t.id ? 'opacity-0' : 'opacity-100'
-        }`}
+        className={clsx(`
+          relative flex flex-col justify-between bg-white/75 shadow-sm
+          border-l-4 border-${typeColor}-900 rounded-md p-3
+          transition-transform hover:shadow-md hover:-translate-y-0.5
+          ${deletingId === t.id ? 'opacity-0' : 'opacity-100'}
+        `)}
       >
-        <div>
-          <p className="font-semibold text-gray-800">💲 {t.amount}</p>
-          <span className="text-xs text-gray-500">
-            {formatDateForUI(t.transactionDate)}
+        {/* Top Row: Amount + Date */}
+        <div className="flex justify-between items-center mb-1">
+          <span className={clsx(
+`font-bold text-${typeColor}-700 text-lg flex items-center gap-1`)}>
+            {typeIcon} ₹{t.amount}
           </span>
-
-          {/* 🔹 Source account */}
-          <span className="text-xs text-gray-700 ml-2">
-            {account ? `${account.name} (${account.type})` : "Unknown Account"}
-          </span>
-
-          {/* 🔹 Show arrow for transfers */}
-          {toAccount && (
-            <span className="text-xs text-blue-600 ml-2">
-              → {toAccount.name} ({toAccount.type})
-            </span>
-          )}
-
-          {/* 🔹 Category */}
-          <span className="text-xs text-gray-800 ml-2">
-            : {category ? category.name : "Unknown Category"}
-          </span>
-
-          <p className="text-m text-green-800">{t.description}</p>
+          <span className="text-xs text-gray-900">{formatDateForUI(t.transactionDate)}</span>
         </div>
 
-        <div className="flex justify-between items-center mt-4">
-          <span className={`px-2 py-1 rounded-full text-sm font-medium ${t.type ? typeStyleMap[t.type] : 'bg-gray-100 text-gray-500'}`}>
+        {/* Middle Row: Accounts + Category */}
+        <div className="flex flex-col text-sm text-gray-900 space-y-0.5">
+          <p className="truncate">
+            <span className="font-medium">{account ? account.name : 'Unknown Account'}</span>
+            {toAccount && (
+              <span className="text-blue-600 font-medium"> → {toAccount.name}</span>
+            )}
+          </p>
+          <p className="truncate text-gray-600">
+            Category: <span className="font-medium">{category ? category.name : 'Unknown'}</span>
+          </p>
+          {t.description && (
+            <p className="truncate text-gray-800 line-clamp-2">{t.description}</p>
+          )}
+        </div>
+
+        {/* Bottom Row: Type + Actions */}
+        <div className="flex justify-between items-center mt-2">
+          {/* Type Tag */}
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold
+            ${t.type === 'income' ? 'bg-green-100 text-green-800' :
+              t.type === 'expense' ? 'bg-red-100 text-red-800' :
+              'bg-blue-100 text-blue-800'}
+          `}>
             {t.type ? tLabels[t.type] : 'Unknown'}
           </span>
 
-          <button
-            onClick={() => handleEdit(t)}
-            className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
-            title="Edit"
-          >
-            ✏️
-          </button>
-
-          <button
-            onClick={() => handleDelete(t.id)}
-            className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
-            title="Delete"
-          >
-            <TrashIcon className="h-5 w-5" />
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleEdit(t)}
+              className="text-blue-600 hover:text-blue-800 transition"
+              title="Edit"
+            >
+              ✏️
+            </button>
+            <button
+              onClick={() => handleDelete(t.id)}
+              className="text-red-600 hover:text-red-800 transition"
+              title="Delete"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </li>
     );
   })}
-            </ul>
-          </div>
-        </div>
-      {/*</div>*/}
-    </Layout>
-  );
+</ul>
+    </motion.div>
+)}
+
+{viewMode === "table" && (
+  <motion.div
+      key="table"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.25 }}
+    > 
+    <div className="overflow-x-auto bg-white/40 backdrop-blur-md shadow-md rounded-md p-4">
+  <table className="min-w-full divide-y divide-gray-200">
+    <thead className="bg-gray-300">
+      <tr>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Date</th>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Amount</th>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Account</th>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">To Account</th>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Category</th>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Description</th>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Type</th>
+        <th className="px-3 py-2 text-right text-sm font-semibold text-gray-900">Actions</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-200">
+      {transactions.map((t) => {
+        const account = accounts.find(a => a.id === t.accountId);
+        const category = categories.find(c => c.id === t.categoryId);
+        const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
+
+        const typeColor = t.type === 'income' ? 'green' :
+                          t.type === 'expense' ? 'red' : 'blue';
+        const typeIcon = t.type === 'income' ? '💰' :
+                         t.type === 'expense' ? '💸' : '🔁';
+
+        return (
+          <tr key={t.id} className={`transition-all ${deletingId === t.id ? 'opacity-0' : 'opacity-100'} hover:bg-gray-50`}>
+            <td className="px-3 py-2 text-sm text-gray-800">{formatDateForUI(t.transactionDate)}</td>
+            <td className={`px-3 py-2 text-sm font-semibold text-${typeColor}-800 flex items-center gap-1`}>
+              {typeIcon} ₹{t.amount}
+            </td>
+            <td className="px-3 py-2 text-sm text-gray-800">{account ? account.name : 'Unknown'}</td>
+            <td className="px-3 py-2 text-sm text-gray-800">{toAccount ? toAccount.name : '-'}</td>
+            <td className="px-3 py-2 text-sm text-gray-800">{category ? category.name : 'Unknown'}</td>
+            <td className="px-3 py-2 text-sm text-gray-800 line-clamp-2">{t.description || '-'}</td>
+            <td className={`px-3 py-2 text-xs font-semibold rounded-full text-${typeColor}-900  w-max`}>
+              {t.type ? tLabels[t.type] : 'Unknown'}
+            </td>
+            <td className="px-3 py-2 text-right flex gap-2 justify-end">
+              <button
+                onClick={() => handleEdit(t)}
+                className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
+                title="Edit"
+              >
+                ✏️
+              </button>
+              <button
+                onClick={() => handleDelete(t.id)}
+                className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
+                title="Delete"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
+    </motion.div>
+
+)}
+</AnimatePresence>
+
+    </div>
+  </Layout>
+);
+
 }
