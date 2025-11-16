@@ -27,6 +27,9 @@ export class User {
 
   @Column('text') passwordHash: string;
 
+  @Column({ type: 'text', nullable: true })
+  refreshTokenHash?: string;
+
   @Column({ length: 10, default: 'USD' }) currency: string;
 
   @CreateDateColumn() createdAt: Date;

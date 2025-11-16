@@ -56,11 +56,12 @@ const openModal = (category: Category) => {
   
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2">
-        <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-4">
+        {/*<div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">*/}
           <h1 className="text-3xl font-bold text-white mb-6">Categories</h1>
 
           {/* Add Category Form */}
+          
           <form onSubmit={handleCreate} className="mb-6 flex gap-4 flex-wrap">
             <input
               type="text"
@@ -122,7 +123,7 @@ const openModal = (category: Category) => {
               ))}
             </ul>
           </div>
-        </div>
+        {/*</div>*/}
       </div>
       {showModal && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

@@ -1,53 +1,91 @@
-import { Controller, Post, Body, Res, Get, Req } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+// src/auth/auth.controller.ts
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Res,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
+import { Response, Request } from "express";
+import { AuthService } from "./auth.service";
+import { LoginDto, RegisterDto } from "./dto/auth.dto";
+import { JwtAuthGuard } from "./jwt.guard";
 import express from 'express';
-
-@Controller('auth')
+@Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private auth: AuthService) {}
 
-  @Get("csrf-token")
-  getCsrfToken(@Req() req: express.Request, @Res() res: express.Response) {
-    const token = req.cookies["XSRF-TOKEN"];
-    return res.json({ csrfToken: token });
-  }
-
-  @Post('register')
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: express.Response) {
-    const { accessToken, user } = await this.authService.register(dto);
-    this.setAuthCookie(res, accessToken);
-    return { user };
-  }
-
-  @Post('login')
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: express.Response) {
-    const { accessToken, user } = await this.authService.login(dto);
-    this.setAuthCookie(res, accessToken);
-    return { user };
-  }
-
-  @Post('logout')
-  async logout(@Res({ passthrough: true }) res: express.Response) {
-    res.clearCookie('accessToken');
-    return { message: 'Logged out successfully' };
-  }
-
-  @Get('me')
-  async getMe(@Req() req: express.Request) {
-    const token = req.cookies['accessToken'];
-    if (!token) return { user: null };
-
-    const payload = this.authService.verifyToken(token);
-    return { user: { id: payload['sub'], email: payload['email'], name: payload['name'] } };
-  }
-
-  private setAuthCookie(res: express.Response, token: string) {
-    res.cookie('accessToken', token, {
+  private setAccessCookie(res: Response, token: string) {
+    res.cookie("accessToken", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // only send over HTTPS in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict", // CSRF protection
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+      maxAge: 1000 * 60 * 15,
     });
+  }
+
+  private setRefreshCookie(res: Response, token: string) {
+    res.cookie("refreshToken", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/auth/refresh",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
+  }
+
+  /* -------------------------- REGISTER -------------------------- */
+  @Post("register")
+  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: express.Response) {
+    const { accessToken, refreshToken, user } = await this.auth.register(dto);
+
+    this.setAccessCookie(res, accessToken);
+    this.setRefreshCookie(res, refreshToken);
+
+    return { user };
+  }
+
+  /* ----------------------------- LOGIN ------------------------------ */
+  @Post("login")
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: express.Response) {
+    const { accessToken, refreshToken, user } = await this.auth.login(dto);
+
+    this.setAccessCookie(res, accessToken);
+    this.setRefreshCookie(res, refreshToken);
+
+    return { user };
+  }
+
+  /* ------------------------ REFRESH TOKEN ------------------------ */
+  @Post("refresh")
+  async refresh(@Req() req: express.Request, @Res({ passthrough: true }) res: express.Response) {
+    const oldRefresh = req.cookies.refreshToken;
+    if (!oldRefresh) throw new Error("No refresh token");
+
+    const { accessToken, refreshToken } =
+      await this.auth.rotateRefreshToken(oldRefresh);
+
+    this.setAccessCookie(res, accessToken);
+    this.setRefreshCookie(res, refreshToken);
+
+    return { accessToken };
+  }
+
+  /* ---------------------------- CURRENT USER ---------------------------- */
+  @UseGuards(JwtAuthGuard)
+  @Get("me")
+  async me(@Req() req: express.Request) {
+    return { user: req.user };
+  }
+
+  /* ---------------------------- LOGOUT ---------------------------- */
+  @Post("logout")
+  async logout(@Res({ passthrough: true }) res: express.Response) {
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+    return { message: "Logged out" };
   }
 }

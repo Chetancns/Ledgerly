@@ -11,10 +11,20 @@ import * as jwt from 'jsonwebtoken';
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule,
+
+    // Access Token configuration
     JwtModule.register({
-      secret: process.env.JWT_SECRET,
+      secret: process.env.JWT_SECRET,                // ACCESS TOKEN SECRET
       signOptions: {
-        expiresIn: process.env.JWT_EXPIRES as jwt.SignOptions['expiresIn'] || '1d', // ✅ cast here
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN as jwt.SignOptions['expiresIn'] || '15m' // ACCESS TOKEN EXPIRES
+      },
+    }),
+
+    // Refresh Token configuration
+    JwtModule.register({
+      secret: process.env.JWT_REFRESH_SECRET,                // REFRESH TOKEN SECRET
+      signOptions: {
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN as jwt.SignOptions['expiresIn'] || '7d',  // REFRESH TOKEN EXPIRES
       },
     }),
   ],

@@ -11,5 +11,3 @@ export const signup = (email: string, password: string, name: string) =>
 export const logout = () => api.post("/auth/logout");
 
 export const getCurrentUser = () => api.get("/auth/me");
-
-export const initCsrf = () => api.get("/auth/csrf-token");

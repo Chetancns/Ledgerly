@@ -12,6 +12,7 @@
     "@heroicons/react": "^2.2.0",
     "@vercel/speed-insights": "^1.2.0",
     "axios": "^1.11.0",
+    "clsx": "^2.1.1",
     "dayjs": "^1.11.18",
     "framer-motion": "^12.23.12",
     "js-cookie": "^3.0.5",

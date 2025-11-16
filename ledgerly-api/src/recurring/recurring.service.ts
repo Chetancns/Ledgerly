@@ -53,6 +53,7 @@ export class RecurringService {
   // 🕑 PROCESS DUE (auto transactions)
   @Cron('0 2 * * *') // 2:00 AM daily
   async processDue() {
+    console.log('Processing due recurring transactions...');
     const today = dayjs().format('YYYY-MM-DD');
 
     const due = await this.recRepo.find({
@@ -81,5 +82,6 @@ export class RecurringService {
         nextOccurrence: next.format('YYYY-MM-DD'),
       });
     }
+    console.log(`Processed ${due.length} recurring transactions.`); 
   }
 }
