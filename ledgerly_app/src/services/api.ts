@@ -2,83 +2,73 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
+const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.1.50:3001"; // update as needed
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.1.50:3001",
-  withCredentials: true,
+  baseURL: BASE,
+  withCredentials: true, // <-- required for cookies to be sent cross-site
 });
 
-/* ---------------------------- CSRF HEADER ---------------------------- */
-// Always inject latest XSRF-TOKEN cookie for unsafe methods
+/* ---------------------------- REQUEST (CSRF injection + debug) ---------------------------- */
 api.interceptors.request.use((config) => {
-  const csrfToken = Cookies.get("XSRF-TOKEN");
+  const csrf = Cookies.get("XSRF-TOKEN");
+  console.log("[api] request:", config.method?.toUpperCase(), config.url, "csrf present:", !!csrf);
 
-  if (
-    csrfToken &&
-    config.method &&
-    ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())
-  ) {
-    config.headers["X-CSRF-Token"] = csrfToken;
+  if (csrf && config.method && ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())) {
+    config.headers = config.headers || {};
+    config.headers["X-CSRF-Token"] = csrf;
+    console.log("[api] Added X-CSRF-Token header (first 8):", csrf.slice(0,8)+"...");
   }
 
   return config;
 });
 
-/* ---------------------- REFRESH TOKEN INTERCEPTOR -------------------- */
-
+/* ---------------------------- RESPONSE (refresh on 401) ---------------------------- */
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: Array<{resolve: Function; reject: Function}> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((p) => {
-    if (error) {
-      p.reject(error);
-    } else {
-      p.resolve(token);
-    }
+const processQueue = (error: any = null) => {
+  console.log("[api] processQueue. error:", !!error, "queued:", failedQueue.length);
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve();
   });
   failedQueue = [];
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
+  async (err) => {
+    const original = err.config;
+    console.warn("[api] response error:", err?.response?.status, original?.url);
 
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Handle 401 only once
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (err.response?.status === 401 && !original._retry) {
       if (isRefreshing) {
+        console.log("[api] refresh already in progress — queueing request:", original.url);
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          originalRequest.headers["Authorization"] = `Bearer ${token}`;
-          return api(originalRequest);
+          failedQueue.push({ resolve: () => resolve(api(original)), reject });
         });
       }
 
-      originalRequest._retry = true;
+      original._retry = true;
       isRefreshing = true;
 
       try {
-        const refreshRes = await api.post("/auth/refresh");
-        const newAccessToken = refreshRes.data.accessToken;
-
-        api.defaults.headers.common["Authorization"] =
-          `Bearer ${newAccessToken}`;
-
-        processQueue(null, newAccessToken);
-
-        originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
-        return api(originalRequest);
-      } catch (err) {
-        processQueue(err, null);
-        return Promise.reject(err);
+        console.log("[api] calling /auth/refresh to rotate cookies");
+        await api.post("/auth/refresh"); // cookies rotated by backend
+        console.log("[api] refresh succeeded, retrying original:", original.url);
+        processQueue(null);
+        return api(original);
+      } catch (refreshErr) {
+        console.error("[api] refresh failed:", refreshErr);
+        processQueue(refreshErr);
+        return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
       }
     }
 
-    return Promise.reject(error);
+    return Promise.reject(err);
   }
 );
 
