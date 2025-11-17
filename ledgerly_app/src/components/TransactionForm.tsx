@@ -221,20 +221,29 @@ export default function TransactionForm({
               Account
             </label>
             <select
-              id="accountId"
-              name="accountId"
-              value={form.accountId}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 text-white/90 border border-white/10 
-                        focus:outline-none focus:ring-2 focus:ring-blue-400/60 transition"
-            >
-              <option value="">Select Account</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id} className="text-black">
-                  {acc.name}
-                </option>
-              ))}
-            </select>
+                id="accountId"
+                name="accountId"
+                value={form.accountId}
+                onChange={handleChange}
+                className="
+                  w-full px-4 py-3 rounded-xl
+                  bg-white/10 text-white/90
+                  border border-white/20
+                  shadow-[inset_2px_2px_6px_rgba(0,0,0,0.3),inset_-2px_-2px_6px_rgba(255,255,255,0.1)]
+                  backdrop-blur-md
+                  transition-all
+                  focus:outline-none 
+                  focus:ring-2 focus:ring-blue-400/50 
+                  hover:bg-white/20
+                "
+              >
+                <option value="">Select Account</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id} className="text-black">
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
           </div>
 
           {/* Category */}
@@ -349,7 +358,7 @@ export default function TransactionForm({
                         : "bg-white/10 text-white hover:bg-white/20"
                     }`}
                 >
-                  {t === "normal" ? "Normal" : t === "transfer" ? "Transfer" : "Savings"}
+                  {t === "normal" ? "💸 Normal" : t === "transfer" ? "🔀 Transfer" : "🏦 Savings"}
                 </button>
               ))}
             </div>

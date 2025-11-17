@@ -353,7 +353,9 @@ export default function Transactions() {
                       t.type === 'savings' ? 'blue' : 
                       t.type === 'transfer' ? 'gray' : 'white';
     const typeIcon = t.type === 'income' ? '💰' :
-                     t.type === 'expense' ? '💸' : '🔁';
+                     t.type === 'expense' ? '💸' : 
+                     t.type === 'transfer' ? '🔀' : 
+                     t.type === 'savings' ? '🏦' : '💰';
 
     return (
       <li

@@ -9,6 +9,7 @@ import {
 import { Account, AccountType } from "../models/account";
 import { TrashIcon } from "@heroicons/react/24/solid";
 import toast, { Toaster } from "react-hot-toast";
+import NeumorphicSelect from "@/components/NeumorphicSelect";
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -98,17 +99,15 @@ export default function Accounts() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <select
-              className="p-2 rounded-lg bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-              value={type}
-              onChange={(e) => setType(e.target.value as AccountType)}
-            >
-              {accountTypes.map((acct) => (
-                <option key={acct} value={acct} >
-                  {accountLabels[acct]}
-                </option>
-              ))}
-            </select>
+            <NeumorphicSelect
+            value={type}
+            onChange={(val) => setType(val as AccountType)}
+            options={accountTypes.map((acct) => ({
+              value: acct,
+              label: accountLabels[acct],
+            }))}
+            placeholder="Select Account Type"
+          />
             <input
               className="p-2 rounded-lg text-black"
               placeholder="Balance"
@@ -167,7 +166,7 @@ export default function Accounts() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-              <select
+              {/*<select
                 className="p-2 rounded-lg text-black"
                 value={type}
                 onChange={(e) => setType(e.target.value as AccountType)}
@@ -177,7 +176,16 @@ export default function Accounts() {
                     {accountLabels[acct]}
                   </option>
                 ))}
-              </select>
+              </select>*/}
+              <NeumorphicSelect
+            value={type}
+            onChange={(val) => setType(val as AccountType)}
+            options={accountTypes.map((acct) => ({
+              value: acct,
+              label: accountLabels[acct],
+            }))}
+            placeholder="Select Account Type"
+          />
               <input
                 className="p-2 rounded-lg text-black"
                 placeholder="Balance"
