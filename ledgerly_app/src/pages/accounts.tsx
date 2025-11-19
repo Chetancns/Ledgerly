@@ -10,6 +10,8 @@ import { Account, AccountType } from "../models/account";
 import { TrashIcon } from "@heroicons/react/24/solid";
 import toast, { Toaster } from "react-hot-toast";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
+import NeumorphicInput from "@/components/NeumorphicInput";
+import ModernButton from "@/components/NeumorphicButton";
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -18,7 +20,7 @@ export default function Accounts() {
   const [balance, setBalance] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const accountTypes: AccountType[] = [
     "bank",
     "cash",
@@ -42,6 +44,17 @@ export default function Accounts() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (name.trim() === "") {
+        toast.error("Account name is required!");
+        return;
+      }
+      if (isNaN(Number(balance))) {
+        toast.error("Balance must be a valid number!");
+        return;
+      }if(type.trim() === "") {
+        toast.error("Account type is required!");
+        return;
+      }
       if (editingId) {
         await updateAccount(editingId, { name, type, balance });
         toast.success("Account updated successfully!");
@@ -74,13 +87,20 @@ export default function Accounts() {
     setShowModal(true);
   };
 
+  const onCancel = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setName("");
+    setType("bank");
+    setBalance("");
+  }
+
   useEffect(() => {
     load();
   }, []);
 
   return (
     <Layout>
-      <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-4">
         {/* <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8"> */}
           <h1 className="text-3xl font-bold text-white mb-6">Accounts</h1>
@@ -88,16 +108,27 @@ export default function Accounts() {
           {/* Form for adding new accounts */}
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-4 mb-6 bg-white/10 p-4 rounded-xl"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 mb-6 p-4 rounded-xl"
           >
-            <h2 className="text-xl font-semibold text-white mb-2">
+            <h2 className="md:col-span-2 text-xl font-semibold text-white mb-2">
               Add New Account
             </h2>
-            <input
-              className="p-2 rounded-lg text-black"
-              placeholder="Account Name"
+            <span className="md:col-span-2">
+              <NeumorphicInput
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={setName}
+              placeholder="Account Name"
+              theme={theme}
+              type="text"
+            />
+            </span>
+            
+            <NeumorphicInput
+              value={balance}
+              onChange={setBalance}
+              placeholder="Balance"
+              theme={theme}
+              type="number"
             />
             <NeumorphicSelect
             value={type}
@@ -106,20 +137,24 @@ export default function Accounts() {
               value: acct,
               label: accountLabels[acct],
             }))}
+            theme={theme}
             placeholder="Select Account Type"
-          />
-            <input
-              className="p-2 rounded-lg text-black"
-              placeholder="Balance"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
             />
-            <button
+            <ModernButton
               type="submit"
-              className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-800"
+              color="indigo-600"
+              variant="solid"
+              theme={theme}
+            >Add Account</ModernButton>
+            <ModernButton
+              onClick={onCancel}
+              color="gray-600"
+              variant="solid"
+              theme={theme}
+              type="button"
             >
-              Add Account
-            </button>
+              Cancel
+            </ModernButton>
           </form>
 
           {/* Accounts list */}
@@ -160,11 +195,12 @@ export default function Accounts() {
           <div className="bg-white/10 backdrop-blur-lg p-6 rounded-xl border border-white/20 w-full max-w-md">
             <h2 className="text-white text-xl font-bold mb-4">Edit Account</h2>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <input
-                className="p-2 rounded-lg text-black"
-                placeholder="Account Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+              <NeumorphicInput
+              value={name}
+              onChange={setName}
+              placeholder="Account Name"
+              theme={theme}
+              type="text"
               />
               {/*<select
                 className="p-2 rounded-lg text-black"
@@ -185,12 +221,14 @@ export default function Accounts() {
               label: accountLabels[acct],
             }))}
             placeholder="Select Account Type"
+            theme={theme}
           />
-              <input
-                className="p-2 rounded-lg text-black"
-                placeholder="Balance"
+              <NeumorphicInput
                 value={balance}
-                onChange={(e) => setBalance(e.target.value)}
+                onChange={setBalance}
+                placeholder="Balance"
+                theme={theme}
+                type="number"
               />
               <div className="flex gap-2">
                 <button
