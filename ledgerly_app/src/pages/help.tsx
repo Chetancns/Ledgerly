@@ -20,7 +20,14 @@ import {
   FaBell,
 } from "react-icons/fa";
 
-const sections = [
+interface HelpSection {
+  icon: React.ReactNode;
+  title: string;
+  badge?: string;
+  content: React.ReactNode;
+}
+
+const sections: HelpSection[] = [
   {
     icon: <FaUserPlus className="text-blue-300 w-6 h-6" />,
     title: "1. Getting Started",
@@ -551,7 +558,7 @@ export default function HelpPage() {
                       {section.badge}
                     </span>
                   )}
-                  <span className="ml-2 text-sm text-white/60 font-bold text-xl">
+                  <span className="ml-2 text-white/60 font-bold text-xl">
                     {open === idx ? "−" : "+"}
                   </span>
                 </button>
