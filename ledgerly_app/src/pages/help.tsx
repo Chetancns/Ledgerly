@@ -423,7 +423,7 @@ const sections: HelpSection[] = [
             <span className="text-xl">⚠️</span>
             <div>
               <b className="text-yellow-200">Delete with Caution:</b>
-              <p className="text-white/80 text-sm mt-0.5">Deleting accounts or categories will also remove all associated transactions!</p>
+              <p className="text-white/80 text-sm mt-0.5">Deleting accounts or categories will cause inconsistencies in your reports. Use with caution!</p>
             </div>
           </li>
         </ul>
@@ -454,14 +454,14 @@ const sections: HelpSection[] = [
         <div>
           <h4 className="font-semibold text-pink-200 mb-1">Q: How accurate is the AI receipt scanning?</h4>
           <p className="text-white/80 text-sm ml-4">
-            AI is quite good but not perfect. It may take longer on free-tier backends. Always review AI-created transactions for accuracy.
+            AI is quite good but not perfect but it may not pick up correct account or Category if some details are unclear. It may take longer on free-tier backends. Always review AI-created transactions for accuracy.
           </p>
         </div>
         
         <div>
           <h4 className="font-semibold text-pink-200 mb-1">Q: What happens if I delete a category?</h4>
           <p className="text-white/80 text-sm ml-4">
-            <span className="text-red-300">⚠️ Warning:</span> Deleting a category will also delete all transactions associated with that category. Use with caution!
+            <span className="text-red-300">⚠️ Warning:</span> Deleting a category will make sure they don't show up in your reports. Use with caution!
           </p>
         </div>
         
@@ -588,7 +588,7 @@ export default function HelpPage() {
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
             >
               <FaEnvelope />
-              Contact Support: support@ledgerly.app
+              Contact Support: chetan.1rn16is027@gmail.com
             </a>
           </div>
 
