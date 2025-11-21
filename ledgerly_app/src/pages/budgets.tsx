@@ -1,26 +1,174 @@
-import { useEffect, useState, ChangeEvent, FormEvent } from "react";
-import Layout from "../components/Layout";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Layout from "@/components/Layout";
 import { getUserCategory } from "@/services/category";
 import { Category } from "@/models/category";
-import { getBudgets, createOrUpdateBudget, deleteBudget ,copyPreviousBudgets } from "../services/budget";
-import { TrashIcon, PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
+import {
+  getBudgets,
+  createOrUpdateBudget,
+  deleteBudget,
+  copyPreviousBudgets,
+} from "@/services/budget";
+import {
+  TrashIcon,
+  PencilIcon,
+  CheckIcon,
+  XMarkIcon,
+  ArrowPathIcon,
+  PlusIcon,
+} from "@heroicons/react/24/solid";
 import dayjs from "dayjs";
+import NeumorphicSelect from "@/components/NeumorphicSelect";
+import ModernButton from "@/components/NeumorphicButton";
+import { motion, AnimatePresence } from "framer-motion";
+import clsx from "clsx";
+import NeumorphicInput from "@/components/NeumorphicInput";
 
+// ------------------------------
+// Types
+// ------------------------------
 type BudgetPeriod = "monthly" | "weekly" | "bi-weekly" | "yearly";
 
 interface Budget {
   id?: string;
   categoryId: string;
-  amount: string;
+  amount: string; // kept as string to match API
   period: BudgetPeriod;
   startDate: string;
   endDate: string;
   carriedOver?: boolean;
+  spent?: number;
+  updatedAt?: string;
 }
 
-export default function Budgets() {
+// ------------------------------
+// Helpers
+// ------------------------------
+const formatCurrency = (value: number | string) => {
+  const n = Number(value) || 0;
+  return `$${n.toLocaleString()}`;
+};
+
+const getEndDateFor = (period: BudgetPeriod, startIso: string) => {
+  const start = dayjs(startIso);
+  switch (period) {
+    case "weekly":
+      return start.endOf("week").format("YYYY-MM-DD");
+    case "bi-weekly":
+      return start.add(13, "day").format("YYYY-MM-DD");
+    case "yearly":
+      return start.endOf("year").format("YYYY-MM-DD");
+    case "monthly":
+    default:
+      return start.endOf("month").format("YYYY-MM-DD");
+  }
+};
+
+// ------------------------------
+// UI pieces
+// ------------------------------
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse p-5 rounded-2xl bg-white/6 backdrop-blur border border-white/6 h-40" />
+  );
+}
+
+function BudgetCard({
+  b,
+  categoryName,
+  onEdit,
+  onDelete,
+  disabled,
+}: {
+  b: Budget;
+  categoryName?: string;
+  onEdit: () => void;
+  onDelete: () => void;
+  disabled?: boolean;
+}) {
+  const spent = b.spent ?? 0;
+  const amountNum = Number(b.amount) || 0;
+  const percent = amountNum > 0 ? Math.min(100, Math.round((spent / amountNum) * 100)) : 0;
+  const remaining = Math.max(0, amountNum - spent);
+
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      whileHover={{ scale: disabled ? 1 : 1.01 }}
+      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      className={clsx(
+        "relative bg-white/10 backdrop-blur-lg p-5 rounded-3xl border border-white/10 shadow-lg flex flex-col gap-3",
+        disabled && "opacity-70 pointer-events-none"
+      )}
+    >
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-white text-lg font-semibold">{categoryName ?? "Uncategorized"}</p>
+          <p className="text-white/75 text-sm mt-1">
+            {b.period} • {b.startDate} → {b.endDate}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onEdit}
+            title="Edit"
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-white"
+            aria-label={`Edit budget for ${categoryName ?? "category"}`}
+          >
+            <PencilIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={onDelete}
+            title="Delete"
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-red-400"
+            aria-label={`Delete budget for ${categoryName ?? "category"}`}
+          >
+            <TrashIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-baseline gap-3">
+          <p className="text-white/90 font-semibold text-xl">{formatCurrency(amountNum)}</p>
+          <p className="text-xs text-white/60">Allocated</p>
+          {b.carriedOver && (
+            <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded-full">
+              Carry over
+            </span>
+          )}
+        </div>
+
+        <div className="mt-2 text-sm text-white/70">
+          <span className="mr-3">Spent: {formatCurrency(spent)}</span>
+          <span>Remaining: {formatCurrency(remaining)}</span>
+        </div>
+      </div>
+
+      <div className="mt-auto">
+        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+          <div
+            className={clsx("h-full transition-all", percent >= 100 ? "bg-red-500" : "bg-amber-400")}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <p className="text-white/60 text-xs mt-2">{percent}% used</p>
+      </div>
+    </motion.li>
+  );
+}
+
+// ------------------------------
+// Page
+// ------------------------------
+export default function BudgetsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [form, setForm] = useState<Budget>({
     categoryId: "",
     amount: "",
@@ -29,329 +177,513 @@ export default function Budgets() {
     endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
   });
   const [carryOver, setCarryOver] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Budget | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const mountedRef = useRef(false);
 
-  // --- Utils for calculating end date based on period ---
-  const getEndDate = (period: BudgetPeriod, startDate: string) => {
-    const start = dayjs(startDate);
-    switch (period) {
-      case "weekly":
-        return start.endOf("week").format("YYYY-MM-DD");
-      case "bi-weekly":
-        return start.add(13, "day").format("YYYY-MM-DD");
-      case "yearly":
-        return start.endOf("year").format("YYYY-MM-DD");
-      case "monthly":
-      default:
-        return start.endOf("month").format("YYYY-MM-DD");
+  const categoryMap = useMemo(() => {
+    const m = new Map<string, string>();
+    categories.forEach((c) => m.set(c.id, c.name ?? "Unnamed"));
+    return m;
+  }, [categories]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [catRes, budgetRes] = await Promise.all([
+        getUserCategory(),
+        getBudgets(form.startDate, form.endDate, form.period),
+      ]);
+      setCategories(catRes);
+      setBudgets((budgetRes.data || []).map((b: any) => ({
+        id: b.id,
+        categoryId: b.categoryId,
+        amount: String(b.amount ?? b.value ?? "0"),
+        period: b.period,
+        startDate: b.startDate,
+        endDate: b.endDate,
+        carriedOver: !!b.carriedOver,
+        spent: typeof b.spent === "number" ? b.spent : undefined,
+        updatedAt: b.updatedAt,
+      })));
+    } catch (err) {
+      console.error("Failed loading budgets", err);
+      alert("Failed to load budgets. See console for details.");
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const loadData = async () => {
-    const catRes = await getUserCategory();
-    setCategories(catRes);
-    const budgetRes = await getBudgets(form.startDate, form.endDate, form.period);
-    setBudgets(budgetRes.data);
-  };
+  }, [form.endDate, form.period, form.startDate]);
 
   useEffect(() => {
-    loadData();
-  }, [form.startDate, form.endDate, form.period]);
-
-  // --- Form change handling ---
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-
-    if (name === "period") {
-      const newEndDate = getEndDate(value as BudgetPeriod, form.startDate);
-      setForm((prev) => ({ ...prev, period: value as BudgetPeriod, endDate: newEndDate }));
-    } else if (name === "startDate") {
-      const newEndDate = getEndDate(form.period, value);
-      setForm((prev) => ({ ...prev, startDate: value, endDate: newEndDate }));
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      loadData();
     } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+      loadData();
     }
-  };
+  }, [loadData]);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!form.categoryId || !form.amount) return alert("Select category and enter amount");
-
-    await createOrUpdateBudget({ ...form, carriedOver: carryOver });
-    setForm((prev) => ({ ...prev, amount: "" }));
+  // Open create modal with a sensible default category pre-selected if available
+  const openCreateModal = useCallback(() => {
+    setEditing(null);
+    setForm((prev) => ({
+      ...prev,
+      categoryId: categories.length > 0 ? categories[0].id : "",
+      amount: "",
+      period: "monthly",
+      startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
+      endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
+    }));
     setCarryOver(false);
-    loadData();
-  };
+    setModalOpen(true);
+  }, [categories]);
 
-  const handleCopyPrevious = async () => {
-    //console.log(form.period);
-     const data = {
-    period: form.period,
-    startDate: form.startDate,
-    endDate: form.endDate
-  };
+  const openEditModal = useCallback((b: Budget) => {
+    setEditing(b);
+    setForm({ ...b });
+    setCarryOver(!!b.carriedOver);
+    setModalOpen(true);
+  }, []);
 
-    await copyPreviousBudgets(data);
-    loadData();
-  };
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    setEditing(null);
+  }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this budget?")) return;
-    await deleteBudget(id);
-    loadData();
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (name === "period") {
+      setForm((prev) => {
+        const newPeriod = value as BudgetPeriod;
+        return { ...prev, period: newPeriod, endDate: getEndDateFor(newPeriod, prev.startDate) };
+      });
+      return;
+    }
+    if (name === "startDate") {
+      setForm((prev) => ({ ...prev, startDate: value, endDate: getEndDateFor(prev.period, value) }));
+      return;
+    }
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
-  const handleEditSave = async (b: Budget) => {
-    await createOrUpdateBudget(b);
-    setEditingId(null);
-    loadData();
-  };
+  const handleSubmit = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (!form.categoryId) {
+        alert("Please select a category.");
+        return;
+      }
+      if (!form.amount || Number(form.amount) <= 0) {
+        alert("Please enter a valid positive amount.");
+        return;
+      }
+
+      try {
+        setActionLoading(true);
+        await createOrUpdateBudget({ ...form, carriedOver: carryOver });
+        await loadData();
+        setModalOpen(false);
+        setEditing(null);
+      } catch (err) {
+        console.error("Failed to save budget", err);
+        alert("Failed to save budget. See console.");
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [carryOver, form, loadData]
+  );
+
+  const handleDelete = useCallback(
+    async (id?: string) => {
+      if (!id) return;
+      if (!confirm("Delete this budget? This action cannot be undone.")) return;
+      try {
+        setActionLoading(true);
+        await deleteBudget(id);
+        await loadData();
+      } catch (err) {
+        console.error("Delete failed", err);
+        alert("Delete failed");
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [loadData]
+  );
+
+  const handleCopyPrevious = useCallback(async () => {
+    if (!confirm("Copy previous budgets into this period? Existing budgets may be duplicated.")) return;
+    try {
+      setActionLoading(true);
+      await copyPreviousBudgets({ period: form.period, startDate: form.startDate, endDate: form.endDate });
+      await loadData();
+    } catch (err) {
+      console.error("Copy previous budgets failed", err);
+      alert("Copy failed");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [form.endDate, form.period, form.startDate, loadData]);
+
+  const isEmpty = !loading && budgets.length === 0;
 
   return (
-  <Layout>
-    <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-6 px-4">
-      
-      <h1 className="text-3xl font-bold text-white mb-6">Budgets</h1>
-
-      {/* --- Create / Update Form --- */}
-      <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 mb-8">
-        <h2 className="text-xl font-semibold text-white mb-4">
-          Add New Budget Category
-        </h2>
-
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
-          <select
-            name="categoryId"
-            value={form.categoryId}
-            onChange={handleChange}
-            className="px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50"
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            name="amount"
-            placeholder="Budget Amount"
-            value={form.amount}
-            onChange={handleChange}
-            className="px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50"
-          />
-
-          <select
-            name="period"
-            value={form.period}
-            onChange={handleChange}
-            className="px-4 py-3 rounded-lg bg-white/20 text-white"
-          >
-            <option value="monthly">Monthly</option>
-            <option value="weekly">Weekly</option>
-            <option value="bi-weekly">Bi-Weekly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-
-          <input
-            type="date"
-            name="startDate"
-            value={form.startDate}
-            onChange={handleChange}
-            className="px-4 py-3 rounded-lg bg-white/20 text-white"
-          />
-
-          <input
-            type="date"
-            name="endDate"
-            value={form.endDate}
-            onChange={handleChange}
-            className="px-4 py-3 rounded-lg bg-white/20 text-white"
-          />
-
-          {/* Carry Over Checkbox */}
-          <div className="flex items-center gap-2 md:col-span-3">
-            <input
-              type="checkbox"
-              checked={carryOver}
-              onChange={() => setCarryOver(!carryOver)}
-              className="accent-yellow-300 h-5 w-5"
-              id="carryOver"
-            />
-            <label htmlFor="carryOver" className="text-white text-sm">
-              Carry Over Unused
-            </label>
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-6">
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-4xl font-extrabold text-white tracking-tight mb-1 drop-shadow">Budgets</h1>
+            <p className="text-white/70">Create and manage your budgets </p>
           </div>
 
-          {/* Save Button */}
-          <button
-            type="submit"
-            className="w-full py-3 bg-yellow-300 text-indigo-900 font-semibold rounded-lg hover:bg-yellow-400 transition md:col-span-3"
+          <div className="ml-auto flex items-center gap-3">
+            <div className="flex bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-1 shadow-inner relative">
+              <motion.div
+                layout
+                className="absolute top-[6px] bottom-[6px] w-[48%] bg-white/14 rounded-xl shadow-md"
+                transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                style={{ left: viewMode === "grid" ? 6 : "calc(50% + 6px)" }}
+              />
+
+              <label className="relative z-10 flex items-center gap-2 px-4 py-2 w-[120px] justify-center cursor-pointer select-none text-white font-semibold">
+                <input
+                  type="radio"
+                  name="view-toggle"
+                  value="grid"
+                  checked={viewMode === "grid"}
+                  onChange={() => setViewMode("grid")}
+                  className="hidden"
+                />
+                🧾 Grid
+              </label>
+
+              <label className="relative z-10 flex items-center gap-2 px-4 py-2 w-[120px] justify-center cursor-pointer select-none text-white font-semibold">
+                <input
+                  type="radio"
+                  name="view-toggle"
+                  value="table"
+                  checked={viewMode === "table"}
+                  onChange={() => setViewMode("table")}
+                  className="hidden"
+                />
+                📊 Table
+              </label>
+            </div>
+
+            <ModernButton
+              onClick={openCreateModal}
+              color="indigo-600"
+              variant="solid"
+              size="md"
+              leftIcon={<PlusIcon className="h-5 w-5" />}
+            >
+              New Budget
+            </ModernButton>
+
+            <ModernButton
+              onClick={handleCopyPrevious}
+              color="green-400"
+              variant="outline"
+              size="md"
+              leftIcon={<ArrowPathIcon className="h-5 w-5" />}
+              disabled={actionLoading}
+            >
+              Copy Prev
+            </ModernButton>
+          </div>
+        </div>
+
+        <div className="bg-white/8 backdrop-blur-lg p-6 rounded-2xl border border-white/10 mb-6 shadow-lg">
+          <form
+            className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
+            onSubmit={(e) => {
+              e.preventDefault();
+              loadData();
+            }}
           >
-            Save Budget
-          </button>
-        </form>
+            <div>
+              <label className="text-xs text-white/70 block mb-1">Start</label>
+              <input
+                type="date"
+                name="startDate"
+                value={form.startDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded-lg bg-white/6 text-black"
+              />
+             
+            </div>
+
+            <div>
+              <label className="text-xs text-white/70 block mb-1">End</label>
+              <input
+                type="date"
+                name="endDate"
+                value={form.endDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded-lg bg-white/6 text-black"
+              />
+            </div>
+            
+            <div>
+              <label className="text-xs text-white/70 block mb-1">Period</label>
+              <NeumorphicSelect
+                value={form.period}
+                onChange={(v) =>
+                  setForm((p) => ({ ...p, period: v as BudgetPeriod, endDate: getEndDateFor(v as BudgetPeriod, p.startDate) }))
+                }
+                options={[
+                  { value: "monthly", label: "Monthly" },
+                  { value: "weekly", label: "Weekly" },
+                  { value: "bi-weekly", label: "Bi-Weekly" },
+                  { value: "yearly", label: "Yearly" },
+                ]}
+                placeholder="Period"
+                theme="light"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <ModernButton type="submit" onClick={() => loadData()} color="indigo-500" variant="outline" size="md" disabled={loading}>
+                Refresh
+              </ModernButton>
+              <ModernButton
+                onClick={() => {
+                  setForm((p) => ({
+                    ...p,
+                    startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
+                    endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
+                  }));
+                }}
+                color="yellow-400"
+                variant="ghost"
+                size="md"
+              >
+                This month
+              </ModernButton>
+            </div>
+          </form>
+        </div>
+
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            </motion.div>
+          ) : viewMode === "grid" ? (
+            <motion.ul
+              key="grid"
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+            >
+              {budgets.map((b) => (
+                <BudgetCard
+                  key={b.id}
+                  b={b}
+                  categoryName={categoryMap.get(b.categoryId)}
+                  onEdit={() => openEditModal(b)}
+                  onDelete={() => handleDelete(b.id)}
+                  disabled={actionLoading}
+                />
+              ))}
+            </motion.ul>
+          ) : (
+            <motion.div
+              key="table"
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="overflow-x-auto bg-white/6 backdrop-blur-lg rounded-2xl p-4"
+            >
+              <table className="min-w-full table-auto">
+                <thead>
+                  <tr className="text-left text-white/80 text-sm">
+                    <th className="px-3 py-2">Category</th>
+                    <th className="px-3 py-2">Amount</th>
+                    <th className="px-3 py-2">Spent</th>
+                    <th className="px-3 py-2">Period</th>
+                    <th className="px-3 py-2">Dates</th>
+                    <th className="px-3 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {budgets.map((b) => (
+                    <tr key={b.id} className="border-t border-white/6">
+                      <td className="px-3 py-2 text-white">{categoryMap.get(b.categoryId) || "Unknown"}</td>
+                      <td className="px-3 py-2 text-white">{formatCurrency(b.amount)}</td>
+                      <td className="px-3 py-2 text-white">{formatCurrency(b.spent ?? 0)}</td>
+                      <td className="px-3 py-2 text-white/80">{b.period}</td>
+                      <td className="px-3 py-2 text-white/60">{b.startDate} → {b.endDate}</td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="inline-flex gap-2">
+                          <button onClick={() => openEditModal(b)} className="p-2 rounded-lg bg-white/6 hover:bg-white/8 transition text-white" aria-label="Edit budget">
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 transition text-red-300" aria-label="Delete budget">
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {isEmpty && (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-6 text-center text-white/70">
+                        No budgets for this period. Click "New Budget" to create one or use "Copy Prev".
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {modalOpen && (
+            <motion.div
+              key="modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+              role="dialog"
+              aria-modal="true"
+            >
+              <motion.div
+                initial={{ scale: 0.96, y: 8, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.98, y: 6, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                className="w-full max-w-lg bg-white/6 backdrop-blur-lg rounded-2xl border border-white/10 p-6"
+              >
+                <div className="flex items-start justify-between">
+                  <h3 className="text-xl font-semibold text-white mb-4">{editing ? "Edit Budget" : "Create Budget"}</h3>
+                  <button onClick={closeModal} className="text-white/60 hover:text-white">
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="grid grid-cols-1 gap-3">
+                  <label className="text-xs text-white/70">Category</label>
+
+                  {categories.length > 0 ? (
+                    <>
+                      {/* Prefer NeumorphicSelect when available */}
+                      <NeumorphicSelect
+                        value={form.categoryId}
+                        onChange={(v) => setForm((p) => ({ ...p, categoryId: v }))}
+                        options={categories.map((c) => ({ value: c.id, label: c.name || "Unnamed" }))}
+                        placeholder="Select Category"
+                      />
+
+                      {/* Native select fallback (keeps keyboard accessibility) */}
+                      <div className="hidden">
+                        <select
+                          name="categoryId"
+                          value={form.categoryId}
+                          onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
+                        >
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-3 rounded-md bg-white/6 text-white/80">
+                      No categories found. Create a category first to assign budgets.
+                      <div className="mt-3">
+                        <a
+                          href="/categories"
+                          className="inline-block px-3 py-2 bg-indigo-600 text-white rounded-md text-sm"
+                        >
+                          Create Category
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  <label className="text-xs text-white/70">Amount</label>
+                  
+                  <NeumorphicInput
+                    value={form.amount}
+                    onChange={(v: string) => setForm((p) => ({ ...p, amount: v }))}
+                    placeholder="Amount"
+                    type="number"
+                    aria-label="Budget amount"
+                  />
+
+                  <label className="text-xs text-white/70">Period</label>
+                  <NeumorphicSelect
+                    value={form.period}
+                    onChange={(v) =>
+                      setForm((p) => ({ ...p, period: v as BudgetPeriod, endDate: getEndDateFor(v as BudgetPeriod, p.startDate) }))
+                    }
+                    options={[
+                      { value: "monthly", label: "Monthly" },
+                      { value: "weekly", label: "Weekly" },
+                      { value: "bi-weekly", label: "Bi-Weekly" },
+                      { value: "yearly", label: "Yearly" },
+                    ]}
+                  />
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-white/70">Start</label>
+                      <NeumorphicInput
+                        value={form.startDate}
+                        onChange={(v: string) => setForm((p) => ({ ...p, startDate: v, endDate: getEndDateFor(p.period, v) }))}
+                        type="date"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/70">End</label>
+                      <NeumorphicInput
+                        value={form.endDate}
+                        onChange={(v: string) => setForm((p) => ({ ...p, endDate: v }))}
+                        type="date"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <input id="carry" type="checkbox" checked={carryOver} onChange={() => setCarryOver((c) => !c)} className="h-5 w-5 accent-yellow-300" />
+                    <label htmlFor="carry" className="text-white/80 text-sm">Carry Over Unused</label>
+                  </div>
+
+                  <div className="flex gap-3 justify-end mt-4">
+                    <ModernButton onClick={closeModal} variant="ghost" color="gray-400" disabled={actionLoading}>
+                      Cancel
+                    </ModernButton>
+
+                    <ModernButton
+                      type="button"
+                      onClick={() => handleSubmit()}
+                      leftIcon={<CheckIcon className="h-4 w-4" />}
+                      color="yellow-400"
+                      disabled={actionLoading || categories.length === 0}
+                    >
+                      {editing ? "Update Budget" : "Create Budget"}
+                    </ModernButton>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Copy Previous Period Button */}
-      <button
-        onClick={handleCopyPrevious}
-        className="mb-6 px-4 py-2 bg-green-400 text-indigo-900 font-semibold rounded-lg hover:bg-green-500 transition"
-      >
-        Copy Previous Period Budgets
-      </button>
-
-      {/* --- Budget List --- */}
-      <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {budgets.map((b) => {
-          const category = categories.find(c => c.id === b.categoryId);
-          const isEditing = editingId === b.id;
-
-          return (
-                  <li
-                    key={b.id}
-                    className="
-                      group
-                      bg-white/60 backdrop-blur-xl
-                      p-5 rounded-2xl
-                      border border-gray-200/60
-                      shadow-md hover:shadow-xl
-                      transition-all duration-300
-                      hover:-translate-y-1
-                      flex flex-col
-                      gap-3
-                    "
-                  >
-                    {isEditing ? (
-                      <>
-                        {/* Category Select */}
-                        <div className="space-y-1">
-                          <label className="text-sm text-gray-700 font-medium">Category</label>
-                          <select
-                            value={b.categoryId}
-                            onChange={(e) =>
-                              setBudgets(prev =>
-                                prev.map(x => x.id === b.id ? { ...x, categoryId: e.target.value } : x)
-                              )
-                            }
-                            className="
-                              w-full px-3 py-2 rounded-xl
-                              bg-white/80 backdrop-blur
-                              border border-gray-300
-                              focus:ring-2 focus:ring-blue-400 focus:border-blue-400
-                              transition
-                              text-gray-900
-                            "
-                          >
-                            {categories.map(cat => (
-                              <option key={cat.id} value={cat.id}>{cat.name}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Amount Input */}
-                        <div className="space-y-1">
-                          <label className="text-sm text-gray-700 font-medium">Amount</label>
-                          <input
-                            type="number"
-                            value={b.amount}
-                            onChange={(e) =>
-                              setBudgets(prev =>
-                                prev.map(x => x.id === b.id ? { ...x, amount: e.target.value } : x)
-                              )
-                            }
-                            className="
-                              w-full px-3 py-2 rounded-xl
-                              bg-white/80 backdrop-blur
-                              border border-gray-300
-                              focus:ring-2 focus:ring-blue-400 focus:border-blue-400
-                              transition
-                              text-gray-900
-                            "
-                          />
-                        </div>
-
-                        {/* Save / Cancel */}
-                        <div className="flex justify-end gap-3 pt-2">
-                          <button
-                            onClick={() => handleEditSave(b)}
-                            className="
-                              p-2 rounded-xl bg-green-100 text-green-700
-                              hover:bg-green-200 transition
-                            "
-                            title="Save"
-                          >
-                            <CheckIcon className="h-5 w-5" />
-                          </button>
-
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="
-                              p-2 rounded-xl bg-gray-100 text-gray-600
-                              hover:bg-gray-200 transition
-                            "
-                            title="Cancel"
-                          >
-                            <XMarkIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* Category name */}
-                        <p className="font-semibold text-gray-900 text-lg tracking-wide">
-                          {category ? category.name : "Unknown"}
-                        </p>
-
-                        {/* Amount */}
-                        <p className="text-gray-700 text-base font-medium">
-                          Budget: <span className="text-blue-600 font-semibold">${b.amount}</span>
-                        </p>
-
-                        {/* Period */}
-                        <p className="text-gray-500 text-sm">
-                          Period: <span className="font-medium text-gray-700">{b.period}</span>
-                        </p>
-
-                        {/* Dates */}
-                        <p className="text-gray-400 text-xs">
-                          {b.startDate} → {b.endDate}
-                        </p>
-
-                        {/* Buttons */}
-                        <div className="flex justify-end gap-3 mt-4 opacity-80 group-hover:opacity-100 transition">
-                          <button
-                            onClick={() => setEditingId(b.id!)}
-                            className="
-                              p-2 rounded-xl bg-blue-50 text-blue-600
-                              hover:bg-blue-100 transition
-                            "
-                            title="Edit"
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
-
-                          <button
-                            onClick={() => handleDelete(b.id!)}
-                            className="
-                              p-2 rounded-xl bg-red-50 text-red-600
-                              hover:bg-red-100 transition
-                            "
-                            title="Delete"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </li>
-
-
-          );
-        })}
-      </ul>
-    </div>
-  </Layout>
-);
+    </Layout>
+  );
 }

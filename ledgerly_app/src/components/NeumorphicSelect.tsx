@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Check, Search } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export type SelectOption = {
   label: string;
@@ -25,7 +26,11 @@ export default function NeumorphicSelect({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [highlightIndex, setHighlightIndex] = useState(0);
-  const ref = useRef<HTMLDivElement | null>(null);
+  const ref = useRef<HTMLDivElement | null>(null); // trigger container ref
+  const dropdownRef = useRef<HTMLDivElement | null>(null); // dropdown node ref in portal
+
+  // portal position (fixed coordinates relative to viewport)
+  const [portalPosition, setPortalPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const filtered = options.filter((o) =>
     o.label.toLowerCase().includes(search.toLowerCase())
@@ -35,12 +40,12 @@ export default function NeumorphicSelect({
   const isDark = theme === "dark";
 
   const triggerStyle = isDark
-  ? "bg-[#1d1f24] text-white shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/5"
-  : "bg-[#f4f4f6] text-black shadow-[3px_3px_8px_#d8d8db,-3px_-3px_8px_#ffffff] border-black/10";
+    ? "bg-[#1d1f24] text-white shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/5"
+    : "bg-[#f4f4f6] text-black shadow-[3px_3px_8px_#d8d8db,-3px_-3px_8px_#ffffff] border-black/10";
 
-const dropdownStyle = isDark
-  ? "bg-[#1d1f24] shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/10"
-  : "bg-[#f4f4f6] shadow-[3px_3px_8px_#d8d8db,-3px_-3px_8px_#ffffff] border-black/10";
+  const dropdownStyle = isDark
+    ? "bg-[#1d1f24] shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/10"
+    : "bg-[#f4f4f6] shadow-[3px_3px_8px_#d8d8db,-3px_-3px_8px_#ffffff] border-black/10";
 
   const textMuted = isDark ? "text-white/40" : "text-black/40";
   const textPrimary = isDark ? "text-white" : "text-black";
@@ -48,10 +53,37 @@ const dropdownStyle = isDark
   const highlightBg = isDark ? "bg-white/5" : "bg-black/5";
   const selectedBg = isDark ? "bg-white/10" : "bg-black/10";
 
-  // Outside click closes
+  // compute portal position when opening + on resize/scroll
+  useEffect(() => {
+    if (!open) {
+      setPortalPosition(null);
+      return;
+    }
+    const updatePosition = () => {
+      if (!ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      // using position: fixed for portal so use rect coordinates relative to viewport
+      setPortalPosition({ top: rect.bottom, left: rect.left, width: rect.width });
+    };
+
+    updatePosition();
+    const onResize = () => updatePosition();
+    // use capture scroll listener to catch ancestor scrolls too
+    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", onResize, true);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onResize, true);
+    };
+  }, [open, options.length, search]);
+
+  // Outside click closes. Check both trigger ref and portal dropdown ref.
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedInsideTrigger = ref.current && ref.current.contains(target);
+      const clickedInsideDropdown = dropdownRef.current && dropdownRef.current.contains(target);
+      if (!clickedInsideTrigger && !clickedInsideDropdown) {
         setOpen(false);
       }
     };
@@ -65,18 +97,22 @@ const dropdownStyle = isDark
 
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
-        setHighlightIndex((prev) => (prev + 1) % filtered.length);
+        e.preventDefault();
+        setHighlightIndex((prev) => (filtered.length ? (prev + 1) % filtered.length : 0));
       } else if (e.key === "ArrowUp") {
+        e.preventDefault();
         setHighlightIndex((prev) =>
-          prev === 0 ? filtered.length - 1 : prev - 1
+          prev === 0 ? (filtered.length ? filtered.length - 1 : 0) : prev - 1
         );
       } else if (e.key === "Enter") {
+        e.preventDefault();
         const picked = filtered[highlightIndex];
         if (picked) {
           onChange(picked.value);
           setOpen(false);
         }
       } else if (e.key === "Escape") {
+        e.preventDefault();
         setOpen(false);
       }
     };
@@ -87,52 +123,44 @@ const dropdownStyle = isDark
 
   const selected = options.find((o) => o.value === value)?.label;
 
-  return (
-    <div ref={ref} className="relative w-full">
-
-      {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={`w-full px-4 py-3 rounded-2xl flex items-center justify-between border transition ${triggerStyle}`}
+  // Dropdown content (rendered into portal when open)
+  const dropdownNode = open && portalPosition
+    ? (
+      <div
+        ref={dropdownRef}
+        // inline styles for positioning the portal dropdown
+        style={{
+          position: "fixed",
+          top: portalPosition.top,
+          left: portalPosition.left,
+          width: portalPosition.width,
+          zIndex: 9999,
+        }}
       >
-        <span className={selected ? textPrimary : textMuted}>
-          {selected || placeholder}
-        </span>
-
-        <motion.div
-          animate={{ rotate: open ? 180 : 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 18 }}
-        >
-          <ChevronDown className={`w-5 h-5 ${textMuted}`} />
-        </motion.div>
-      </button>
-
-      {/* Backdrop */}
-      <AnimatePresence>
-        {open && (
+        {/* Backdrop (in portal so it sits behind the menu but above page content) */}
+        <AnimatePresence>
+          {/* backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.35 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setOpen(false)}
+            style={{ zIndex: 9998 }}
           />
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
 
-      {/* Dropdown */}
-      <AnimatePresence>
-        {open && (
+        <AnimatePresence>
           <motion.div
             key="dropdown"
             initial={{ opacity: 0, scale: 0.94, y: 6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 6 }}
             transition={{ type: "spring", stiffness: 180, damping: 18 }}
-            className={`absolute left-0 mt-3 w-full rounded-2xl z-[51] overflow-hidden ${dropdownStyle}`}
+            className={`rounded-2xl overflow-visible ${dropdownStyle}`}
+            style={{ zIndex: 9999 }}
           >
             {/* Search */}
             <div
@@ -149,6 +177,7 @@ const dropdownStyle = isDark
                 }}
                 placeholder="Search..."
                 className={`w-full bg-transparent outline-none ${textPrimary} placeholder:${textMuted}`}
+                autoFocus
               />
             </div>
 
@@ -166,6 +195,7 @@ const dropdownStyle = isDark
                     ${highlightIndex === i ? highlightBg : ""}
                     hover:${highlightBg}
                   `}
+                  onMouseEnter={() => setHighlightIndex(i)}
                   onClick={() => {
                     onChange(o.value);
                     setOpen(false);
@@ -183,8 +213,37 @@ const dropdownStyle = isDark
               )}
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
+    )
+    : null;
+
+  return (
+    <div ref={ref} className="relative w-full">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`w-full px-4 py-3 rounded-2xl flex items-center justify-between border transition ${triggerStyle}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className={selected ? textPrimary : textMuted}>
+          {selected || placeholder}
+        </span>
+
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ type: "spring", stiffness: 220, damping: 18 }}
+        >
+          <ChevronDown className={`w-5 h-5 ${textMuted}`} />
+        </motion.div>
+      </button>
+
+      {/* Render dropdown into document.body to avoid stacking-context issues */}
+      {typeof document !== "undefined" && portalPosition
+        ? createPortal(dropdownNode, document.body)
+        : null}
     </div>
   );
 }

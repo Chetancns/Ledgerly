@@ -7,6 +7,9 @@ import { Category } from "@/models/category";
 import { getUserCategory } from "@/services/category";
 import { parseTransaction } from "@/services/ai";
 import toast from "react-hot-toast";
+import NeumorphicSelect from "./NeumorphicSelect";
+import NeumorphicInput from "./NeumorphicInput";
+import ModernButton from "./NeumorphicButton";
 
 type TransactionFormData = Omit<Transaction, "id">;
 
@@ -33,7 +36,7 @@ export default function TransactionForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [showImportPopup, setShowImportPopup] = useState(false);
   const [importInput, setImportInput] = useState("");
-
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   // 🔹 new state for type + destination
   const [kind, setKind] = useState<"normal" | "transfer" | "savings">("normal");
   const [toAccountId, setToAccountId] = useState<string>("");
@@ -209,7 +212,7 @@ export default function TransactionForm({
 
   return (
       <div className="relative bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
-                      backdrop-blur-2xl rounded-2xl shadow-xl p-4 w-full transition-all duration-300 hover:shadow-blue-500/10">
+                      backdrop-blur-2xl rounded-2xl shadow-xl p-4 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible">
         <h2 className="text-2xl font-semibold text-white mb-2 flex items-center gap-2">
           {transaction ? "✏️ Edit Transaction" : "➕ Add Transaction"}
         </h2>
@@ -220,30 +223,18 @@ export default function TransactionForm({
             <label htmlFor="accountId" className="block text-sm font-medium text-white/80 mb-2">
               Account
             </label>
-            <select
-                id="accountId"
-                name="accountId"
+              <NeumorphicSelect 
+                options={accounts.map(acc => ({
+                    value: acc.id,
+                    label: acc.name ?? "Unnamed Account"
+                  }))}
                 value={form.accountId}
-                onChange={handleChange}
-                className="
-                  w-full px-4 py-3 rounded-xl
-                  bg-white/10 text-white/90
-                  border border-white/20
-                  shadow-[inset_2px_2px_6px_rgba(0,0,0,0.3),inset_-2px_-2px_6px_rgba(255,255,255,0.1)]
-                  backdrop-blur-md
-                  transition-all
-                  focus:outline-none 
-                  focus:ring-2 focus:ring-blue-400/50 
-                  hover:bg-white/20
-                "
-              >
-                <option value="">Select Account</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id} className="text-black">
-                    {acc.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) =>
+                    setForm((prev) => ({ ...prev, accountId: val }))
+                  }
+                placeholder="Select Account"
+                theme={theme}
+              />
           </div>
 
           {/* Category */}
@@ -251,21 +242,19 @@ export default function TransactionForm({
             <label htmlFor="categoryId" className="block text-sm font-medium text-white/80 mb-2">
               Category
             </label>
-            <select
-              id="categoryId"
-              name="categoryId"
+            <NeumorphicSelect
+              options={categories.map(cat => ({
+                value: cat.id,
+                label: `${cat.type === "income" ? "💰" : "💸"} ${cat.name}`
+              }))}
               value={form.categoryId}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 text-white/90 border border-white/10 
-                        focus:outline-none focus:ring-2 focus:ring-blue-400/60 transition"
-            >
-              <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id} className="text-black">
-                  {cat.type === "income" ? "💰" : "💸"} {cat.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) =>
+                setForm((prev) => ({ ...prev, categoryId: val }))
+              }
+              placeholder="Select Category"
+              theme={theme}
+            />
+
           </div>
 
           {/* Amount */}
@@ -273,15 +262,14 @@ export default function TransactionForm({
             <label htmlFor="amount" className="block text-sm font-medium text-white/80 mb-2">
               Amount
             </label>
-            <input
-              id="amount"
-              name="amount"
+            <NeumorphicInput
               type="number"
               placeholder="Enter amount"
               value={form.amount}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 text-white/90 placeholder-white/50 
-                        border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/60 transition"
+              onChange={(val) =>
+                setForm((prev) => ({ ...prev, amount: val }))
+              }
+              theme={theme}
             />
           </div>
 
@@ -290,14 +278,14 @@ export default function TransactionForm({
             <label htmlFor="description" className="block text-sm font-medium text-white/80 mb-2">
               Description
             </label>
-            <input
-              id="description"
-              name="description"
+            <NeumorphicInput
+              type="text"
               placeholder="What was this for?"
               value={form.description ?? ""}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 text-white/90 placeholder-white/50 
-                        border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-400/60 transition"
+              onChange={(val) =>
+                setForm((prev) => ({ ...prev, description: val }))
+              }
+              theme={theme}
             />
           </div>
 
@@ -306,39 +294,35 @@ export default function TransactionForm({
             <label htmlFor="transactionDate" className="block text-sm font-medium text-white/80 mb-2">
               Transaction Date
             </label>
-            <input
+            <NeumorphicInput
               type="date"
-              id="transactionDate"
-              name="transactionDate"
+              placeholder="Select date"
               value={form.transactionDate}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 text-white/90 border border-white/10 
-                        focus:outline-none focus:ring-2 focus:ring-blue-400/60 transition"
+              onChange={(val) =>
+                setForm((prev) => ({ ...prev, transactionDate: val }))
+              }
+              theme={theme}
             />
           </div>
 
           {/* To Account (only for transfer/savings) */}
           {(kind === "transfer" || kind === "savings") && (
-            <div>
+            <div className="relative">
               <label htmlFor="toAccountId" className="block text-sm font-medium text-white/80 mb-2">
                 {kind === "transfer" ? "Destination Account" : "Savings Account"}
               </label>
-              <select
-                id="toAccountId"
+              <NeumorphicSelect
+                placeholder="Select Destination Account"
                 value={toAccountId}
-                onChange={(e) => setToAccountId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 text-white/90 border border-white/10 
-                          focus:outline-none focus:ring-2 focus:ring-blue-400/60 transition"
-              >
-                <option value="">Select Account</option>
-                {accounts
+                onChange={(val) => setToAccountId(val)}
+                theme={theme}
+                options={accounts
                   .filter((acc) => acc.id !== form.accountId)
-                  .map((acc) => (
-                    <option key={acc.id} value={acc.id} className="text-black">
-                      {acc.name} ({acc.type})
-                    </option>
-                  ))}
-              </select>
+                  .map((acc) => ({
+                    label: `${acc.name} (${acc.type})`,
+                    value: acc.id,
+                  }))}
+              />
             </div>
           )}
 
@@ -365,30 +349,45 @@ export default function TransactionForm({
           </div>
 
           {/* Buttons */}
-          <div className="md:col-span-2 flex flex-wrap gap-4 mt-2 ">
-            <button
+          <div className="md:col-span-2 flex flex-wrap gap-4 mt-2">
+            {/* Add / Update Transaction */}
+            <ModernButton
               type="submit"
-              className="flex-1 py-3 rounded-xl font-semibold bg-yellow-400 text-indigo-900 
-                        hover:bg-yellow-300 transition transform hover:scale-105"
+              color="yellow-400"
+              variant="solid"
+              size="lg"
+              theme={theme}
+              className="flex-1 text-indigo-900 font-semibold"
             >
               {transaction ? "Update Transaction" : "Add Transaction"}
-            </button>
+            </ModernButton>
 
-            <button
+            {/* Cancel */}
+            <ModernButton
               type="button"
               onClick={() => { resetForm(); onCancel?.(); }}
-              className="px-6 py-3 rounded-xl font-semibold bg-gray-600 text-white hover:bg-gray-500 transition"
+              color="gray-600"
+              variant="solid"
+              size="lg"
+              theme={theme}
+              className="text-white font-semibold"
             >
               Cancel
-            </button>
+            </ModernButton>
 
-            <button
+            {/* AI Import */}
+            <ModernButton
               type="button"
               onClick={() => setShowImportPopup(true)}
-              className="px-6 py-3 rounded-xl font-semibold bg-blue-500 text-white hover:bg-blue-400 transition"
+              color="blue-500"
+              variant="solid"
+              size="lg"
+              theme={theme}
+              className="text-white font-semibold"
+              leftIcon={<span>📥</span>}
             >
-              📥 AI Import
-            </button>
+              AI Import
+            </ModernButton>
           </div>
         </form>
 

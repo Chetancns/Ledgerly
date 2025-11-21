@@ -12,6 +12,8 @@ import dayjs from "dayjs";
 import toast from "react-hot-toast";
 import {motion,AnimatePresence} from "framer-motion";
 import clsx from "clsx";
+import { div } from "framer-motion/client";
+import NeumorphicSelect from "@/components/NeumorphicSelect";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -27,7 +29,7 @@ export default function Transactions() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [typeSummary, setTypeSummary] = useState<Partial<Record<TransactionType, number>>>({});
   const [viewMode, setViewMode] = useState<"list" | "table">("list");
-
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const handleEdit = (tx: Transaction) => {
     setEditingTransaction(tx);
   };
@@ -280,7 +282,7 @@ export default function Transactions() {
                   'text-blue-800'
                 )}>{tLabels[type as TransactionType]}</span>
                 <span className="text-black font-bold">
-                  ₹{Number(total).toFixed(2)}
+                  {Number(total).toFixed(2)}
                 </span>
               </div>
             ))}
