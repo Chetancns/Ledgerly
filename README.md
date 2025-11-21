@@ -108,15 +108,149 @@ npm run dev
 
 ---
 
-## Where to Look for More
+## Documentation
 
-- Backend: `ledgerly-api/README.md`
-- Frontend: `ledgerly_app/README.md`
-- For architecture, workflow, and troubleshooting, see `.github/copilot-instructions.md`.
+Comprehensive documentation is available in the `/docs` directory:
+
+### Core Documentation
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - System architecture, technology stack, and design patterns
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API endpoint documentation with examples
+- **[Database Schema](docs/DATABASE_SCHEMA.md)** - Database structure, relations, and migration guide
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step deployment instructions for various platforms
+
+### Developer Resources
+- **[Development Guide](docs/DEVELOPMENT.md)** - Setup, workflows, and best practices for developers
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute to the project
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+### Quick Links
+- Backend details: `ledgerly-api/README.md`
+- Frontend details: `ledgerly_app/README.md`
+- AI integration tips: See Architecture Guide
 
 ---
 
-## Questions?
+## Features
 
-If you need more details on migrations, authentication, or frontend/backend patterns, check the key files above or open an issue.
+- 💰 **Transaction Management** - Track income, expenses, transfers, and savings
+- 🏦 **Account Management** - Manage multiple accounts (checking, savings, credit cards, cash)
+- 📊 **Budgeting** - Set and track budgets by category with multiple time periods
+- 💳 **Debt Tracking** - Monitor debts and payment progress
+- 🔄 **Recurring Transactions** - Automate regular transactions
+- 📈 **Reports & Analytics** - Financial insights and spending trends
+- 🤖 **AI-Powered Features**:
+  - Natural language transaction parsing
+  - Receipt image OCR and parsing
+  - Voice transaction entry
+- 🔐 **Secure Authentication** - JWT-based auth with refresh tokens
+- 📱 **Responsive Design** - Works on desktop and mobile devices
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18.x or later
+- PostgreSQL 14.x or later
+- npm 9.x or later
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Chetancns/Ledgerly.git
+   cd Ledgerly
+   ```
+
+2. **Setup database**
+   ```bash
+   createdb ledgerly_dev
+   ```
+
+3. **Configure backend**
+   ```bash
+   cd ledgerly-api
+   cp .env.example .env  # Create and edit .env file
+   npm install
+   npm run migration:run
+   ```
+
+4. **Configure frontend**
+   ```bash
+   cd ../ledgerly_app
+   cp .env.local.example .env.local  # Create and edit .env.local
+   npm install
+   ```
+
+5. **Start development servers**
+   
+   **Option 1: Using batch file (Windows)**
+   ```bash
+   ./start-apps.bat
+   ```
+   
+   **Option 2: Manual start**
+   ```bash
+   # Terminal 1 - Backend
+   cd ledgerly-api
+   npm run start:dev
+   
+   # Terminal 2 - Frontend
+   cd ledgerly_app
+   npm run dev
+   ```
+
+6. **Access the application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:3001
+
+For detailed setup instructions, see the [Development Guide](docs/DEVELOPMENT.md).
+
+---
+
+## Technology Stack
+
+### Backend
+- **Framework**: NestJS 10.x
+- **Language**: TypeScript
+- **Database**: PostgreSQL with TypeORM
+- **Authentication**: JWT with refresh tokens
+- **AI Integration**: OpenAI API (GPT & Whisper)
+
+### Frontend
+- **Framework**: Next.js 15.x
+- **UI Library**: React 19.x
+- **Styling**: Tailwind CSS
+- **HTTP Client**: Axios
+- **State Management**: React Hooks
+
+---
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details on:
+- Code of conduct
+- Development workflow
+- Coding standards
+- Pull request process
+
+---
+
+## Support & Resources
+
+- **Documentation**: See `/docs` directory
+- **Issues**: [GitHub Issues](https://github.com/Chetancns/Ledgerly/issues)
+- **Troubleshooting**: [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+
+---
+
+## License
+
+This project is open source. Please check the repository for license details.
+
+---
+
+## Acknowledgments
+
+Built with modern web technologies and best practices for personal finance management.
 
