@@ -1041,12 +1041,34 @@ All endpoints may return the following error responses:
 
 ## Rate Limiting
 
-Currently, there is no rate limiting implemented. This should be added for production use.
+⚠️ **IMPORTANT SECURITY NOTICE**: Currently, there is no rate limiting implemented. **This must be added before production deployment** to prevent:
+- Brute force attacks on authentication endpoints
+- API abuse and excessive costs (especially AI endpoints)
+- Denial of service attacks
+
+**Recommended Implementation:**
+
+Use a package like `express-rate-limit` or `@nestjs/throttler`:
+
+```typescript
+// Example with @nestjs/throttler
+import { ThrottlerModule } from '@nestjs/throttler';
+
+@Module({
+  imports: [
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 100,
+    }),
+  ],
+})
+```
 
 **Recommended limits:**
-- Authentication endpoints: 5 requests per minute
-- Regular endpoints: 100 requests per minute
-- AI endpoints: 10 requests per minute (due to API costs)
+- **Authentication endpoints**: 5 requests per minute (prevent brute force)
+- **Regular endpoints**: 100 requests per minute (prevent abuse)
+- **AI endpoints**: 10 requests per minute (due to API costs and processing time)
+- **Public endpoints**: 20 requests per minute (if any exist)
 
 ---
 
