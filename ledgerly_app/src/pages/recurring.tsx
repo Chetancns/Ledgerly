@@ -150,8 +150,8 @@ export default function Recurring() {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2">
-        <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
-          <h1 className="text-3xl font-bold text-white mb-6">Recurring Transactions</h1>
+        {/* <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8"> */}
+          <h1 className="text-3xl font-bold text-white m-4">Recurring Transactions</h1>
 
           <div className="flex justify-end mb-4">
             <button
@@ -265,7 +265,7 @@ export default function Recurring() {
 );              })}
             </ul>
           </div>
-        </div>
+        {/* </div> */}
       </div>
 
       {showModal && (

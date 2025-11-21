@@ -4,6 +4,10 @@ import { Category, CategoryType } from "../models/category";
 import { getUserCategory, createCategory, onDeleteCategory, updateCategory } from "../services/category";
 import { TrashIcon } from "@heroicons/react/24/solid";
 import toast from "react-hot-toast";
+import NeumorphicInput from "@/components/NeumorphicInput";
+import NeumorphicSelect from "@/components/NeumorphicSelect";
+import { on } from "events";
+import ModernButton from "@/components/NeumorphicButton";
 
 export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -12,7 +16,8 @@ export default function Categories() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const categoryTypes = [{ label: "Expense", value: "expense" }, { label: "Income", value: "income" }];
   const load = async () => {
     const res = await getUserCategory();
     setCategories(res);
@@ -23,6 +28,13 @@ export default function Categories() {
   const handleCreate = async (e: React.FormEvent) => {
   e.preventDefault();
   try {
+    if (name.trim() === "") {
+      toast.error("Category name is required!");
+      return;
+    }if(type.trim() === "") {
+      toast.error("Category type is required!");
+      return;
+    }
     if (editingId) {
       await updateCategory(editingId, { name, type });
       toast.success("Category updated!");
@@ -46,6 +58,12 @@ const openModal = (category: Category) => {
   setType(category.type ?? "expense");
   setShowModal(true);
 };
+const onCancel = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setName("");
+    setType("expense");
+  }
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -62,31 +80,38 @@ const openModal = (category: Category) => {
 
           {/* Add Category Form */}
           
-          <form onSubmit={handleCreate} className="mb-6 flex gap-4 flex-wrap">
-            <input
-              type="text"
-              placeholder="Category name"
+          <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 rounded-xl bg-gradient-to-br from-zinc-900/80 to-zinc-800/60">
+            <NeumorphicInput
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-              required
+              onChange={setName}
+              placeholder="Category Name"
+              theme={theme}
+              type="text"
             />
-
-            <select
+            <NeumorphicSelect
               value={type}
-              onChange={(e) => setType(e.target.value as CategoryType)}
-              className="px-3 py-2 rounded-lg border border-gray-300 bg-white/20 text-black focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-            >
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </select>
-
-            <button
+              onChange={(val) => setType(val as CategoryType)}
+              options={categoryTypes}
+              placeholder="Select Category Type"
+              theme={theme}
+            />
+            <ModernButton
               type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              color="indigo-600"
+              variant="solid"
+              theme={theme}
             >
-              Add
-            </button>
+              Add Category
+            </ModernButton>
+            <ModernButton
+              type="button"
+              onClick={onCancel}
+              color="gray-600"
+              variant="solid"
+              theme={theme}
+            >
+              Cancel
+            </ModernButton>
           </form>
 
           {/* List Categories */}
@@ -153,10 +178,7 @@ const openModal = (category: Category) => {
           </button>
           <button
             type="button"
-            onClick={() => {
-              setShowModal(false);
-              setEditingId(null);
-            }}
+            onClick={onCancel}
             className="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-700 flex-1"
           >
             Cancel
