@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ];
   const { user, loading, logoutapi } = useAuth();
   useAuthRedirect(user, loading);
- console.log("Layout user:", user);
+ //console.log("Layout user:", user);
   const logout = async () => {
     await logoutapi();
     router.push("/login");

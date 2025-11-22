@@ -41,3 +41,26 @@ export type BudgetCategory = {
   actual: number;
   status: 'overspent' | 'within_budget' | 'no_budget';
 };
+
+export type BudgetUtilization = {
+  budgetId?: string;
+  categoryId: string;
+  amount: number; // budgeted amount
+  spent: number; // actual spent
+  percent: number; // percent used
+};
+
+export type BudgetTotals = {
+  totalBudget: number;
+  totalActual: number;
+  totalBudgetIncome: number;
+  totalBudgetExpense: number;
+  totalActualIncome: number;
+  totalActualExpense: number;
+  unbudgeted: number;
+};
+
+export type BudgetReports = {
+  totals: BudgetTotals;
+  categories: BudgetCategory[];
+};

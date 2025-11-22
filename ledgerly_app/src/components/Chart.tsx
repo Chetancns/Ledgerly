@@ -18,7 +18,7 @@ import {
   Brush,
 } from "recharts";
 import { ChartDataPoint,CategorySpending, CashflowRow, CategoryRow } from "@/models/chat";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
@@ -98,24 +98,16 @@ export function LineTrendChart({
 
 
 export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
-  function generateUniqueColors(count: number): string[] {
-  const colors = new Set<string>();
-  while (colors.size < count) {
-    const color = `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
-    colors.add(color);
+  function stringToColor(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 70%, 60%)`;
   }
-  return Array.from(colors);
-}
-function stringToColor(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 60%)`;
-}
-const dynamicColors = generateUniqueColors(data.length);
 
+  const colors = useMemo(() => data.map((d) => stringToColor(d.name || d.category || "")), [data]);
   return (
     <ResponsiveContainer width="100%" height={250}>
       <PieChart>
@@ -129,7 +121,7 @@ const dynamicColors = generateUniqueColors(data.length);
           dataKey="value"
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={dynamicColors[index]} />
+            <Cell key={`cell-${index}`} fill={colors[index]} />
           ))}
         </Pie>
         <Tooltip
@@ -148,12 +140,17 @@ const dynamicColors = generateUniqueColors(data.length);
   );
 }
 export function BarChartComponent({ data }: { data: any[] }) {
-  const chartData = data.map((c) => ({
-    name: c.categoryName,
-    Budget: c.budget > 0 ? c.budget : 0.1,
-    Actual: c.actual > 0 ? c.actual : 0.1,
-    Overspent: c.status === 'overspent' ? c.actual - c.budget : 0.1,
-  }));
+  const chartData = data.map((c) => {
+    const budget = (c?.budget && Number(c.budget)) || 0;
+    const actual = (c?.actual && Number(c.actual)) || 0;
+    const overspent = Math.max(actual - budget, 0);
+    return {
+      name: c.categoryName,
+      Budget: budget,
+      Actual: actual,
+      Overspent: overspent,
+    };
+  });
 
 
   return (
@@ -163,8 +160,8 @@ export function BarChartComponent({ data }: { data: any[] }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
         <XAxis dataKey="name" stroke="#fff" tick={{ fontSize: 10 }} />
         
-        {/* Logarithmic Y-axis */}
-        <YAxis scale="log" domain={["auto", "auto"]} stroke="#fff" allowDataOverflow />
+        {/* Linear Y-axis starting at zero for accurate representation */}
+        <YAxis stroke="#fff" domain={[0, "dataMax"]} allowDataOverflow />
 
         <Tooltip
           formatter={(value: number) => `${value.toFixed(2)}`}
@@ -185,13 +182,11 @@ export function BarChartComponent({ data }: { data: any[] }) {
           animationDuration={800}
         >
           <LabelList
-  dataKey="Budget"
-  position="top"
-  formatter={(label: any) =>
-    label != null ? `${Number(label).toFixed(2)}` : ""
-  }
-  style={{ fill: "#fff", fontSize: 10 }}
-/>
+            dataKey="Budget"
+            position="top"
+            formatter={(label: any) => (label > 0 ? `${Number(label).toFixed(2)}` : "")}
+            style={{ fill: "#fff", fontSize: 10 }}
+          />
         </Bar>
 
         <Bar
@@ -201,19 +196,17 @@ export function BarChartComponent({ data }: { data: any[] }) {
           animationDuration={800}
         >
           <LabelList
-  dataKey="Actual"
-  position="top"
-  formatter={(label: any) =>
-    label != null ? `${Number(label).toFixed(2)}` : ""
-  }
-  style={{ fill: "#fff", fontSize: 10 }}
-/>
+            dataKey="Actual"
+            position="top"
+            formatter={(label: any) => (label > 0 ? `${Number(label).toFixed(2)}` : "")}
+            style={{ fill: "#fff", fontSize: 10 }}
+          />
         </Bar>
         <Bar dataKey="Overspent" fill="#ff6b6b" radius={[4, 4, 0, 0]} animationDuration={800}>
   <LabelList
     dataKey="Overspent"
     position="top"
-    formatter={(label: any) => label > 0 ? `+${label.toFixed(2)}` : ""}
+    formatter={(label: any) => (label > 0 ? `+${Number(label).toFixed(2)}` : "")}
     style={{ fill: "#fff", fontSize: 10 }}
   />
 </Bar>
@@ -369,16 +362,16 @@ export function ChashFlowLine({
 }
 
 export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
-  function generateUniqueColors(count: number): string[] {
-    const colors = new Set<string>();
-    while (colors.size < count) {
-      const color = `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
-      colors.add(color);
+  function stringToColor(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
-    return Array.from(colors);
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 70%, 60%)`;
   }
 
-  const dynamicColors = generateUniqueColors(data.length);
+  const dynamicColors = useMemo(() => data.map((d) => stringToColor(d.categoryName || "")), [data]);
 
   return (
     <ResponsiveContainer width="100%" height={250}>
