@@ -8,6 +8,7 @@ import {
   deleteBudget,
   copyPreviousBudgets,
 } from "@/services/budget";
+import { getBudgetUtilizations } from "@/services/budget";
 import {
   TrashIcon,
   PencilIcon,
@@ -22,6 +23,7 @@ import ModernButton from "@/components/NeumorphicButton";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import NeumorphicInput from "@/components/NeumorphicInput";
+import toast from "react-hot-toast";
 
 // ------------------------------
 // Types
@@ -195,8 +197,25 @@ export default function BudgetsPage() {
         getUserCategory(),
         getBudgets(form.startDate, form.endDate, form.period),
       ]);
+      // Prefer server-side aggregations when available. Request utilizations for the period
+      // derive month/year from the start date (API expects month/year)
+      const start = dayjs(form.startDate);
+      const month = start.month() + 1; // dayjs months are 0-indexed
+      const year = start.year();
+      let spentMap = new Map<string, number>();
+      try {
+        const utils = await getBudgetUtilizations(month, year, form.period);
+        (utils || []).forEach((u: any) => {
+          if (!u || !u.categoryId) return;
+          spentMap.set(u.categoryId, Number(u.spent) || 0);
+        });
+      } catch (err) {
+        // fallback: if server aggregation fails, leave spentMap empty so budgets show 0
+        console.warn("getBudgetUtilizations failed, falling back to 0 spent", err);
+        spentMap = new Map();
+      }
       setCategories(catRes);
-      setBudgets((budgetRes.data || []).map((b: any) => ({
+      setBudgets((budgetRes || []).map((b: any) => ({
         id: b.id,
         categoryId: b.categoryId,
         amount: String(b.amount ?? b.value ?? "0"),
@@ -204,12 +223,13 @@ export default function BudgetsPage() {
         startDate: b.startDate,
         endDate: b.endDate,
         carriedOver: !!b.carriedOver,
-        spent: typeof b.spent === "number" ? b.spent : undefined,
+        // prefer backend-provided spent if present; otherwise use computed sum
+        spent: typeof b.spent === "number" ? b.spent : (spentMap.get(b.categoryId) ?? 0),
         updatedAt: b.updatedAt,
       })));
     } catch (err) {
       console.error("Failed loading budgets", err);
-      alert("Failed to load budgets. See console for details.");
+      toast.error("Failed to load budgets. See console for details.");
     } finally {
       setLoading(false);
     }
@@ -271,11 +291,24 @@ export default function BudgetsPage() {
     async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
       if (!form.categoryId) {
-        alert("Please select a category.");
+        toast.error("Please select a category.");
+        return;
+      }
+      // Prevent creating duplicate budgets: same category and same start/end dates
+      const conflict = budgets.find((b) =>
+        b.categoryId === form.categoryId &&
+        b.startDate === form.startDate &&
+        b.endDate === form.endDate &&
+        // if editing, allow updating the same budget, but block if it's a different budget
+        (editing ? b.id !== editing.id : true)
+      );
+
+      if (conflict) {
+        toast.error("A budget for this category and date range already exists.");
         return;
       }
       if (!form.amount || Number(form.amount) <= 0) {
-        alert("Please enter a valid positive amount.");
+        toast.error("Please enter a valid positive amount.");
         return;
       }
 
@@ -287,12 +320,12 @@ export default function BudgetsPage() {
         setEditing(null);
       } catch (err) {
         console.error("Failed to save budget", err);
-        alert("Failed to save budget. See console.");
+        toast.error("Failed to save budget. See console.");
       } finally {
         setActionLoading(false);
       }
     },
-    [carryOver, form, loadData]
+    [carryOver, form, loadData, budgets, editing]
   );
 
   const handleDelete = useCallback(
@@ -305,7 +338,7 @@ export default function BudgetsPage() {
         await loadData();
       } catch (err) {
         console.error("Delete failed", err);
-        alert("Delete failed");
+        toast.error("Delete Failed please try again.");
       } finally {
         setActionLoading(false);
       }
@@ -321,7 +354,7 @@ export default function BudgetsPage() {
       await loadData();
     } catch (err) {
       console.error("Copy previous budgets failed", err);
-      alert("Copy failed");
+      toast.error("Copy Failed please try again.");
     } finally {
       setActionLoading(false);
     }
