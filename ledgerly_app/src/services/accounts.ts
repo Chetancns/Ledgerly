@@ -7,7 +7,8 @@ export async function getUserAccount() {
 }
 
 export const getAccounts = async () => {
-  return await api.get<Account[]>("/accounts");
+  const res = await api.get<Account[]>("/accounts");
+  return res.data;
 };
 
 export const createAccount = async (account: {
@@ -15,14 +16,16 @@ export const createAccount = async (account: {
   type: string;
   balance: string;
 }) => {
-    //console.log("create",account);
-  return await api.post<Account>("/accounts", account);
+  const res = await api.post<Account>("/accounts", account);
+  return res.data;
 };
 
 export const onDeleteAccount = async (id: string) => {
-  return await api.delete(`/accounts/${id}`);
+  const res = await api.delete(`/accounts/${id}`);
+  return res.data;
 };
 
 export const updateAccount = async (id: string, data: Partial<Account>) => {
-  return await api.put<Account>(`/accounts/${id}`, data);
+  const res = await api.put<Account>(`/accounts/${id}`, data);
+  return res.data;
 };

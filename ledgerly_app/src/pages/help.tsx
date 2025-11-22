@@ -488,9 +488,9 @@ export default function HelpPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white px-4 sm:px-6 py-10">
+      <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white">
         <div
-          className="max-w-5xl mx-auto rounded-2xl p-8"
+          className="mx-auto rounded-2xl p-8"
           style={{
             backdropFilter: "blur(14px)",
             background: "rgba(255, 255, 255, 0.08)",

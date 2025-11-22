@@ -4,22 +4,25 @@ import { Category, CategoryType } from "../models/category";
 export async function getUserCategory() {
     const res = await api.get("categories/categoryuser");
     //console.log(res);
-    return res.data;
+  return res.data;
 }
 
 export const getCategories = async () => {
-  return await api.get<Category[]>("categories");
+  const res = await api.get<Category[]>("categories");
+  return res.data;
 };
 
 export const createCategory = async (category: { name: string; type: CategoryType }) => {
-  return await api.post<Category>("categories", category);
+  const res = await api.post<Category>("categories", category);
+  return res.data;
 };
 
 export const onDeleteCategory = async (id: string) => {
-  return await api.delete(`categories/${id}`);
+  const res = await api.delete(`categories/${id}`);
+  return res.data;
 };
 
 export const updateCategory = async (id: string, data: { name: string; type: CategoryType }) => {
-  //console.log(data);
-  return await api.put<Category>(`categories/${id}`, data);
+  const res = await api.put<Category>(`categories/${id}`, data);
+  return res.data;
 };

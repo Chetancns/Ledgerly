@@ -11,10 +11,10 @@ export const useAuth = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        console.log("[useAuth] fetching current user (me)");
+        //console.log("[useAuth] fetching current user (me)");
         // calling /auth/me triggers CSRF middleware which issues/rotates CSRF cookie on GET
         const res = await getCurrentUser();
-        console.log("[useAuth] /auth/me response:", res.status, res.data);
+        //console.log("[useAuth] /auth/me response:", res.status, res.data);
         setUser(res.data.user || null);
       } catch (err) {
         console.warn("[useAuth] getCurrentUser failed:",  err);
@@ -28,12 +28,12 @@ export const useAuth = () => {
 
   const ensureCsrf = async () => {
     try {
-      console.log("[useAuth] ensureCsrf -> calling /auth/csrf-token");
+      //console.log("[useAuth] ensureCsrf -> calling /auth/csrf-token");
       const res = await initCsrf();
       const token = res.data?.csrfToken;
       if (token) {
         Cookies.set("XSRF-TOKEN", token, { sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", secure: process.env.NODE_ENV === "production" });
-        console.log("[useAuth] got CSRF token (first 8):", token.slice(0,8)+"...");
+        //console.log("[useAuth] got CSRF token (first 8):", token.slice(0,8)+"...");
       }
     } catch (e) {
       console.warn("[useAuth] ensureCsrf failed:", e);
@@ -42,9 +42,9 @@ export const useAuth = () => {
 
   const doLogin = async (email: string, password: string) => {
     await ensureCsrf();
-    console.log("[useAuth] performing login for", email);
+    //console.log("[useAuth] performing login for", email);
     const res = await login(email, password);
-    console.log("[useAuth] login response:", res.status);
+    //console.log("[useAuth] login response:", res.status);
     setUser(res.data.user);
     return res.data.user;
   };

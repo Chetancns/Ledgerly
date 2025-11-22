@@ -1,9 +1,10 @@
 import Layout from "../components/Layout";
+import Loading from "@/components/Loading";
 import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent, ChashFlowLine, CatHeatmapPie, SummaryCard } from "@/components/Chart";
 import { Transaction } from "@/models/Transaction";
 import { Account } from "@/models/account";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Category } from "@/models/category";
 import { getUserAccount } from "@/services/accounts";
 import { getUserCategory } from "@/services/category";
@@ -12,14 +13,16 @@ import { CashflowRow, CategoryRow, ChartDataPoint, DailyTotals } from "@/models/
 import { getBudgetUtilizations } from "@/services/budget"; // 🔹 new service
 import { getBudgetReports, getCashflowTimeline, getCategoryHeatmap } from "@/services/reports";
 import toast from "react-hot-toast";
-import { BudgetCategory } from "@/models/budget";
+import { BudgetCategory, BudgetUtilization, BudgetReports } from "@/models/budget";
 import { useAuth } from "@/hooks/useAuth";
 export default function Dashboard() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [budgetUtilizations, setBudgetUtilizations] = useState<any[]>([]);
-  const [budgetReports, setBudgetReports] = useState<any>(null);
+  const [budgetUtilizations, setBudgetUtilizations] = useState<BudgetUtilization[]>([]);
+  const [budgetReports, setBudgetReports] = useState<BudgetReports | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
@@ -29,10 +32,12 @@ export default function Dashboard() {
   const [view, setView] = useState<"income" | "expense">("expense");
   const [filter, setFilter] = useState<'all' | 'overspent' |'within_budget' | 'no_budget'>('all');
 
-  const filteredCategories = budgetReports?.categories?.filter((c: BudgetCategory) => {
-  if (filter === 'all') return true;
-  return c.status === filter;
-});
+  const filteredCategories = useMemo(() => {
+    return (budgetReports?.categories?.filter((c: BudgetCategory) => {
+      if (filter === 'all') return true;
+      return c.status === filter;
+    }) || []);
+  }, [budgetReports, filter]);
 
 useEffect(() => {
   if (filter === 'overspent') {
@@ -47,66 +52,91 @@ useEffect(() => {
 }, [filter]);
 
   useEffect(() => {
+    let mounted = true;
     const fetchData = async () => {
-      const [accRes, catRes, txRes] = await Promise.all([
-        getUserAccount(),
-        getUserCategory(),
-        getTransactions()
-      ]);
-      setAccounts(accRes);
-      setCategories(catRes);
-      setTransactions(txRes.data);
+      setLoading(true);
+      setError(null);
+      try {
+        const [accRes, catRes, txRes] = await Promise.all([
+          getUserAccount(),
+          getUserCategory(),
+          getTransactions(),
+        ]);
+
+        if (!mounted) return;
+        setAccounts(accRes);
+        setCategories(catRes);
+        setTransactions(txRes);
+      } catch (err: any) {
+        console.error("Error loading initial dashboard data", err);
+        if (!mounted) return;
+        setError(err?.message || "Failed to load dashboard data");
+          toast.error(err?.message || "Failed to load dashboard data");
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
     fetchData();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // 🔹 fetch budget utilizations when month/year changes
   useEffect(() => {
+    let mounted = true;
     const fetchUtilizations = async () => {
       try {
-        const res = await getBudgetUtilizations(selectedMonth,selectedYear, "monthly");
-        setBudgetUtilizations(res.data);
+        const res = await getBudgetUtilizations(selectedMonth, selectedYear, "monthly");
+        if (!mounted) return;
+        setBudgetUtilizations(res);
       } catch (err) {
         console.error("Error loading budget utilizations", err);
       }
     };
     fetchUtilizations();
+    return () => { mounted = false };
   }, [selectedMonth, selectedYear]);
 
   // 🔹 fetch budget vs actual reports
   useEffect(() => {
+    let mounted = true;
     const fetchReports = async () => {
       try {
-        //console.log("calling API");
-        const res = await getBudgetReports("monthly",selectedMonth, selectedYear, );
-        setBudgetReports(res.data);
-        //console.log(res.data);
+        const res = await getBudgetReports("monthly", selectedMonth, selectedYear);
+        if (!mounted) return;
+        setBudgetReports(res);
       } catch (err) {
         console.error("Error loading budget reports", err);
       }
-
     };
     fetchReports();
+    return () => { mounted = false };
   }, [selectedMonth, selectedYear]);
 
   useEffect(() =>{
+    let mounted = true;
     const fetchCashflow = async () =>{
       try{
-        //console.log("Cashflow has been called");
-      const res = await getCashflowTimeline("daily",selectedMonth,selectedYear);
-      setCashFlowData(res.data.timeline);
+        const res = await getCashflowTimeline("daily", selectedMonth, selectedYear);
+        if (!mounted) return;
+        setCashFlowData(res.timeline);
       }catch(err){
         console.error("Error Loading Cashflow data",err);
       }
-      
     };
     fetchCashflow();
+    return () => { mounted = false };
   },[selectedMonth,selectedYear]);
   useEffect(()=>{
+    let mounted = true;
     const fetchCatHeatmap = async () =>{
-      const res = await getCategoryHeatmap(selectedMonth,selectedYear);
-      setCatHeatmap(res.data.categories)
-    };fetchCatHeatmap();
+      const res = await getCategoryHeatmap(selectedMonth, selectedYear);
+      if (!mounted) return;
+      setCatHeatmap(res.categories)
+    };
+    fetchCatHeatmap();
+    return () => { mounted = false };
   },[selectedMonth,selectedYear]);
   // --- Account balances ---
   const totalBalance = accounts.reduce(
@@ -115,31 +145,34 @@ useEffect(() => {
   );
 
   // --- Filter Transactions ---
-  const filteredTx = transactions.filter(t => {
+  const filteredTx = useMemo(() => transactions.filter(t => {
     const d = new Date(t.transactionDate);
     const matchMonth = d.getUTCMonth() + 1 === selectedMonth;
     const matchYear = d.getUTCFullYear() === selectedYear;
     const matchAccount = selectedAccount === "all" || t.accountId === selectedAccount;
     return matchMonth && matchYear && matchAccount;
-  });
+  }), [transactions, selectedMonth, selectedYear, selectedAccount]);
 
   // --- Daily totals (income vs expense) ---
-  const dailyTotals: DailyTotals = {};
-  filteredTx.forEach(t => {
-    const date = t.transactionDate.split("T")[0];
-    if (!dailyTotals[date]) dailyTotals[date] = { income: 0, expense: 0, creditCardExpense: 0 };
+  const dailyTotals: DailyTotals = useMemo(() => {
+    const totals: DailyTotals = {};
+    filteredTx.forEach(t => {
+      const date = t.transactionDate.split("T")[0];
+      if (!totals[date]) totals[date] = { income: 0, expense: 0, creditCardExpense: 0 };
 
-    const account = accounts.find(a => a.id === t.accountId);
+      const account = accounts.find(a => a.id === t.accountId);
 
-    if ((t.type === "income" || t.type === "savings") && account?.type !== "credit_card") {
-      dailyTotals[date].income += parseFloat(t.amount);
-    } else if (t.type === "expense") {
-       dailyTotals[date].expense += parseFloat(t.amount);
-    }
-  });
+      if ((t.type === "income" || t.type === "savings") && account?.type !== "credit_card") {
+        totals[date].income += parseFloat(String(t.amount));
+      } else if (t.type === "expense") {
+        totals[date].expense += parseFloat(String(t.amount));
+      }
+    });
+    return totals;
+  }, [filteredTx, accounts]);
 
   // --- Build line chart array ---
-  const lineData: ChartDataPoint[] = Object.entries(dailyTotals)
+  const lineData: ChartDataPoint[] = useMemo(() => Object.entries(dailyTotals)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, totals]) => {
       const [year, month, day] = date.split("-");
@@ -149,28 +182,73 @@ useEffect(() => {
         expense: totals.expense,
         creditCardExpense: totals.creditCardExpense,
       };
-    });
+    }), [dailyTotals]);
 
   // --- Pie chart for expenses only (bank/cash vs credit card) ---
-  const categoryMap: Record<string, number> = {};
-  filteredTx.forEach(t => {
-    if (t.type === "expense") {
-      const account = accounts.find(a => a.id === t.accountId);
-      const category = categories.find(c => c.id === t.categoryId);
-      const catName = category?.name || "Unknown";
-      const key =catName //account?.type === "credit_card" ? `${catName} (Card)` : catName;
-      categoryMap[key] = (categoryMap[key] || 0) + parseFloat(t.amount);
-    }
-  });
-
-  const pieData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
+  const pieData = useMemo(() => {
+    const categoryMap: Record<string, number> = {};
+    filteredTx.forEach(t => {
+      if (t.type === "expense") {
+        const account = accounts.find(a => a.id === t.accountId);
+        const category = categories.find(c => c.id === t.categoryId);
+        const catName = category?.name || "Unknown";
+        const key = catName;
+        categoryMap[key] = (categoryMap[key] || 0) + parseFloat(String(t.amount));
+      }
+    });
+    return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
+  }, [filteredTx, accounts, categories]);
 
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  if (loading) {
+    return (
+      <Layout>
+        <Loading />
+      </Layout>
+    );
+  }
+
+  const handleRetry = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [accRes, catRes, txRes] = await Promise.all([
+        getUserAccount(),
+        getUserCategory(),
+        getTransactions(),
+      ]);
+      setAccounts(accRes);
+      setCategories(catRes);
+      setTransactions(txRes);
+      toast.success("Dashboard reloaded");
+    } catch (err: any) {
+      console.error("Retry failed:", err);
+      setError(err?.message || "Failed to reload dashboard");
+      toast.error(err?.message || "Failed to reload dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Layout>
       <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white px-4 sm:px-6 py-6">
         <h1 className="text-3xl font-bold mb-6">📊 Dashboard</h1>
+
+        {error && (
+          <div className="mb-4 rounded p-3 bg-red-700/90 flex items-center justify-between">
+            <div className="text-sm font-medium">{error}</div>
+            <div>
+              <button
+                onClick={handleRetry}
+                className="ml-3 bg-white text-red-700 px-3 py-1 rounded font-semibold text-sm"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* --- Balances --- */}
         <div
