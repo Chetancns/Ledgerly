@@ -1,4 +1,5 @@
 import Layout from "../components/Layout";
+import Loading from "@/components/Loading";
 import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent, ChashFlowLine, CatHeatmapPie, SummaryCard } from "@/components/Chart";
 import { Transaction } from "@/models/Transaction";
 import { Account } from "@/models/account";
@@ -203,9 +204,7 @@ useEffect(() => {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-white/90">Loading dashboard…</div>
-        </div>
+        <Loading />
       </Layout>
     );
   }

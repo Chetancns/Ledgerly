@@ -160,7 +160,8 @@ export default function NeumorphicSelect({
             exit={{ opacity: 0, scale: 0.94, y: 6 }}
             transition={{ type: "spring", stiffness: 180, damping: 18 }}
             className={`rounded-2xl overflow-visible ${dropdownStyle}`}
-            style={{ zIndex: 9999 }}
+            // ensure this element is positioned and on top of the backdrop so clicks reach options
+            style={{ position: "absolute", zIndex: 10001, top: 0, left: 0 }}
           >
             {/* Search */}
             <div

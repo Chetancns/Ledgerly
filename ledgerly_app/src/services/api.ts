@@ -68,6 +68,35 @@ api.interceptors.response.use(
         return api(original);
       } catch (refreshErr) {
         processQueue(refreshErr);
+        // If refresh failed, clear client-side auth artifacts and redirect to login.
+        try {
+          if (typeof window !== "undefined") {
+            // remove any stored token/local state used by frontend
+            try {
+              localStorage.removeItem("accessToken");
+            } catch (e) {
+              console.debug("[api] failed clearing localStorage accessToken", e);
+            }
+
+            // remove CSRF cookie if present
+            try {
+              Cookies.remove("XSRF-TOKEN");
+            } catch (e) {
+              /* ignore */
+            }
+
+            // avoid redirect loops: only redirect if not already on auth pages
+            const pathname = window.location.pathname || "/";
+            const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup") || pathname.startsWith("/auth");
+            if (!isAuthRoute) {
+              const next = encodeURIComponent(window.location.pathname + window.location.search);
+              window.location.href = `/login?next=${next}`;
+            }
+          }
+        } catch (e) {
+          console.debug("[api] error during refresh-failure cleanup", e);
+        }
+
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
