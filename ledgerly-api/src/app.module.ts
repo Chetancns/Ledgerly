@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { User } from './users/user.entity';
 import { Account } from './accounts/account.entity';
 import { Category } from './categories/category.entity';
@@ -61,5 +63,7 @@ import { AiInsight } from './reports/ai-insight.entity';
      DebtModule,
      RecurringModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
