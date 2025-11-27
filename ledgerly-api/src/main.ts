@@ -5,6 +5,7 @@ import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import helmet from "helmet";
 import { csrfMiddleware } from "./middlewares/csrf.middleware";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -55,6 +56,7 @@ async function bootstrap() {
 //app.getHttpAdapter().getInstance().options("*", (req, res) => res.sendStatus(204));
   app.use(helmet());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port, "0.0.0.0", () => {

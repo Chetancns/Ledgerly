@@ -45,6 +45,18 @@ update(
 ) {
   return this.service.update(user.userId, id, dto);
 }
+  @Get('summary')
+  async getSummary(
+    @GetUser() user: { userId: string, email: string, name: string },
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('accountId') accountId?: string,
+    @Query('type') type?: 'expense' | 'income' | 'savings' | 'transfer',
+  ) {
+    return this.service.getSummary(user.userId, { from, to, categoryId, accountId, type });
+  }
+
   @Get()
   list(
     @GetUser() user: { userId: string, email: string, name: string },
@@ -53,9 +65,12 @@ update(
     @Query('categoryId') categoryId?: string,
     @Query('accountId') accountId?:string,
     @Query('type') type?: 'expense' | 'income' | 'savings'|'transfer',
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
-    //console.log(user,from,to,categoryId,accountId,type);
-    return this.service.findByUser(user.userId, { from, to, categoryId,accountId, type });
+    const skipNum = skip ? parseInt(skip, 10) : undefined;
+    const takeNum = take ? parseInt(take, 10) : undefined;
+    return this.service.findByUser(user.userId, { from, to, categoryId, accountId, type, skip: skipNum, take: takeNum });
   }
 
   @Delete(':id')

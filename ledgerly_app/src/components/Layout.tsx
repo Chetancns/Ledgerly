@@ -29,6 +29,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);  
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const navItems = [
     { href: "/", label: "Dashboard", icon: "📊" },
     { href: "/transactions", label: "Transactions", icon: "↔️" },
@@ -37,6 +38,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/budgets", label: "Budget", icon: "💰" },
     { href: "/debts", label: "Debts", icon: "⚖️" },
     { href: "/recurring", label: "Recurring", icon: "🔁" },
+    { href: "/insights", label: "Insights", icon: "💡" },
     { href: "/help", label: "Help", icon: "❓" },
   ];
   const { user, loading, logoutapi } = useAuth();
@@ -165,6 +167,7 @@ const stopRecording = () => {
         {/* Desktop Navbar */}
         <nav
           className="sticky top-0 z-50 hidden md:flex items-center px-6 py-3 backdrop-blur-md"
+          aria-label="Main navigation"
           style={{
             background: "rgba(255, 255, 255, 0.08)",
             borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
@@ -182,6 +185,8 @@ const stopRecording = () => {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-label={`Navigate to ${item.label}`}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold transition ${
                     isActive
                       ? "bg-white/20 text-yellow-300"
@@ -201,6 +206,7 @@ const stopRecording = () => {
             </span>
             <button
               onClick={logout}
+              aria-label="Log out of your account"
               className="flex items-center gap-1 bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-sm md:text-base font-semibold shadow-md transition"
             >
               <FaSignOutAlt /> Logout
@@ -209,13 +215,14 @@ const stopRecording = () => {
         </nav>
 
         {/* Mobile Top Header */}
-        <div className="flex items-center justify-between px-4 py-3 md:hidden bg-black/40 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
-          <span className="text-lg font-extrabold">💰 Ledgerly</span>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm">{user?.name || "Guest"}</span>
+        <div className="flex items-center justify-between px-4 py-4 md:hidden bg-black/50 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+          <span className="text-xl font-extrabold">💰 Ledgerly</span>
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-sm truncate max-w-[100px]">{user?.name || "Guest"}</span>
             <button
               onClick={logout}
-              className="bg-red-600 px-3 py-1 rounded text-sm font-semibold hover:bg-red-700"
+              aria-label="Log out"
+              className="bg-red-600 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition"
             >
               Logout
             </button>
@@ -223,36 +230,94 @@ const stopRecording = () => {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+        <main className="flex-1 pb-20 md:pb-4" role="main" aria-label="Main content">
           {/* Dev Warning Banner */}
           <DevWarningBanner />
           {children}
           <SpeedInsights />
         </main>
 
-        {/* Mobile Bottom Nav */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center px-2 py-2 bg-black/40 backdrop-blur-md border-t border-white/20 md:hidden bottom-nav">
-          {navItems.map((item) => {
+        {/* Mobile Bottom Nav - Showing primary items + More */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center px-3 py-3 bg-black/50 backdrop-blur-md border-t border-white/20 md:hidden bottom-nav safe-area-padding">
+          {navItems.slice(0, 4).map((item) => {
             const isActive = router.pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center text-xs font-semibold transition ${
+                aria-label={`Navigate to ${item.label}`}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex flex-col items-center gap-1 text-[10px] font-medium transition min-w-[60px] ${
                   isActive ? "text-yellow-300" : "text-white/80 hover:text-white"
                 }`}
               >
-                <div className="text-lg">{item.icon}</div>
-                {item.label}
+                <div className="text-2xl">{item.icon}</div>
+                <span className="text-center leading-tight">{item.label}</span>
               </Link>
             );
           })}
+          <button
+            onClick={() => setShowMoreMenu(true)}
+            aria-label="More menu"
+            className="flex flex-col items-center gap-1 text-[10px] font-medium transition min-w-[60px] text-white/80 hover:text-white"
+          >
+            <div className="text-2xl">⋯</div>
+            <span className="text-center leading-tight">More</span>
+          </button>
         </nav>
 
+        {/* More Menu Modal */}
+        {showMoreMenu && (
+          <div 
+            className="fixed inset-0 bg-black/70 flex items-end md:items-center md:justify-center z-50 animate-fadeIn"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowMoreMenu(false);
+            }}
+          >
+            <div className="bg-gradient-to-br from-indigo-900/95 to-purple-900/95 backdrop-blur-xl rounded-t-3xl md:rounded-3xl p-6 w-full md:max-w-md border-t md:border border-white/30 shadow-2xl animate-slideUp">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <span className="text-3xl">⋯</span>
+                  More Options
+                </h2>
+                <button
+                  onClick={() => setShowMoreMenu(false)}
+                  className="text-white/70 hover:text-white hover:rotate-90 transition-all text-2xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10"
+                  aria-label="Close more menu"
+                >
+                  ✖
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {navItems.slice(4).map((item) => {
+                  const isActive = router.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setShowMoreMenu(false)}
+                      className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl transition-all transform hover:scale-105 active:scale-95 ${
+                        isActive
+                          ? "bg-yellow-400/30 border-2 border-yellow-400 text-yellow-300 shadow-lg shadow-yellow-400/20"
+                          : "bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 hover:border-white/40"
+                      }`}
+                    >
+                      <div className="text-5xl animate-bounce-subtle">{item.icon}</div>
+                      <span className="text-sm font-semibold text-center">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+              <div className="mt-6 text-center text-white/50 text-xs">
+                Tap outside to close
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Floating Expandable FAB */}
-      {/* 🚀 Expandable Floating Action Button */}
-{/* 🚀 Expandable Floating Action Button */}
-<div className="fixed bottom-10 right-5 flex flex-col items-center gap-3 z-50">
+      {/* 🚀 Expandable Floating Action Button - Positioned for mobile nav */}
+<div className="fixed bottom-24 right-5 md:bottom-10 flex flex-col items-center gap-3 z-50">
   {expanded && (
     <div className="flex flex-col items-center gap-3 mb-2 transition-all duration-300">
       {/* 📸 Upload Receipt */}
@@ -264,6 +329,7 @@ const stopRecording = () => {
       {/* ✏️ Manual Entry */}
       <button
         onClick={() => setShowForm(true)}
+        aria-label="Add transaction manually"
         className="bg-white/90 text-indigo-900 rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-yellow-200 transition"
         title="Add Manually"
       >
@@ -275,6 +341,8 @@ const stopRecording = () => {
   {/* ➕ Main Expand Button */}
   <button
     onClick={() => setExpanded((prev) => !prev)}
+    aria-label={expanded ? "Close add transaction menu" : "Open add transaction menu"}
+    aria-expanded={expanded}
     className="bg-yellow-400 text-indigo-900 rounded-full w-16 h-16 flex items-center justify-center shadow-2xl hover:bg-yellow-300 transition"
   >
     <FaPlus

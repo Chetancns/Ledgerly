@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Layout from "../components/Layout";
 import TransactionForm from "../components/TransactionForm";
-import { getTransactions, onDelete ,getFilterTransactions} from "../services/transactions";
+import { getTransactions, onDelete ,getFilterTransactions, getTransactionsWithPagination, getTransactionSummary} from "../services/transactions";
 import { Transaction, TransactionType } from "@/models/Transaction";
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
@@ -30,6 +30,12 @@ export default function Transactions() {
   const [typeSummary, setTypeSummary] = useState<Partial<Record<TransactionType, number>>>({});
   const [viewMode, setViewMode] = useState<"list" | "table">("list");
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const [usePagination, setUsePagination] = useState(false);
   const handleEdit = (tx: Transaction) => {
     setEditingTransaction(tx);
   };
@@ -49,12 +55,21 @@ export default function Transactions() {
       }else {
         setViewMode("list");
       }
+      
+      const savedPagination = localStorage.getItem("usePagination");
+      if (savedPagination !== null) {
+        setUsePagination(savedPagination === "true");
+      }
     }, []);
 
     // Save when changed
     useEffect(() => {
       localStorage.setItem("viewMode", viewMode);
     }, [viewMode]);
+    
+    useEffect(() => {
+      localStorage.setItem("usePagination", String(usePagination));
+    }, [usePagination]);
   
   const tLabels: Record<TransactionType, string> = {
     income: 'Income',
@@ -115,16 +130,43 @@ export default function Transactions() {
           filters.categoryId = selectedCategory;
         }
 
-        const [txRes] = await Promise.all([
-          getFilterTransactions(filters, { signal: controller.signal }),
-        ]);
-        setTransactions(txRes.data);
-        const summary = txRes.data.reduce((acc: { [x: string]: any; }, tx: { amount: any; type: string | number; }) => {
-          const amt = Number(tx.amount) || 0;
-          acc[tx.type] = (acc[tx.type] || 0) + amt;
-          return acc;
-        }, {} as Record<TransactionType, number>);
-        setTypeSummary(summary);
+        // Add pagination if enabled
+        if (usePagination) {
+          filters.skip = (currentPage - 1) * pageSize;
+          filters.take = pageSize;
+          console.log('Pagination enabled - sending:', { skip: filters.skip, take: filters.take });
+        }
+
+        // Fetch transactions for display (with pagination if enabled)
+        const txRes = await getFilterTransactions(filters, { signal: controller.signal });
+        
+        console.log('Backend response:', txRes.data);
+        
+        // Handle paginated response
+        let actualTransactions: any[] = [];
+        
+        if (txRes.data && typeof txRes.data === 'object' && 'data' in txRes.data) {
+          actualTransactions = txRes.data.data;
+          setTransactions(txRes.data.data);
+          setTotalTransactions(txRes.data.total || 0);
+          console.log('Paginated response - showing:', actualTransactions.length, 'of', txRes.data.total);
+        } else {
+          actualTransactions = txRes.data;
+          setTransactions(txRes.data);
+          setTotalTransactions(txRes.data.length || 0);
+          console.log('Non-paginated response - showing all:', actualTransactions.length);
+        }
+        
+        // Fetch summary from dedicated endpoint (efficient - no need to fetch all transactions)
+        const summaryFilters = {
+          from: filters.from,
+          to: filters.to,
+          categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined,
+          accountId: filters.accountId !== 'all' ? filters.accountId : undefined,
+          type: filters.type,
+        };
+        const summaryRes = await getTransactionSummary(summaryFilters);
+        setTypeSummary(summaryRes.data || {});
         toast.dismiss(toastId);
 
       } catch (err: any) {
@@ -138,7 +180,7 @@ export default function Transactions() {
     };
 
     fetchData();
-  }, [selectedMonth, selectedYear, selectedAccount, selectedCategory]);
+  }, [selectedMonth, selectedYear, selectedAccount, selectedCategory, currentPage, usePagination]);
 
   // Debounce logic
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -264,6 +306,22 @@ export default function Transactions() {
             </select>
           </div>
 
+          {/* Pagination Toggle */}
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-white text-sm font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={usePagination}
+                onChange={(e) => {
+                  setUsePagination(e.target.checked);
+                  setCurrentPage(1);
+                }}
+                className="rounded w-4 h-4"
+              />
+              Enable Pagination
+            </label>
+          </div>
+
           {/* Summary Boxes */}
           <div className="flex flex-wrap items-center gap-3 ml-auto">
             {Object.entries(typeSummary).map(([type, total]) => (
@@ -333,6 +391,39 @@ export default function Transactions() {
 
         </div>
       </div>
+
+      {/* Pagination Controls */}
+      {usePagination && totalTransactions > 0 && (
+        <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-4 mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="text-white text-sm">
+              Showing {Math.min((currentPage - 1) * pageSize + 1, totalTransactions)} - {Math.min(currentPage * pageSize, totalTransactions)} of {totalTransactions} transactions
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-semibold transition"
+              >
+                Previous
+              </button>
+              
+              <span className="text-white font-semibold px-4">
+                Page {currentPage} of {Math.ceil(totalTransactions / pageSize)}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(Math.min(Math.ceil(totalTransactions / pageSize), currentPage + 1))}
+                disabled={currentPage >= Math.ceil(totalTransactions / pageSize)}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-semibold transition"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
 <AnimatePresence mode="wait">
   {viewMode === "list" && (

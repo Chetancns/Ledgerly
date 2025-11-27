@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { Response, Request } from "express";
 import { AuthService } from "./auth.service";
 import { LoginDto, RegisterDto } from "./dto/auth.dto";
@@ -47,6 +48,7 @@ export class AuthController {
     return { csrfToken: token };
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @Post("register")
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: express.Response) {
     const { accessToken, refreshToken, user } = await this.auth.register(dto);
@@ -56,6 +58,7 @@ export class AuthController {
     return { user };
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   @Post("login")
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: express.Response) {
     const { accessToken, refreshToken, user } = await this.auth.login(dto);

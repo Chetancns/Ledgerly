@@ -100,14 +100,66 @@ export class TransactionsService {
   }
 
 
-  async findByUser(userId: string, filters?: { from?: string; to?: string; categoryId?: string; accountId?:string;type?: 'expense'|'income' | 'savings'|'transfer' }) {
+  async findByUser(
+    userId: string, 
+    filters?: { 
+      from?: string; 
+      to?: string; 
+      categoryId?: string; 
+      accountId?: string;
+      type?: 'expense'|'income' | 'savings'|'transfer';
+      skip?: number;
+      take?: number;
+    }
+  ) {
     const where:  Partial<Record<keyof Transaction, any>> = { userId };
     if (filters?.from && filters?.to) where.transactionDate = Between(filters.from, filters.to);
     if (filters?.categoryId) where.categoryId = filters.categoryId;
     if (filters?.accountId) where.accountId = filters.accountId;
     if (filters?.type) where.type = filters.type;
-    //console.log(where);
-    return this.txRepo.find({ where, order: { transactionDate: 'DESC', createdAt: 'DESC' } });
+    
+    const order = { transactionDate: 'DESC' as const, createdAt: 'DESC' as const };
+    
+    // If pagination is requested, return paginated results with total count
+    if (filters?.skip !== undefined || filters?.take !== undefined) {
+      const [data, total] = await this.txRepo.findAndCount({
+        where,
+        order,
+        skip: filters.skip,
+        take: filters.take || 50, // Default page size of 50
+      });
+      return { data, total, skip: filters.skip || 0, take: filters.take || 50 };
+    }
+    
+    // Otherwise return all results (backward compatibility)
+    return this.txRepo.find({ where, order });
+  }
+
+  async getSummary(
+    userId: string,
+    filters?: {
+      from?: string;
+      to?: string;
+      categoryId?: string;
+      accountId?: string;
+      type?: 'expense' | 'income' | 'savings' | 'transfer';
+    }
+  ) {
+    const where: Partial<Record<keyof Transaction, any>> = { userId };
+    if (filters?.from && filters?.to) where.transactionDate = Between(filters.from, filters.to);
+    if (filters?.categoryId) where.categoryId = filters.categoryId;
+    if (filters?.accountId) where.accountId = filters.accountId;
+    if (filters?.type) where.type = filters.type;
+
+    const transactions = await this.txRepo.find({ where });
+    
+    const summary = transactions.reduce((acc, tx) => {
+      const amt = Number(tx.amount) || 0;
+      acc[tx.type] = (acc[tx.type] || 0) + amt;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return summary;
   }
 
   async delete(userId: string, id: string) {

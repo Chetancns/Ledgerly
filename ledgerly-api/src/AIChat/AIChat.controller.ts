@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AiService } from './AIChat.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUser } from '../common/decorators/user.decorator'
@@ -11,6 +12,7 @@ import * as multer from 'multer';
 export class AiController {
   constructor(private aiService: AiService) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @Post('/parse-transaction')
   async parseTransaction(
     @GetUser() user: { userId: string },
@@ -19,6 +21,7 @@ export class AiController {
     console.log(user,body.text);
     return this.aiService.parseTransactions(user.userId, body.text);}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
   async image(@UploadedFile() file: Multer.File, @GetUser() user: { userId: string }) {
@@ -26,6 +29,7 @@ export class AiController {
   }
 
   
+@Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
 @Post('audio')
 @UseInterceptors(FileInterceptor('file', { storage: multer.memoryStorage() }))
 async audio(@UploadedFile() file: Multer.File, @GetUser() user: { userId: string }) {

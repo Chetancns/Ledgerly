@@ -10,22 +10,66 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [showPasswordHints, setShowPasswordHints] = useState(false);
+
+  // Validate password strength
+  const validatePassword = (pwd: string): string[] => {
+    const errors: string[] = [];
+    if (pwd.length < 12) errors.push("At least 12 characters");
+    if (!/[a-z]/.test(pwd)) errors.push("One lowercase letter");
+    if (!/[A-Z]/.test(pwd)) errors.push("One uppercase letter");
+    if (!/\d/.test(pwd)) errors.push("One number");
+    if (!/[@$!%*?&]/.test(pwd)) errors.push("One special character (@$!%*?&)");
+    return errors;
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setPasswordErrors(validatePassword(value));
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validate password before submitting
+    const errors = validatePassword(password);
+    if (errors.length > 0) {
+      toast.error("Password does not meet requirements");
+      setShowPasswordHints(true);
+      return;
+    }
+    
     try{
     const signupPromise =  doSignup(email, password, name);
     toast.promise(signupPromise, {
     loading: 'Creating your account... Hang tight, our free-tier backend may take a moment to wake up.',
     success: "Welcome aboard! Your account's ready—let's get started.",
-    error: 'Signup failed. Please check your details and try again. If the issue persists, contact support.',
+    error: (err) => {
+      // Extract error message from response
+      const errorMessage = err?.response?.data?.message;
+      if (Array.isArray(errorMessage)) {
+        return errorMessage.join(', ');
+      }
+      return errorMessage || 'Signup failed. Please check your details and try again.';
+    },
     });
 
     const success = await signupPromise;
     if (success) {
           //console.log("redirect called");
     router.push('/'); // redirects to index page
-  } }catch (err: unknown) {
+  } }catch (err: any) {
     console.error("Sign up failed:", err);
+    const errorMessage = err?.response?.data?.message;
+    if (errorMessage) {
+      if (Array.isArray(errorMessage)) {
+        setError(errorMessage.join('. '));
+      } else {
+        setError(errorMessage);
+      }
+      setTimeout(() => setError(null), 7000);
+    }
     }
   };
 
@@ -71,13 +115,40 @@ return (
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
           />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
-          />
+          <div>
+            <input
+              type="password"
+              placeholder="Password (min 12 chars)"
+              value={password}
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              onFocus={() => setShowPasswordHints(true)}
+              onBlur={() => setTimeout(() => setShowPasswordHints(false), 200)}
+              className={`w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 transition ${
+                password && passwordErrors.length === 0 ? 'ring-2 ring-green-400' : 
+                password && passwordErrors.length > 0 ? 'ring-2 ring-red-400' : 'focus:ring-yellow-300'
+              }`}
+            />
+            {showPasswordHints && password && (
+              <div className="mt-2 text-xs space-y-1">
+                {passwordErrors.length > 0 ? (
+                  <div className="bg-red-500/20 border border-red-400/30 rounded p-2">
+                    <p className="font-semibold text-red-200 mb-1">Password must have:</p>
+                    <ul className="list-disc list-inside text-red-200">
+                      {passwordErrors.map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="bg-green-500/20 border border-green-400/30 rounded p-2">
+                    <p className="text-green-200 flex items-center gap-1">
+                      <span>✓</span> Password meets all requirements
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <button
             type="submit"
             className="w-full py-3 bg-yellow-300 text-indigo-900 font-semibold rounded-lg hover:bg-yellow-400 transition"
