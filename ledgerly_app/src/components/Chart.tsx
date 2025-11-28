@@ -21,6 +21,7 @@ import { ChartDataPoint,CategorySpending, CashflowRow, CategoryRow } from "@/mod
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 
 
 const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9D4EDD"];
@@ -32,6 +33,7 @@ export function LineTrendChart({
   data: ChartDataPoint[];
   view: "income" | "expense";
 }) {
+  const { format } = useCurrencyFormatter();
   const totalIncome = data.reduce((sum, point) => sum + (point.income || 0), 0);
   const totalExpense = data.reduce((sum, point) => sum + (point.expense || 0), 0);
 
@@ -53,7 +55,7 @@ export function LineTrendChart({
         <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} />
         <YAxis stroke="#fff" />
         <Tooltip
-          formatter={(value: number) => `${value.toFixed(2)}`}
+          formatter={(value: number) => `${format(value)}`}
           labelFormatter={(label) => `📅 ${label}`}
           contentStyle={{
             backgroundColor: "#ffffff22",
@@ -67,7 +69,7 @@ export function LineTrendChart({
           verticalAlign="top"
           height={36}
           formatter={() =>
-            `💰 Income: ${totalIncome.toFixed(2)} | 💸 Expense: ${totalExpense.toFixed(2)}`
+            `💰 Income: ${format(totalIncome)} | 💸 Expense: ${format(totalExpense)}`
           }
         />
         {view === "income" && (
@@ -98,6 +100,7 @@ export function LineTrendChart({
 
 
 export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
+  const { format } = useCurrencyFormatter();
   function stringToColor(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -116,7 +119,7 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
           cx="50%"
           cy="50%"
           labelLine={false}
-          label={({ name, value }) => `${name}: ${typeof value === "number" ? value.toFixed(2) : "N/A"}`}
+          label={({ name, value }) => `${name}: ${typeof value === "number" ? format(value) : "N/A"}`}
           outerRadius={90}
           dataKey="value"
         >
@@ -125,7 +128,7 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
           ))}
         </Pie>
         <Tooltip
-          formatter={(value: number) => `${value.toFixed(2)}`}
+          formatter={(value: number) => `${format(value)}`}
           contentStyle={{
             backgroundColor: "#ffffff22",
             border: "none",
@@ -140,6 +143,7 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
   );
 }
 export function BarChartComponent({ data }: { data: any[] }) {
+  const { format, formatCompact } = useCurrencyFormatter();
   const chartData = data.map((c) => {
     const budget = (c?.budget && Number(c.budget)) || 0;
     const actual = (c?.actual && Number(c.actual)) || 0;
@@ -164,7 +168,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
         <YAxis stroke="#fff" domain={[0, "dataMax"]} allowDataOverflow />
 
         <Tooltip
-          formatter={(value: number) => `${value.toFixed(2)}`}
+          formatter={(value: number) => `${format(value)}`}
           contentStyle={{
             backgroundColor: "#ffffff22",
             border: "none",
@@ -184,7 +188,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
           <LabelList
             dataKey="Budget"
             position="top"
-            formatter={(label: any) => (label > 0 ? `${Number(label).toFixed(2)}` : "")}
+            formatter={(label: any) => (label > 0 ? `${formatCompact(Number(label))}` : "")}
             style={{ fill: "#fff", fontSize: 10 }}
           />
         </Bar>
@@ -198,7 +202,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
           <LabelList
             dataKey="Actual"
             position="top"
-            formatter={(label: any) => (label > 0 ? `${Number(label).toFixed(2)}` : "")}
+            formatter={(label: any) => (label > 0 ? `${formatCompact(Number(label))}` : "")}
             style={{ fill: "#fff", fontSize: 10 }}
           />
         </Bar>
@@ -206,7 +210,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
   <LabelList
     dataKey="Overspent"
     position="top"
-    formatter={(label: any) => (label > 0 ? `+${Number(label).toFixed(2)}` : "")}
+    formatter={(label: any) => (label > 0 ? `+${formatCompact(Number(label))}` : "")}
     style={{ fill: "#fff", fontSize: 10 }}
   />
 </Bar>
@@ -218,6 +222,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
   );
 }
 export function PieChartComponent({ data }: { data: any[] }) {
+  const { format } = useCurrencyFormatter();
   const pieData = [
   {
     name: 'Overspent',
@@ -241,7 +246,7 @@ export function PieChartComponent({ data }: { data: any[] }) {
       
         <PieChart>
         <Tooltip
-          formatter={(value: number) => `₹${value.toFixed(2)}`}
+          formatter={(value: number) => `${format(value)}`}
           contentStyle={{
             backgroundColor: "#ffffff22",
             border: "none",
@@ -281,6 +286,7 @@ export function ChashFlowLine({
 }: {
   data: CashflowRow[];
 }) {
+  const { format } = useCurrencyFormatter();
   return (
   <ResponsiveContainer width="100%" height={250}>
     
@@ -308,7 +314,7 @@ export function ChashFlowLine({
       <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} />
       <YAxis stroke="#fff" />
       <Tooltip
-        formatter={(value: number) => `${value.toFixed(2)}`}
+        formatter={(value: number) => `${format(value)}`}
         labelFormatter={(label) => `📅 ${label}`}
         contentStyle={{
           backgroundColor: "#ffffff22",
@@ -362,6 +368,7 @@ export function ChashFlowLine({
 }
 
 export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
+  const { format } = useCurrencyFormatter();
   function stringToColor(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -386,7 +393,7 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
           outerRadius={100}
           labelLine={false}
           label={({ categoryName, total }) =>
-            `${categoryName}: ${total.toFixed(2)}`
+            `${categoryName}: ${format(total)}`
           }
         >
           {data.map((entry, index) => (
@@ -395,7 +402,7 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
         </Pie>
         <Tooltip
           formatter={(value: number, name: string) => [
-            `${value.toFixed(2)}`,
+            `${format(value)}`,
             `📂 ${name}`,
           ]}
           contentStyle={{
@@ -419,17 +426,10 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
 
 }
 
-function AnimatedNumber({ value }: { value: number }) {
-  const motionValue = useMotionValue(0);
-  const rounded = useTransform(motionValue, (latest) => latest.toFixed(2));
-  useEffect(() => {
-    const controls = animate(motionValue, value || 0, { duration: 1, ease: "easeOut" });
-    return () => controls.stop();
-  }, [value]);
-  return <motion.span>{rounded}</motion.span>;
-}
+// Removed AnimatedNumber to simplify currency formatting
 
 export function SummaryCard({ totals }: { totals: any }) {
+  const { format } = useCurrencyFormatter();
   const [showIncome, setShowIncome] = useState(true);
   const [showExpense, setShowExpense] = useState(true);
 
@@ -461,9 +461,7 @@ export function SummaryCard({ totals }: { totals: any }) {
             className={`bg-gradient-to-br ${c.color} backdrop-blur-lg border border-white/10 rounded-2xl p-5 shadow-md`}
           >
             <h4 className="text-sm opacity-75">{c.label}</h4>
-            <p className="text-2xl font-semibold mt-1">
-              ₹<AnimatedNumber value={c.value || 0} />
-            </p>
+            <p className="text-2xl font-semibold mt-1">{format(c.value || 0)}</p>
           </motion.div>
         ))}
       </div>
@@ -496,17 +494,13 @@ export function SummaryCard({ totals }: { totals: any }) {
                   {/* Budgeted Income */}
                   <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
                     <h4 className="text-sm opacity-75">Budgeted Income</h4>
-                    <p className="text-xl font-semibold mt-1">
-                      ₹<AnimatedNumber value={totals.totalBudgetIncome || 0} />
-                    </p>
+                    <p className="text-xl font-semibold mt-1">{format(totals.totalBudgetIncome || 0)}</p>
                   </div>
 
                   {/* Actual Income */}
                   <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
                     <h4 className="text-sm opacity-75">Actual Income</h4>
-                    <p className="text-xl font-semibold mt-1">
-                      ₹<AnimatedNumber value={totals.totalActualIncome || 0} />
-                    </p>
+                    <p className="text-xl font-semibold mt-1">{format(totals.totalActualIncome || 0)}</p>
                     <ProgressBar
                       percent={getPercentage(totals.totalActualIncome, totals.totalBudgetIncome)}
                       label="of budget achieved"
@@ -545,17 +539,13 @@ export function SummaryCard({ totals }: { totals: any }) {
                   {/* Budgeted Expense */}
                   <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
                     <h4 className="text-sm opacity-75">Budgeted Expense</h4>
-                    <p className="text-xl font-semibold mt-1">
-                      ₹<AnimatedNumber value={totals.totalBudgetExpense || 0} />
-                    </p>
+                    <p className="text-xl font-semibold mt-1">{format(totals.totalBudgetExpense || 0)}</p>
                   </div>
 
                   {/* Actual Expense */}
                   <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
                     <h4 className="text-sm opacity-75">Actual Expense</h4>
-                    <p className="text-xl font-semibold mt-1">
-                      ₹<AnimatedNumber value={totals.totalActualExpense || 0} />
-                    </p>
+                    <p className="text-xl font-semibold mt-1">{format(totals.totalActualExpense || 0)}</p>
                     <ProgressBar
                       percent={getPercentage(totals.totalActualExpense, totals.totalBudgetExpense)}
                       label="of budget used"

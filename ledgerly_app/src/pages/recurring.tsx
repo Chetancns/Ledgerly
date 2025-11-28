@@ -1,3 +1,4 @@
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import Layout from "../components/Layout";
 import toast from "react-hot-toast";
@@ -13,6 +14,7 @@ import { Frequency, RecurringTransaction, TxType } from "../models/recurring";
 import { TrashIcon, PauseIcon, PlayIcon } from "@heroicons/react/24/solid";
 
 export default function Recurring() {
+  const { format } = useCurrencyFormatter();
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -178,7 +180,7 @@ export default function Recurring() {
     <div className="space-y-1.5">
       <p className="text-base font-semibold text-white/90 tracking-tight">
         {tx.description || "(No description)"}{" "}
-        <span className="text-blue-400 font-bold">₹{tx.amount}</span>
+        <span className="text-blue-400 font-bold">{format(tx.amount)}</span>
       </p>
 
       <div className="text-sm text-gray-400 flex flex-wrap gap-2">

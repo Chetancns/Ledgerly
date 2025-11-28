@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import NeumorphicInput from "@/components/NeumorphicInput";
 import toast from "react-hot-toast";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 
 // ------------------------------
 // Types
@@ -43,12 +44,7 @@ interface Budget {
 }
 
 // ------------------------------
-// Helpers
-// ------------------------------
-const formatCurrency = (value: number | string) => {
-  const n = Number(value) || 0;
-  return `$${n.toLocaleString()}`;
-};
+// Helpers are centralized in useCurrencyFormatter
 
 const getEndDateFor = (period: BudgetPeriod, startIso: string) => {
   const start = dayjs(startIso);
@@ -87,6 +83,7 @@ function BudgetCard({
   onDelete: () => void;
   disabled?: boolean;
 }) {
+  const { format } = useCurrencyFormatter();
   const spent = b.spent ?? 0;
   const amountNum = Number(b.amount) || 0;
   const percent = amountNum > 0 ? Math.min(100, Math.round((spent / amountNum) * 100)) : 0;
@@ -135,7 +132,7 @@ function BudgetCard({
 
       <div>
         <div className="flex items-baseline gap-3">
-          <p className="text-white/90 font-semibold text-xl">{formatCurrency(amountNum)}</p>
+          <p className="text-white/90 font-semibold text-xl">{format(amountNum)}</p>
           <p className="text-xs text-white/60">Allocated</p>
           {b.carriedOver && (
             <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded-full">
@@ -145,8 +142,8 @@ function BudgetCard({
         </div>
 
         <div className="mt-2 text-sm text-white/70">
-          <span className="mr-3">Spent: {formatCurrency(spent)}</span>
-          <span>Remaining: {formatCurrency(remaining)}</span>
+          <span className="mr-3">Spent: {format(spent)}</span>
+          <span>Remaining: {format(remaining)}</span>
         </div>
       </div>
 
@@ -167,6 +164,7 @@ function BudgetCard({
 // Page
 // ------------------------------
 export default function BudgetsPage() {
+  const { format } = useCurrencyFormatter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
@@ -552,8 +550,8 @@ export default function BudgetsPage() {
                   {budgets.map((b) => (
                     <tr key={b.id} className="border-t border-white/6">
                       <td className="px-3 py-2 text-white">{categoryMap.get(b.categoryId) || "Unknown"}</td>
-                      <td className="px-3 py-2 text-white">{formatCurrency(b.amount)}</td>
-                      <td className="px-3 py-2 text-white">{formatCurrency(b.spent ?? 0)}</td>
+                      <td className="px-3 py-2 text-white">{format(b.amount)}</td>
+                      <td className="px-3 py-2 text-white">{format(b.spent ?? 0)}</td>
                       <td className="px-3 py-2 text-white/80">{b.period}</td>
                       <td className="px-3 py-2 text-white/60">{b.startDate} → {b.endDate}</td>
                       <td className="px-3 py-2 text-right">

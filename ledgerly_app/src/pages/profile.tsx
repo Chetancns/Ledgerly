@@ -5,6 +5,7 @@ import { getMe, updateMe } from '@/services/user';
 import toast from 'react-hot-toast';
 import NeumorphicInput from '@/components/NeumorphicInput';
 import NeumorphicSelect from '@/components/NeumorphicSelect';
+import { ISO_4217 } from '@/utils/iso4217';
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -122,7 +123,7 @@ export default function ProfilePage() {
               <NeumorphicSelect
                 value={form.currency}
                 onChange={(v) => setForm(f => ({ ...f, currency: v }))}
-                options={["USD","INR","EUR","GBP"].map(c => ({ label: c, value: c }))}
+                options={ISO_4217}
                 placeholder="Select currency"
                 theme="dark"
               />

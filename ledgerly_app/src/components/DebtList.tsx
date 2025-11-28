@@ -1,9 +1,11 @@
 // components/DebtList.tsx
 import { useEffect, useState } from "react";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Debt, DebtUpdate } from "@/models/debt";
 import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly } from "@/services/debts";
 
 export default function DebtList() {
+  const { format } = useCurrencyFormatter();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
   const [updates, setUpdates] = useState<DebtUpdate[]>([]);
@@ -67,17 +69,17 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
               <div className="mb-3">
                 <h3 className="text-lg font-semibold text-gray-900">{debt.name}</h3>
                 <p className="text-sm text-gray-500">
-                  Installment: ${debt.installmentAmount}
+                  Installment: {format(debt.installmentAmount)}
                 </p>
               </div>
 
               {/* Debt Info */}
               <div className="space-y-1 text-sm text-gray-700">
                 <p>
-                  <strong>Principal:</strong> ${debt.principal}
+                  <strong>Principal:</strong> {format(debt.principal)}
                 </p>
                 <p>
-                  <strong>Balance:</strong> ${debt.currentBalance}
+                  <strong>Balance:</strong> {format(debt.currentBalance)}
                 </p>
                 {debt.term && (
                   <p>
@@ -156,7 +158,7 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
                   {u.transaction && (
                     <div className="mt-2 text-sm text-gray-800">
                       <p>
-                        <strong>Amount:</strong> ${u.transaction.amount}
+                        <strong>Amount:</strong> {format(u.transaction.amount)}
                       </p>
                       <p>
                         <strong>Description:</strong> {u.transaction.description}
