@@ -12,6 +12,7 @@ import { getUserAccount } from "../services/accounts";
 import { getUserCategory } from "../services/category";
 import { Frequency, RecurringTransaction, TxType } from "../models/recurring";
 import { TrashIcon, PauseIcon, PlayIcon } from "@heroicons/react/24/solid";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function Recurring() {
   const { format } = useCurrencyFormatter();
@@ -31,6 +32,8 @@ export default function Recurring() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [pauseResumeConfirm, setPauseResumeConfirm] = useState<{ id: string; status: string } | null>(null);
 
   // Load recurring transactions
   const load = async () => {
@@ -104,15 +107,29 @@ export default function Recurring() {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteRecurring(id);
-    toast.success("Recurring transaction deleted");
-    await load();
+    try {
+      await deleteRecurring(id);
+      toast.success("Recurring transaction deleted");
+      await load();
+    } catch (err) {
+      console.error("Delete recurring failed", err);
+      toast.error("Delete failed. Please try again.");
+    } finally {
+      setDeleteConfirm(null);
+    }
   };
 
   const handlePauseResume = async (id: string, current: string) => {
-    await updateRecurring(id, { status: current === "active" ? "paused" : "active" });
-    toast.success(current === "active" ? "Paused!" : "Resumed!");
-    await load();
+    try {
+      await updateRecurring(id, { status: current === "active" ? "paused" : "active" });
+      toast.success(current === "active" ? "Paused!" : "Resumed!");
+      await load();
+    } catch (err) {
+      console.error("Pause/Resume failed", err);
+      toast.error("Action failed. Please try again.");
+    } finally {
+      setPauseResumeConfirm(null);
+    }
   };
 
   const openModal = (tx?: RecurringTransaction) => {
@@ -240,7 +257,7 @@ export default function Recurring() {
       </button>
 
       <button
-        onClick={() => handlePauseResume(tx.id, tx.status)}
+        onClick={() => setPauseResumeConfirm({ id: tx.id, status: tx.status })}
         className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-blue-400"
         title={tx.status === "active" ? "Pause" : "Resume"}
       >
@@ -252,7 +269,7 @@ export default function Recurring() {
       </button>
 
       <button
-        onClick={() => handleDelete(tx.id)}
+        onClick={() => setDeleteConfirm(tx.id)}
         className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-red-400"
         title="Delete"
       >
@@ -380,6 +397,29 @@ export default function Recurring() {
           </div>
         </div>
       )}
+
+      {/* Confirmations */}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title="Delete Recurring"
+        description="Delete this recurring transaction? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmColor="red-500"
+        loading={false}
+        onConfirm={() => handleDelete(deleteConfirm!)}
+        onClose={() => setDeleteConfirm(null)}
+      />
+
+      <ConfirmModal
+        open={!!pauseResumeConfirm}
+        title={pauseResumeConfirm?.status === "active" ? "Pause Recurring" : "Resume Recurring"}
+        description={pauseResumeConfirm?.status === "active" ? "Pause this recurring transaction?" : "Resume this recurring transaction?"}
+        confirmLabel={pauseResumeConfirm?.status === "active" ? "Pause" : "Resume"}
+        confirmColor={pauseResumeConfirm?.status === "active" ? "yellow-400" : "green-500"}
+        loading={false}
+        onConfirm={() => handlePauseResume(pauseResumeConfirm!.id, pauseResumeConfirm!.status)}
+        onClose={() => setPauseResumeConfirm(null)}
+      />
     </Layout>
   );
 }

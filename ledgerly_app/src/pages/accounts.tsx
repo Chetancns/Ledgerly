@@ -8,6 +8,7 @@ import {
 } from "../services/accounts";
 import { Account, AccountType } from "../models/account";
 import { TrashIcon } from "@heroicons/react/24/solid";
+import ConfirmModal from "@/components/ConfirmModal";
 import toast, { Toaster } from "react-hot-toast";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
 import NeumorphicInput from "@/components/NeumorphicInput";
@@ -20,6 +21,7 @@ export default function Accounts() {
   const [balance, setBalance] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const accountTypes: AccountType[] = [
     "bank",
@@ -74,9 +76,16 @@ export default function Accounts() {
   };
 
   const handleDelete = async (id: string) => {
-    await onDeleteAccount(id);
-    toast.success("Account deleted");
-    await load();
+    try {
+      await onDeleteAccount(id);
+      toast.success("Account deleted");
+      await load();
+    } catch (err) {
+      console.error("Account delete failed", err);
+      toast.error("Delete failed. Please try again.");
+    } finally {
+      setDeleteConfirm(null);
+    }
   };
 
   const openModal = (account: Account) => {
@@ -176,7 +185,7 @@ export default function Accounts() {
                     ✏️
                   </button>
                   <button
-                    onClick={() => handleDelete(a.id)}
+                    onClick={() => setDeleteConfirm(a.id)}
                     className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
                     title="Delete"
                   >
@@ -252,6 +261,17 @@ export default function Accounts() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title="Delete Account"
+        description="Delete this account? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmColor="red-500"
+        loading={false}
+        onConfirm={() => handleDelete(deleteConfirm!)}
+        onClose={() => setDeleteConfirm(null)}
+      />
     </Layout>
   );
 }
