@@ -12,12 +12,18 @@ import {
 import { Throttle } from "@nestjs/throttler";
 import { Response, Request } from "express";
 import { AuthService } from "./auth.service";
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../users/user.entity';
 import { LoginDto, RegisterDto } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./jwt.guard";
 import express from "express";
 @Controller("auth")
 export class AuthController {
-  constructor(private auth: AuthService) {}
+  constructor(
+    private auth: AuthService,
+    @InjectRepository(User) private userRepo: Repository<User>,
+  ) {}
 
   private setAccessCookie(res: Response, token: string) {
     console.log("[AuthController] setAccessCookie. token starts:", token.slice(0,8), "...");
@@ -90,8 +96,26 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get("me")
   async me(@Req() req: express.Request) {
-    console.log("[AuthController] me called, user:", (req as any).user);
-    return { user: (req as any).user };
+    const payload = (req as any).user;
+    console.log("[AuthController] me called, jwt payload:", payload);
+    try {
+      const dbUser = await this.userRepo.findOne({ where: { id: payload.sub } });
+      if (!dbUser) return { user: null };
+      // Return only safe fields (omit password + refresh hash)
+      return {
+        user: {
+          id: dbUser.id,
+          name: dbUser.name,
+          email: dbUser.email,
+          currency: dbUser.currency,
+          createdAt: dbUser.createdAt,
+          updatedAt: dbUser.updatedAt,
+        },
+      };
+    } catch (e) {
+      console.warn('[AuthController] me DB fetch failed:', e);
+      return { user: null };
+    }
   }
 
   @Post("logout")

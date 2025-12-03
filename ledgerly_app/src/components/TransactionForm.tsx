@@ -404,7 +404,7 @@ export default function TransactionForm({
                 value={importInput}
                 onChange={(e) => setImportInput(e.target.value)}
                 className="w-full h-32 p-3 rounded-xl bg-white/10 text-white/90 border border-white/10 mb-4 resize-y"
-                placeholder="Example: 'Transfer ₹500 to Savings for groceries on 2025-11-08'"
+                placeholder="Example: 'Transfer 500 to Savings for groceries on 2025-11-08'"
                 disabled={importLoading}
               />
 

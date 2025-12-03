@@ -15,6 +15,7 @@ import { getBudgetReports, getCashflowTimeline, getCategoryHeatmap } from "@/ser
 import toast from "react-hot-toast";
 import { BudgetCategory, BudgetUtilization, BudgetReports } from "@/models/budget";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 export default function Dashboard() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [catHeatmap,setCatHeatmap] = useState<CategoryRow[]>([]);
   const [view, setView] = useState<"income" | "expense">("expense");
   const [filter, setFilter] = useState<'all' | 'overspent' |'within_budget' | 'no_budget'>('all');
+  const { format } = useCurrencyFormatter();
 
   const filteredCategories = useMemo(() => {
     return (budgetReports?.categories?.filter((c: BudgetCategory) => {
@@ -261,7 +263,8 @@ useEffect(() => {
         }}
       >
         <h2 className="text-lg font-semibold">💰 Total Balance</h2>
-        <p className="text-xl sm:text-2xl font-bold mt-2">₹{totalBalance.toFixed(2)}</p>
+        {/* Use user currency formatting */}
+        <p className="text-xl sm:text-2xl font-bold mt-2">{format(totalBalance)}</p>
 
         <div className="mt-4 grid md:grid-cols-3 gap-4">
           {accounts.map((acc) => (
@@ -277,7 +280,7 @@ useEffect(() => {
                 {acc.name} ({acc.type})
               </span>
               <span className="font-semibold">
-                ₹{parseFloat(acc.balance || "0").toFixed(2)}
+                {format(parseFloat(acc.balance || '0'))}
               </span>
             </div>
           ))}

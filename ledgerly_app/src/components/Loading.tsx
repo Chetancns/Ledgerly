@@ -8,7 +8,7 @@ export default function Loading() {
       <div className="w-full max-w-lg bg-black/50 backdrop-blur-md border border-white/12 rounded-2xl p-6 shadow-lg">
         <div className="flex items-center gap-4">
           <div
-            className="w-12 h-12 rounded-full border-4 border-t-4 border-white/20 border-t-blue-400 animate-spin"
+            className="rounded-full border-4 border-t-4 border-white/20 border-t-blue-400 animate-spin"
             aria-hidden="true"
           />
           <div>

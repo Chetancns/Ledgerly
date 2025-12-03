@@ -14,8 +14,10 @@ import {motion,AnimatePresence} from "framer-motion";
 import clsx from "clsx";
 import { div } from "framer-motion/client";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 
 export default function Transactions() {
+  const { format } = useCurrencyFormatter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -340,7 +342,7 @@ export default function Transactions() {
                   'text-blue-800'
                 )}>{tLabels[type as TransactionType]}</span>
                 <span className="text-black font-bold">
-                  {Number(total).toFixed(2)}
+                  {format(Number(total))}
                 </span>
               </div>
             ))}
@@ -464,7 +466,7 @@ export default function Transactions() {
         <div className="flex justify-between items-center mb-1">
           <span className={clsx(
 `font-bold text-${typeColor}-700 text-lg flex items-center gap-1`)}>
-            {typeIcon} ₹{t.amount}
+            {typeIcon} {format(t.amount)}
           </span>
           <span className="text-xs text-gray-900">{formatDateForUI(t.transactionDate)}</span>
         </div>
@@ -558,7 +560,7 @@ export default function Transactions() {
           <tr key={t.id} className={`transition-all ${deletingId === t.id ? 'opacity-0' : 'opacity-100'} hover:bg-gray-50`}>
             <td className="px-3 py-2 text-sm text-gray-800">{formatDateForUI(t.transactionDate)}</td>
             <td className={`px-3 py-2 text-sm font-semibold text-${typeColor}-800 flex items-center gap-1`}>
-              {typeIcon} ₹{t.amount}
+              {typeIcon} {format(t.amount)}
             </td>
             <td className="px-3 py-2 text-sm text-gray-800">{account ? account.name : 'Unknown'}</td>
             <td className="px-3 py-2 text-sm text-gray-800">{toAccount ? toAccount.name : '-'}</td>

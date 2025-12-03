@@ -61,5 +61,15 @@ export const useAuth = () => {
     setUser(null);
   };
 
-  return { user, loading, doLogin, doSignup, logoutapi };
+  const refreshUser = async () => {
+    try {
+      const res = await getCurrentUser();
+      setUser(res.data.user || null);
+      return res.data.user || null;
+    } catch {
+      return null;
+    }
+  };
+
+  return { user, loading, doLogin, doSignup, logoutapi, refreshUser };
 };

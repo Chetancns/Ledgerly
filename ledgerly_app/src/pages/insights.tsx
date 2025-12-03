@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 
 interface SpendingInsights {
   period: {
@@ -98,6 +99,7 @@ interface AIUsage {
 }
 
 export default function Insights() {
+  const { format, formatCompact } = useCurrencyFormatter();
   const [insights, setInsights] = useState<SpendingInsights | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiUsage, setAiUsage] = useState<AIUsage | null>(null);
@@ -195,7 +197,6 @@ export default function Insights() {
     }
   };
 
-  const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`;
   const formatPercent = (percent: number) => `${percent > 0 ? '+' : ''}${percent.toFixed(1)}%`;
 
   return (
@@ -453,7 +454,7 @@ export default function Insights() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <SummaryCard
                 title="Total Expense"
-                value={formatCurrency(insights.summary.totalExpense)}
+                value={format(insights.summary.totalExpense)}
                 change={insights.trends?.expenseChange}
                 changePercent={insights.trends?.expenseChangePercent}
                 icon="💸"
@@ -461,7 +462,7 @@ export default function Insights() {
               />
               <SummaryCard
                 title="Total Income"
-                value={formatCurrency(insights.summary.totalIncome)}
+                value={format(insights.summary.totalIncome)}
                 change={insights.trends?.incomeChange}
                 changePercent={insights.trends?.incomeChangePercent}
                 icon="💰"
@@ -469,13 +470,13 @@ export default function Insights() {
               />
               <SummaryCard
                 title="Net Cashflow"
-                value={formatCurrency(insights.summary.netCashflow)}
+                value={format(insights.summary.netCashflow)}
                 icon="📊"
                 color="blue"
               />
               <SummaryCard
                 title="Avg Daily Expense"
-                value={formatCurrency(insights.summary.avgDailyExpense)}
+                value={format(insights.summary.avgDailyExpense)}
                 change={insights.trends?.avgDailyExpenseChange}
                 icon="📅"
                 color="purple"
@@ -492,7 +493,7 @@ export default function Insights() {
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-white font-semibold">{cat.categoryName}</span>
-                        <span className="text-white font-bold">{formatCurrency(cat.amount)}</span>
+                        <span className="text-white font-bold">{format(cat.amount)}</span>
                       </div>
                       <div className="relative w-full h-2 bg-white/20 rounded-full overflow-hidden">
                         <motion.div
@@ -519,7 +520,7 @@ export default function Insights() {
                 {insights.dayOfWeekSpending.map((day) => (
                   <div key={day.day} className="bg-white/10 rounded-xl p-4 text-center">
                     <div className="text-white font-semibold mb-2">{day.day.slice(0, 3)}</div>
-                    <div className="text-2xl font-bold text-white">{formatCurrency(day.totalExpense)}</div>
+                    <div className="text-2xl font-bold text-white">{format(day.totalExpense)}</div>
                     <div className="text-xs text-white/70 mt-1">{day.transactionCount} txns</div>
                   </div>
                 ))}
@@ -541,13 +542,13 @@ export default function Insights() {
                           "font-bold",
                           week.netCashflow >= 0 ? "text-green-400" : "text-red-400"
                         )}>
-                          {formatCurrency(week.netCashflow)}
+                          {format(week.netCashflow)}
                         </span>
                       </div>
                       <div className="flex gap-4 text-sm">
-                        <span className="text-green-400">Income: {formatCurrency(week.income)}</span>
-                        <span className="text-red-400">Expense: {formatCurrency(week.expense)}</span>
-                        <span className="text-blue-400">Savings: {formatCurrency(week.savings)}</span>
+                        <span className="text-green-400">Income: {format(week.income)}</span>
+                        <span className="text-red-400">Expense: {format(week.expense)}</span>
+                        <span className="text-blue-400">Savings: {format(week.savings)}</span>
                       </div>
                     </div>
                   ))}
@@ -564,10 +565,10 @@ export default function Insights() {
                     <div key={anomaly.date} className="bg-red-500/20 rounded-xl p-4 border border-red-500/30">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-white font-semibold">{dayjs(anomaly.date).format('MMM DD, YYYY')}</span>
-                        <span className="text-red-300 font-bold">{formatCurrency(anomaly.amount)}</span>
+                        <span className="text-red-300 font-bold">{format(anomaly.amount)}</span>
                       </div>
                       <div className="text-sm text-white/80 mb-2">
-                        {formatPercent(anomaly.deviation)} higher than average ({formatCurrency(anomaly.avgDailyExpense)})
+                        {formatPercent(anomaly.deviation)} higher than average ({format(anomaly.avgDailyExpense)})
                       </div>
                       <div className="text-xs text-white/70">
                         Top transactions: {anomaly.topTransactions.map(t => t.category).join(', ')}
@@ -588,8 +589,8 @@ export default function Insights() {
                       <div className="flex-1">
                         <span className="text-white font-semibold">{cat.categoryName}</span>
                         <div className="flex gap-4 text-xs text-white/70 mt-1">
-                          <span>Current: {formatCurrency(cat.currentAmount)}</span>
-                          <span>Previous: {formatCurrency(cat.previousAmount)}</span>
+                          <span>Current: {format(cat.currentAmount)}</span>
+                          <span>Previous: {format(cat.previousAmount)}</span>
                         </div>
                       </div>
                       <div className={clsx(
@@ -631,6 +632,7 @@ function SummaryCard({
   icon: string;
   color: string;
 }) {
+  const { format } = useCurrencyFormatter();
   const colorClasses = {
     red: 'from-red-500 to-pink-500',
     green: 'from-green-500 to-emerald-500',
@@ -655,7 +657,7 @@ function SummaryCard({
       <div className="text-white font-bold text-2xl">{value}</div>
       {change !== undefined && (
         <div className="text-white/70 text-xs mt-2">
-          {change >= 0 ? '↑' : '↓'} ₹{Math.abs(change).toFixed(2)} vs previous
+          {change >= 0 ? '↑' : '↓'} {format(Math.abs(change))} vs previous
         </div>
       )}
     </div>

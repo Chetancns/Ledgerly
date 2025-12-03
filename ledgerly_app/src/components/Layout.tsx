@@ -39,6 +39,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/debts", label: "Debts", icon: "⚖️" },
     { href: "/recurring", label: "Recurring", icon: "🔁" },
     { href: "/insights", label: "Insights", icon: "💡" },
+    { href: "/profile", label: "Profile", icon: "👤" },
     { href: "/help", label: "Help", icon: "❓" },
   ];
   const { user, loading, logoutapi } = useAuth();
