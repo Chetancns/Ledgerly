@@ -51,7 +51,9 @@ export class RecurringService {
   }
 
   // 🕑 PROCESS DUE (auto transactions)
-  @Cron('0 2 * * *') // 2:00 AM daily
+  // Runs at 2:00 AM in the configured timezone (defaults to UTC).
+  // Set env var CRON_TIMEZONE to your region, e.g., 'Asia/Kolkata' or 'America/Los_Angeles'.
+  @Cron('0 2 * * *', { timeZone: process.env.CRON_TIMEZONE || 'UTC' }) // 2:00 AM daily
   async processDue() {
     console.log('Processing due recurring transactions...');
     const today = dayjs().format('YYYY-MM-DD');
