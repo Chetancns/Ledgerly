@@ -235,16 +235,28 @@ useEffect(() => {
 
   return (
     <Layout>
-      <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white px-4 sm:px-6 py-6">
-        <h1 className="text-3xl font-bold mb-6">📊 Dashboard</h1>
+      <div 
+        className="min-h-screen overflow-x-hidden px-3 sm:px-6 py-4 sm:py-6"
+        style={{ color: "var(--text-primary)" }}
+      >
+        <h1 
+          className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6"
+          style={{ color: "var(--text-primary)" }}
+        >
+          📊 Dashboard
+        </h1>
 
         {error && (
-          <div className="mb-4 rounded p-3 bg-red-700/90 flex items-center justify-between">
-            <div className="text-sm font-medium">{error}</div>
+          <div 
+            className="mb-4 rounded-lg p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
+            style={{ backgroundColor: "var(--color-error-bg)", border: "1px solid var(--color-error)" }}
+          >
+            <div className="text-sm font-medium" style={{ color: "var(--color-error)" }}>{error}</div>
             <div>
               <button
                 onClick={handleRetry}
-                className="ml-3 bg-white text-red-700 px-3 py-1 rounded font-semibold text-sm"
+                className="px-3 py-1.5 rounded font-semibold text-sm min-h-[36px]"
+                style={{ backgroundColor: "var(--color-error)", color: "var(--text-inverse)" }}
               >
                 Retry
               </button>
@@ -254,32 +266,36 @@ useEffect(() => {
 
         {/* --- Balances --- */}
         <div
-        className="rounded-2xl p-6 mb-6"
+        className="rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6"
         style={{
           backdropFilter: "blur(12px)",
-          background: "rgba(255, 255, 255, 0.08)",
-          border: "1px solid rgba(255, 255, 255, 0.2)",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-primary)",
+          boxShadow: "var(--shadow-lg)",
         }}
       >
-        <h2 className="text-lg font-semibold">💰 Total Balance</h2>
+        <h2 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          💰 Total Balance
+        </h2>
         {/* Use user currency formatting */}
-        <p className="text-xl sm:text-2xl font-bold mt-2">{format(totalBalance)}</p>
+        <p className="text-xl sm:text-2xl font-bold mt-2" style={{ color: "var(--text-primary)" }}>
+          {format(totalBalance)}
+        </p>
 
-        <div className="mt-4 grid md:grid-cols-3 gap-4">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {accounts.map((acc) => (
             <div
               key={acc.id}
-              className="rounded-xl p-4 flex justify-between"
+              className="rounded-xl p-3 sm:p-4 flex justify-between items-center"
               style={{
-                background: "rgba(255, 255, 255, 0.06)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                background: "var(--bg-card-hover)",
+                border: "1px solid var(--border-secondary)",
               }}
             >
-              <span>
+              <span className="text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
                 {acc.name} ({acc.type})
               </span>
-              <span className="font-semibold">
+              <span className="font-semibold text-sm sm:text-base" style={{ color: "var(--text-primary)" }}>
                 {format(parseFloat(acc.balance || '0'))}
               </span>
             </div>
@@ -289,13 +305,20 @@ useEffect(() => {
 
 
         {/* --- Filters --- */}
-        <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex flex-col">
-          <label className="text-sm font-medium mb-1">Month</label>
+        <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="flex flex-col min-w-[100px]">
+          <label className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+            Month
+          </label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
+            className="backdrop-blur-lg rounded-lg px-3 py-2 min-h-[44px]"
+            style={{
+              backgroundColor: "var(--input-bg)",
+              color: "var(--input-text)",
+              border: "1px solid var(--input-border)",
+            }}
           >
             {months.map((m, i) => (
               <option key={i} value={i + 1}>
@@ -305,12 +328,19 @@ useEffect(() => {
           </select>
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-sm font-medium mb-1">Year</label>
+        <div className="flex flex-col min-w-[80px]">
+          <label className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+            Year
+          </label>
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
+            className="backdrop-blur-lg rounded-lg px-3 py-2 min-h-[44px]"
+            style={{
+              backgroundColor: "var(--input-bg)",
+              color: "var(--input-text)",
+              border: "1px solid var(--input-border)",
+            }}
           >
             {Array.from({ length: 5 }).map((_, i) => {
               const year = today.getFullYear() - 2 + i;
@@ -323,12 +353,19 @@ useEffect(() => {
           </select>
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-sm font-medium mb-1">Account</label>
+        <div className="flex flex-col min-w-[120px]">
+          <label className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+            Account
+          </label>
           <select
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
-            className="text-white bg-black/50 backdrop-blur-lg rounded-lg px-3 py-2"
+            className="backdrop-blur-lg rounded-lg px-3 py-2 min-h-[44px]"
+            style={{
+              backgroundColor: "var(--input-bg)",
+              color: "var(--input-text)",
+              border: "1px solid var(--input-border)",
+            }}
           >
             <option value="all">All</option>
             {accounts.map((a) => (
@@ -342,16 +379,16 @@ useEffect(() => {
 
 
         {/* --- Charts --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div
       style={{
         backdropFilter: "blur(12px)",
-        background: "rgba(255, 255, 255, 0.08)",
+        background: "var(--bg-card)",
         borderRadius: "16px",
-        border: "1px solid rgba(255, 255, 255, 0.2)",
-        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+        border: "1px solid var(--border-primary)",
+        boxShadow: "var(--shadow-lg)",
         padding: "1rem",
-        color: "#fff",
+        color: "var(--text-primary)",
         fontFamily: "Inter, sans-serif",
         transition: "box-shadow 0.3s ease",
       }}
@@ -359,17 +396,18 @@ useEffect(() => {
       <div
         style={{
           marginBottom: "0.5rem",
-          fontSize: "1.2rem",
+          fontSize: "1.1rem",
           fontWeight: 600,
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
+          color: "var(--text-primary)",
         }}
       >
         🍕 Spending Breakdown
       </div>
       {pieData.length === 0 ?(
-        <p className="text-gray-300">No Transaction found for this period</p>
+        <p style={{ color: "var(--text-muted)" }}>No Transaction found for this period</p>
       ):( <PieSpendingChart data={pieData} />)}
      
     </div>
@@ -377,12 +415,12 @@ useEffect(() => {
     <div
   style={{
     backdropFilter: "blur(12px)",
-    background: "rgba(255, 255, 255, 0.08)",
+    background: "var(--bg-card)",
     borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.2)",
-    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+    border: "1px solid var(--border-primary)",
+    boxShadow: "var(--shadow-lg)",
     padding: "1rem",
-    color: "#fff",
+    color: "var(--text-primary)",
     fontFamily: "Inter, sans-serif",
     transition: "box-shadow 0.3s ease",
   }}
@@ -390,26 +428,29 @@ useEffect(() => {
   <div
     style={{
       marginBottom: "0.5rem",
-      fontSize: "1.2rem",
+      fontSize: "1.1rem",
       fontWeight: 600,
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
       gap: "0.5rem",
+      flexWrap: "wrap",
+      color: "var(--text-primary)",
     }}
   >
     <span>📊 Daily Flow</span>
     <button
       onClick={() => setView(view === "income" ? "expense" : "income")}
       style={{
-        backgroundColor: "#ffffff22",
-        color: "#fff",
-        border: "none",
+        backgroundColor: "var(--bg-card-hover)",
+        color: "var(--text-primary)",
+        border: "1px solid var(--border-primary)",
         borderRadius: "6px",
-        padding: "0.3rem 0.6rem",
-        fontSize: "0.9rem",
+        padding: "0.4rem 0.8rem",
+        fontSize: "0.85rem",
         cursor: "pointer",
         backdropFilter: "blur(6px)",
+        minHeight: "36px",
       }}
     >
       {view === "income" ? "💸 Show Expense" : "💰 Show Income"}
@@ -417,7 +458,7 @@ useEffect(() => {
   </div>
 
   {lineData.length === 0 ? (
-    <p className="text-gray-300">No Transaction found for this period</p>
+    <p style={{ color: "var(--text-muted)" }}>No Transaction found for this period</p>
   ) : (
     <>
     <LineTrendChart data={lineData} view={view} />
@@ -425,9 +466,9 @@ useEffect(() => {
       style={{
         marginTop: "0.75rem",
         textAlign: "center",
-        fontSize: "0.95rem",
+        fontSize: "0.9rem",
         fontWeight: 500,
-        color: "#ffffffcc",
+        color: "var(--text-muted)",
       }}
     >
       {view === "income" ? "💰 Viewing Daily Income Trends" : "💸 Viewing Daily Expense Trends"}
@@ -440,38 +481,46 @@ useEffect(() => {
 
         {/* --- Budget Utilization --- */}
         <div
-      className="rounded-2xl p-6 mt-6 text-white"
+      className="rounded-2xl p-4 sm:p-6 mt-4 sm:mt-6"
       style={{
         backdropFilter: "blur(12px)",
-        background: "rgba(255, 255, 255, 0.08)",
-        border: "1px solid rgba(255, 255, 255, 0.2)",
-        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+        background: "var(--bg-card)",
+        border: "1px solid var(--border-primary)",
+        boxShadow: "var(--shadow-lg)",
+        color: "var(--text-primary)",
       }}
     >
-      <h2 className="text-lg font-semibold mb-4">📦 Budget Utilization</h2>
+      <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+        📦 Budget Utilization
+      </h2>
 
       {budgetUtilizations.length === 0 ? (
-        <p className="text-gray-300">No budgets found for this period</p>
+        <p style={{ color: "var(--text-muted)" }}>No budgets found for this period</p>
       ) : (
         <ul className="space-y-4">
           {budgetUtilizations.map((b) => {
             const category = categories.find((c) => c.id === b.categoryId);
             const isOverBudget = b.percent > 100;
-            const barColor = isOverBudget ? "bg-red-500" : "bg-green-400";
             const percentDisplay = Math.min(b.percent, 100);
 
             return (
               <li key={b.budgetId}>
-                <div className="flex justify-between mb-1 text-sm font-medium">
+                <div className="flex justify-between mb-1 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
                   <span>{category?.name || "Unknown"}</span>
                   <span>
                     {b.spent} / {b.amount} ({b.percent}%)
                   </span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="w-full rounded-full h-3 overflow-hidden"
+                  style={{ backgroundColor: "var(--skeleton-base)" }}
+                >
                   <div
-                    className={`h-3 rounded-full transition-all duration-300 ease-in-out ${barColor}`}
-                    style={{ width: `${percentDisplay}%` }}
+                    className="h-3 rounded-full transition-all duration-300 ease-in-out"
+                    style={{ 
+                      width: `${percentDisplay}%`,
+                      backgroundColor: isOverBudget ? "var(--color-error)" : "var(--color-success)",
+                    }}
                   />
                 </div>
               </li>
@@ -484,14 +533,18 @@ useEffect(() => {
    {budgetReports?.totals && <SummaryCard totals={budgetReports.totals} />}
 {budgetReports?.categories && (
   <>
-    <div className="flex gap-2 mb-4">
+    <div className="flex flex-wrap gap-2 mb-4 mt-4">
       {['all','within_budget', 'overspent', 'no_budget'].map((f) => (
         <button
           key={f}
           onClick={() => setFilter(f as any)}
-          className={`px-4 py-1 rounded-full text-sm transition ${
-            filter === f ? 'bg-white text-black font-semibold' : 'bg-white/10 text-white'
-          }`}
+          className="px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm transition min-h-[36px]"
+          style={{
+            backgroundColor: filter === f ? "var(--accent-primary)" : "var(--bg-card)",
+            color: filter === f ? "var(--text-inverse)" : "var(--text-primary)",
+            border: `1px solid ${filter === f ? "var(--accent-primary)" : "var(--border-primary)"}`,
+            fontWeight: filter === f ? 600 : 400,
+          }}
         >
           {f === 'all'
   ? 'All Categories'
@@ -505,24 +558,30 @@ useEffect(() => {
       ))}
     </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-      <div className="rounded-2xl p-6 text-white" style={{
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
+      <div className="rounded-2xl p-4 sm:p-6" style={{
             backdropFilter: "blur(12px)",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-primary)",
+            boxShadow: "var(--shadow-lg)",
+            color: "var(--text-primary)",
           }}>
-        <h2 className="text-lg font-semibold mb-4">📦 Budget by Category</h2>
+        <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+          📦 Budget by Category
+        </h2>
         <BarChartComponent data={filteredCategories} />
       </div>
 
-      <div className="rounded-2xl p-6 text-white" style={{
+      <div className="rounded-2xl p-4 sm:p-6" style={{
             backdropFilter: "blur(12px)",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-primary)",
+            boxShadow: "var(--shadow-lg)",
+            color: "var(--text-primary)",
           }}>
-        <h2 className="text-lg font-semibold mb-4">🧮 Total Budget Breakdown</h2>
+        <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+          🧮 Total Budget Breakdown
+        </h2>
         <PieChartComponent data={budgetReports.categories} />
       </div>
     </div>
@@ -530,40 +589,46 @@ useEffect(() => {
 )}
 
       {/* --- Cash Flow Reports --- */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
   {/* Line Chart */}
   <div
-    className="rounded-2xl p-6 text-white"
+    className="rounded-2xl p-4 sm:p-6"
     style={{
       backdropFilter: "blur(12px)",
-      background: "rgba(255, 255, 255, 0.08)",
-      border: "1px solid rgba(255, 255, 255, 0.2)",
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+      background: "var(--bg-card)",
+      border: "1px solid var(--border-primary)",
+      boxShadow: "var(--shadow-lg)",
+      color: "var(--text-primary)",
     }}
   >
-    <h2 className="text-lg font-semibold mb-4">📈 Cash Flow Timeline</h2>
+    <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+      📈 Cash Flow Timeline
+    </h2>
     {cashflowData ? (
       <ChashFlowLine data={cashflowData} />
     ) : (
-      <p className="text-gray-300">Loading timeline...</p>
+      <p style={{ color: "var(--text-muted)" }}>Loading timeline...</p>
     )}
   </div>
 
   {/* Summary Card */}
   <div
-    className="rounded-2xl p-6 text-white"
+    className="rounded-2xl p-4 sm:p-6"
     style={{
       backdropFilter: "blur(12px)",
-      background: "rgba(255, 255, 255, 0.08)",
-      border: "1px solid rgba(255, 255, 255, 0.2)",
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+      background: "var(--bg-card)",
+      border: "1px solid var(--border-primary)",
+      boxShadow: "var(--shadow-lg)",
+      color: "var(--text-primary)",
     }}
   >
-    <h2 className="text-lg font-semibold mb-4">📊 Spending by Category</h2>
+    <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+      📊 Spending by Category
+    </h2>
     {
       catHeatmap?(
         <CatHeatmapPie data={catHeatmap} />
-      ):(<p className="text-gray-300">Loading summary...</p>)
+      ):(<p style={{ color: "var(--text-muted)" }}>Loading summary...</p>)
     }
       
     
