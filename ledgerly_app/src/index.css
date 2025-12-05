@@ -133,6 +133,17 @@
 .theme-text-muted { color: var(--text-muted); }
 .theme-border { border-color: var(--border-primary); }
 
+/* Ensure select option elements are visible in dropdowns */
+select option {
+  background-color: #fff;
+  color: #1e293b;
+}
+
+.dark select option {
+  background-color: #2d2640;
+  color: #ffffff;
+}
+
 .input-field {
   @apply border border-gray-300 p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-500;
 }
