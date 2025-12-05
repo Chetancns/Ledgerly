@@ -9,17 +9,21 @@ export default function DebtsPage() {
 
   return (
     <Layout>
-      {/* <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2"> */}
-        <div className="mx-auto bg-white/6 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 w-full">
-          <h1 className="text-3xl font-bold text-white mb-6">Debt Management</h1>
+        <div 
+          className="mx-auto backdrop-blur-lg rounded-2xl shadow-2xl p-8 w-full"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+        >
+          <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Debt Management</h1>
 
           <DebtForm onCreated={() => setRefresh(refresh + 1)} />
 
-          <div className="mt-8 rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-6">
+          <div 
+            className="mt-8 rounded-2xl shadow-2xl p-6"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          >
             <DebtList key={refresh} />
           </div>
         </div>
-      {/* </div> */}
     </Layout>
   );
 

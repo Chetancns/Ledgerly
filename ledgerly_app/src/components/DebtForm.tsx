@@ -121,98 +121,110 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <div className="bg-white/5 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full border border-white/30 p-6 md:p-10">
-      <h2 className="text-2xl font-semibold text-white mb-4">Add Debt</h2>
+    <div 
+      className="backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full p-6 md:p-10"
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+    >
+      <h2 className="text-2xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Add Debt</h2>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Debt name */}
         <div className="md:col-span-2">
-          <label className="block text-sm text-white/90 mb-1">Debt Name</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Debt Name</label>
           <input name="name" value={form.name} onChange={handleChange}
             placeholder="e.g. Car Loan (Chase)"
-            className="w-full px-3 py-2 rounded bg-white/10 text-white" />
+            className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
         </div>
 
         {/* Account */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Account</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Account</label>
           <select name="accountId" value={form.accountId} onChange={handleChange}
-            className="w-full px-3 py-2 rounded bg-white/10 text-white">
-            <option className="text-black" value="">Select Account</option>
+            className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}>
+            <option value="">Select Account</option>
             {loadingAccounts ? <option>Loading...</option> : accounts.map(a => (
-              <option className="text-black" key={a.id} value={a.id}>{a.name} ({a.type})</option>
+              <option key={a.id} value={a.id}>{a.name} ({a.type})</option>
             ))}
           </select>
         </div>
 
         {/* Principal */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Principal (original amount)</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Principal (original amount)</label>
           <input name="principalAmount" value={form.principalAmount} onChange={handleChange}
-            inputMode="decimal" placeholder="5000.00" className="w-full px-3 py-2 rounded bg-white/10 text-white" />
-          <p className="text-xs text-white/60 mt-1">Total loan amount when issued. Used to compute installments if Term is provided.</p>
+            inputMode="decimal" placeholder="5000.00" className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Total loan amount when issued. Used to compute installments if Term is provided.</p>
         </div>
 
         {/* Current balance */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Current balance (remaining)</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Current balance (remaining)</label>
           <input name="currentBalance" value={form.currentBalance} onChange={handleChange}
-            inputMode="decimal" placeholder="Leave blank to set = Principal" className="w-full px-3 py-2 rounded bg-white/10 text-white" />
-          <p className="text-xs text-white/60 mt-1">What you still owe now. Defaults to Principal if empty.</p>
+            inputMode="decimal" placeholder="Leave blank to set = Principal" className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>What you still owe now. Defaults to Principal if empty.</p>
         </div>
 
         {/* Term months */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Term (months)</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Term (months)</label>
           <input name="termMonths" value={form.termMonths} onChange={handleChange}
-            inputMode="numeric" placeholder="e.g. 60" className="w-full px-3 py-2 rounded bg-white/10 text-white" />
-          <p className="text-xs text-white/60 mt-1">Optional. If provided and auto-calc is ON, installment is calculated as Principal / (term × frequency multiplier).</p>
+            inputMode="numeric" placeholder="e.g. 60" className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Optional. If provided and auto-calc is ON, installment is calculated as Principal / (term × frequency multiplier).</p>
         </div>
 
         {/* Frequency */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Frequency</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Frequency</label>
           <select name="frequency" value={form.frequency} onChange={handleChange}
-            className="w-full px-3 py-2 rounded bg-white/10 text-white">
-            {FREQUENCIES.map(f => <option className="text-black" key={f} value={f}>{f}</option>)}
+            className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}>
+            {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
-          <p className="text-xs text-white/60 mt-1">Payment cadence (weekly / biweekly / monthly).</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Payment cadence (weekly / biweekly / monthly).</p>
         </div>
 
         {/* Auto-calc toggle */}
         <div className="flex items-center gap-3">
           <input id="autocalc" type="checkbox" checked={form.autoCalcInstallment} onChange={toggleAutoCalc}
             className="accent-yellow-300" />
-          <label htmlFor="autocalc" className="text-sm text-white/90">Auto-calc installment from Principal & Term</label>
+          <label htmlFor="autocalc" className="text-sm" style={{ color: "var(--text-secondary)" }}>Auto-calc installment from Principal & Term</label>
         </div>
 
         {/* Installment amount */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Installment amount</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Installment amount</label>
           <input name="installmentAmount" value={form.installmentAmount} onChange={handleChange}
-            inputMode="decimal" placeholder="e.g. 250.00" className="w-full px-3 py-2 rounded bg-white/10 text-white" />
-          <p className="text-xs text-white/60 mt-1">Amount to pay each period. Auto-filled when Auto-calc is on and Term is provided.</p>
+            inputMode="decimal" placeholder="e.g. 250.00" className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Amount to pay each period. Auto-filled when Auto-calc is on and Term is provided.</p>
         </div>
 
         {/* Start Date */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Start date (loan start)</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Start date (loan start)</label>
           <input type="date" name="startDate" value={form.startDate} onChange={handleChange}
-            className="w-full px-3 py-2 rounded bg-white/10 text-white" />
-          <p className="text-xs text-white/60 mt-1">The date loan started or when payments begin.</p>
+            className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>The date loan started or when payments begin.</p>
         </div>
 
         {/* Next Due Date */}
         <div>
-          <label className="block text-sm text-white/90 mb-1">Next due date</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Next due date</label>
           <input type="date" name="nextDueDate" value={form.nextDueDate} onChange={handleChange}
-            className="w-full px-3 py-2 rounded bg-white/10 text-white" />
-          <p className="text-xs text-white/60 mt-1">Next scheduled payment date. Defaults to Start date but you can change it.</p>
+            className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Next scheduled payment date. Defaults to Start date but you can change it.</p>
         </div>
 
         {/* submit */}
         <div className="md:col-span-2">
-          <button type="submit" className="w-full py-3 bg-yellow-300 text-indigo-900 font-semibold rounded">
+          <button type="submit" className="w-full py-3 font-semibold rounded" style={{ background: "var(--accent-primary)", color: "var(--text-inverse)" }}>
             Add Debt
           </button>
         </div>

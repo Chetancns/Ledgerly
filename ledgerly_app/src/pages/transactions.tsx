@@ -16,9 +16,11 @@ import clsx from "clsx";
 import { div } from "framer-motion/client";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Transactions() {
   const { format } = useCurrencyFormatter();
+  const { theme } = useTheme();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -33,7 +35,6 @@ export default function Transactions() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [typeSummary, setTypeSummary] = useState<Partial<Record<TransactionType, number>>>({});
   const [viewMode, setViewMode] = useState<"list" | "table">("list");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -216,7 +217,7 @@ export default function Transactions() {
     <div className="mx-auto p-4">
 
       {/* Header */}
-      <h1 className="text-4xl font-extrabold text-white tracking-tight mb-6 drop-shadow-lg">
+      <h1 className="text-4xl font-extrabold tracking-tight mb-6 drop-shadow-lg" style={{ color: "var(--text-primary)" }}>
         Transactions
       </h1>
 
@@ -235,24 +236,20 @@ export default function Transactions() {
       </div>
 
       {/* --- Filters + Summary --- */}
-      <div className="
-        bg-white/10 backdrop-blur-2xl shadow-xl
-        rounded-3xl border border-white/20
-        p-6 mb-6
-      ">
+      <div 
+        className="backdrop-blur-2xl shadow-xl rounded-3xl p-6 mb-6"
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+      >
         <div className="flex flex-wrap items-end gap-6">
 
           {/* Filter Select Field */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-white mb-1">Month</label>
+            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Month</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="
-                bg-white/20 backdrop-blur-xl border border-white/30
-                px-3 py-2 rounded-xl text-black
-                hover:bg-white/30 transition
-              "
+              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
             >
               {months.map((m, i) => (
                 <option key={i} value={i + 1}>{m}</option>
@@ -262,15 +259,12 @@ export default function Transactions() {
 
           {/* Year */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-white mb-1">Year</label>
+            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Year</label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="
-                bg-white/20 backdrop-blur-xl border border-white/30
-                px-3 py-2 rounded-xl text-black
-                hover:bg-white/30 transition
-              "
+              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
             >
               {Array.from({ length: 5 }).map((_, i) => {
                 const year = today.getFullYear() - 2 + i;
@@ -281,15 +275,12 @@ export default function Transactions() {
 
           {/* Account */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-white mb-1">Account</label>
+            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Account</label>
             <select
               value={selectedAccount}
               onChange={(e) => setSelectedAccount(e.target.value)}
-              className="
-                bg-white/20 backdrop-blur-xl border border-white/30
-                px-3 py-2 rounded-xl text-black
-                hover:bg-white/30 transition
-              "
+              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
             >
               <option value="all">All</option>
               {accounts.map((a) => (
@@ -300,15 +291,12 @@ export default function Transactions() {
 
           {/* Category */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-white mb-1">Category</label>
+            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Category</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="
-                bg-white/20 backdrop-blur-xl border border-white/30
-                px-3 py-2 rounded-xl text-black
-                hover:bg-white/30 transition
-              "
+              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
             >
               <option value="all">All</option>
               {categories.map((c) => (
@@ -319,7 +307,7 @@ export default function Transactions() {
 
           {/* Pagination Toggle */}
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-white text-sm font-medium cursor-pointer">
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer" style={{ color: "var(--text-primary)" }}>
               <input
                 type="checkbox"
                 checked={usePagination}
@@ -338,38 +326,37 @@ export default function Transactions() {
             {Object.entries(typeSummary).map(([type, total]) => (
               <div
                 key={type}
-                className="
-                  px-4 py-2 rounded-xl shadow-lg
-                  text-sm font-semibold border border-white/10
-                  backdrop-blur-xl bg-white/20
-                  flex items-center gap-2
-                "
+                className="px-4 py-2 rounded-xl shadow-lg text-sm font-semibold backdrop-blur-xl flex items-center gap-2"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
               >
                 <span className={clsx(
-                  type === 'income' ? 'text-green-800' :
-                  type === 'expense' ? 'text-red-800' :
-                  'text-blue-800'
+                  type === 'income' ? 'text-green-600' :
+                  type === 'expense' ? 'text-red-600' :
+                  'text-blue-600'
                 )}>{tLabels[type as TransactionType]}</span>
-                <span className="text-black font-bold">
+                <span className="font-bold" style={{ color: "var(--text-primary)" }}>
                   {format(Number(total))}
                 </span>
               </div>
             ))}
           </div>
           <div className="ml-auto flex items-center">
-            <div className="flex bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl p-1 shadow-inner relative">
+            <div className="flex backdrop-blur-xl rounded-2xl p-1 shadow-inner relative" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               
               {/* Sliding highlight */}
               <motion.div
                 layout
-                className="absolute top-[4px] bottom-[4px] w-[45%] bg-white/40 rounded-xl shadow-md"
+                className="absolute top-[4px] bottom-[4px] w-[45%] rounded-xl shadow-md"
+                style={{ background: "var(--bg-card-hover)" }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                style={{ left: viewMode === "list" ? "4px" : "calc(50% + 4px)" }}
+                initial={false}
+                animate={{ left: viewMode === "list" ? "4px" : "calc(50% + 4px)" }}
               />
 
               {/* List Button */}
               <label
-                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold text-white"
+                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold"
+                style={{ color: "var(--text-primary)" }}
               >
                 <input
                   type="radio"
@@ -384,7 +371,8 @@ export default function Transactions() {
 
               {/* Table Button */}
               <label
-                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold text-white"
+                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold"
+                style={{ color: "var(--text-primary)" }}
               >
                 <input
                   type="radio"
@@ -405,9 +393,9 @@ export default function Transactions() {
 
       {/* Pagination Controls */}
       {usePagination && totalTransactions > 0 && (
-        <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-4 mb-6">
+        <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-4 mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="text-white text-sm">
+            <div className="text-sm" style={{ color: "var(--text-primary)" }}>
               Showing {Math.min((currentPage - 1) * pageSize + 1, totalTransactions)} - {Math.min(currentPage * pageSize, totalTransactions)} of {totalTransactions} transactions
             </div>
             
@@ -415,19 +403,21 @@ export default function Transactions() {
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-semibold transition"
+                className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition"
+                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
               >
                 Previous
               </button>
               
-              <span className="text-white font-semibold px-4">
+              <span className="font-semibold px-4" style={{ color: "var(--text-primary)" }}>
                 Page {currentPage} of {Math.ceil(totalTransactions / pageSize)}
               </span>
               
               <button
                 onClick={() => setCurrentPage(Math.min(Math.ceil(totalTransactions / pageSize), currentPage + 1))}
                 disabled={currentPage >= Math.ceil(totalTransactions / pageSize)}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-semibold transition"
+                className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition"
+                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
               >
                 Next
               </button>
