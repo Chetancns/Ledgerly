@@ -9,14 +9,8 @@ import {
   copyPreviousBudgets,
 } from "@/services/budget";
 import { getBudgetUtilizations } from "@/services/budget";
-import {
-  TrashIcon,
-  PencilIcon,
-  CheckIcon,
-  XMarkIcon,
-  ArrowPathIcon,
-  PlusIcon,
-} from "@heroicons/react/24/solid";
+import { TrashIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, PlusIcon } from "@heroicons/react/24/solid";
+import ConfirmModal from "@/components/ConfirmModal";
 import dayjs from "dayjs";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
 import ModernButton from "@/components/NeumorphicButton";
@@ -180,6 +174,8 @@ export default function BudgetsPage() {
   const [editing, setEditing] = useState<Budget | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const mountedRef = useRef(false);
 
   const categoryMap = useMemo(() => {
@@ -326,35 +322,34 @@ export default function BudgetsPage() {
     [carryOver, form, loadData, budgets, editing]
   );
 
-  const handleDelete = useCallback(
-    async (id?: string) => {
-      if (!id) return;
-      if (!confirm("Delete this budget? This action cannot be undone.")) return;
-      try {
-        setActionLoading(true);
-        await deleteBudget(id);
-        await loadData();
-      } catch (err) {
-        console.error("Delete failed", err);
-        toast.error("Delete Failed please try again.");
-      } finally {
-        setActionLoading(false);
-      }
-    },
-    [loadData]
-  );
+  const handleDelete = useCallback(async (id?: string) => {
+    if (!id) return;
+    try {
+      setActionLoading(true);
+      await deleteBudget(id);
+      await loadData();
+      toast.success("Budget deleted.");
+    } catch (err) {
+      console.error("Delete failed", err);
+      toast.error("Delete Failed please try again.");
+    } finally {
+      setActionLoading(false);
+      setDeleteConfirm(null);
+    }
+  }, [loadData]);
 
   const handleCopyPrevious = useCallback(async () => {
-    if (!confirm("Copy previous budgets into this period? Existing budgets may be duplicated.")) return;
     try {
       setActionLoading(true);
       await copyPreviousBudgets({ period: form.period, startDate: form.startDate, endDate: form.endDate });
       await loadData();
+      toast.success("Copied previous budgets.");
     } catch (err) {
       console.error("Copy previous budgets failed", err);
       toast.error("Copy Failed please try again.");
     } finally {
       setActionLoading(false);
+      setCopyConfirmOpen(false);
     }
   }, [form.endDate, form.period, form.startDate, loadData]);
 
@@ -414,7 +409,7 @@ export default function BudgetsPage() {
             </ModernButton>
 
             <ModernButton
-              onClick={handleCopyPrevious}
+              onClick={() => setCopyConfirmOpen(true)}
               color="green-400"
               variant="outline"
               size="md"
@@ -521,7 +516,7 @@ export default function BudgetsPage() {
                   b={b}
                   categoryName={categoryMap.get(b.categoryId)}
                   onEdit={() => openEditModal(b)}
-                  onDelete={() => handleDelete(b.id)}
+                  onDelete={() => setDeleteConfirm(b.id!)}
                   disabled={actionLoading}
                 />
               ))}
@@ -714,6 +709,29 @@ export default function BudgetsPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Reusable confirm modals */}
+        <ConfirmModal
+          open={copyConfirmOpen}
+          title="Copy Previous Budgets"
+          description="Copy previous budgets into this period? Existing budgets may be duplicated."
+          confirmLabel="Confirm Copy"
+          confirmColor="green-400"
+          loading={actionLoading}
+          onConfirm={handleCopyPrevious}
+          onClose={() => setCopyConfirmOpen(false)}
+        />
+
+        <ConfirmModal
+          open={!!deleteConfirm}
+          title="Delete Budget"
+          description="Delete this budget? This action cannot be undone."
+          confirmLabel="Delete"
+          confirmColor="red-500"
+          loading={actionLoading}
+          onConfirm={() => handleDelete(deleteConfirm!)}
+          onClose={() => setDeleteConfirm(null)}
+        />
       </div>
     </Layout>
   );

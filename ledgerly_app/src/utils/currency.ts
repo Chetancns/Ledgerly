@@ -36,6 +36,7 @@ export function formatCurrency(
     style: 'currency',
     currency,
     notation: compact ? 'compact' : 'standard',
+    currencyDisplay: compact ? 'narrowSymbol' : 'symbol',
   };
   if (maximumFractionDigits !== undefined) options.maximumFractionDigits = maximumFractionDigits;
   if (minimumFractionDigits !== undefined) options.minimumFractionDigits = minimumFractionDigits;

@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Debt, DebtUpdate } from "@/models/debt";
 import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly } from "@/services/debts";
+import ConfirmModal from "@/components/ConfirmModal";
+import toast from "react-hot-toast";
 
 export default function DebtList() {
   const { format } = useCurrencyFormatter();
@@ -11,6 +13,7 @@ export default function DebtList() {
   const [updates, setUpdates] = useState<DebtUpdate[]>([]);
   const [showPopup, setShowPopup] = useState(false);
 const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const loadDebts = async () => {
     const res = await getUserDebts();
     setDebts(res);
@@ -124,7 +127,7 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
                   Pay Early
                 </button>
                 <button
-                  onClick={() => deleteDebt(debt.id).then(loadDebts)}
+                  onClick={() => setDeleteConfirm(debt.id)}
                   className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
                   title="Delete"
                 >
@@ -189,6 +192,30 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
           </div>
         </div>
       )}
+
+      {/* Reusable Delete Confirmation */}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title="Delete Debt"
+        description="Delete this debt? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmColor="red-500"
+        loading={false}
+        onConfirm={async () => {
+          if (!deleteConfirm) return;
+          try {
+            await deleteDebt(deleteConfirm);
+            toast.success("Debt deleted.");
+            await loadDebts();
+          } catch (err) {
+            console.error("Debt delete failed", err);
+            toast.error("Delete failed. Please try again.");
+          } finally {
+            setDeleteConfirm(null);
+          }
+        }}
+        onClose={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

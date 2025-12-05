@@ -3,6 +3,7 @@ import Layout from "../components/Layout";
 import { Category, CategoryType } from "../models/category";
 import { getUserCategory, createCategory, onDeleteCategory, updateCategory } from "../services/category";
 import { TrashIcon } from "@heroicons/react/24/solid";
+import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
 import NeumorphicInput from "@/components/NeumorphicInput";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
@@ -14,6 +15,7 @@ export default function Categories() {
   const [name, setName] = useState("");
   const [type, setType] = useState<CategoryType>("expense");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -67,9 +69,17 @@ const onCancel = () => {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    await onDeleteCategory(id);
-    await load();
-    setDeletingId(null);
+    try {
+      await onDeleteCategory(id);
+      toast.success("Category deleted.");
+      await load();
+    } catch (err) {
+      console.error("Category delete failed", err);
+      toast.error("Delete failed. Please try again.");
+    } finally {
+      setDeletingId(null);
+      setDeleteConfirm(null);
+    }
   };
   
   return (
@@ -137,7 +147,7 @@ const onCancel = () => {
 </button>
 
                   <button
-  onClick={() => handleDelete(c.id)}
+  onClick={() => setDeleteConfirm(c.id)}
   className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
   title="Delete"
 >
@@ -188,6 +198,17 @@ const onCancel = () => {
     </div>
   </div>
 )}
+
+    <ConfirmModal
+      open={!!deleteConfirm}
+      title="Delete Category"
+      description="Delete this category? This action cannot be undone."
+      confirmLabel="Delete"
+      confirmColor="red-500"
+      loading={!!deletingId}
+      onConfirm={() => handleDelete(deleteConfirm!)}
+      onClose={() => setDeleteConfirm(null)}
+    />
 
     </Layout>
   );

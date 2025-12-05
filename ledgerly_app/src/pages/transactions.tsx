@@ -8,6 +8,7 @@ import { Account } from "@/models/account";
 import { Category } from "@/models/category";
 import { getUserCategory } from "@/services/category";
 import { TrashIcon } from '@heroicons/react/24/solid';
+import ConfirmModal from "@/components/ConfirmModal";
 import dayjs from "dayjs";
 import toast from "react-hot-toast";
 import {motion,AnimatePresence} from "framer-motion";
@@ -20,6 +21,7 @@ export default function Transactions() {
   const { format } = useCurrencyFormatter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const today = new Date();
@@ -89,9 +91,16 @@ export default function Transactions() {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    await onDelete(id);
-    await fetchTransaction();
-    setDeletingId(null);
+    try {
+      await onDelete(id);
+      await fetchTransaction();
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error('Delete failed', err);
+      toast.error('Delete failed. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const load = async () => {
@@ -508,7 +517,7 @@ export default function Transactions() {
               ✏️
             </button>
             <button
-              onClick={() => handleDelete(t.id)}
+              onClick={() => setDeleteConfirm(t.id)}
               className="text-red-600 hover:text-red-800 transition"
               title="Delete"
             >
@@ -578,7 +587,7 @@ export default function Transactions() {
                 ✏️
               </button>
               <button
-                onClick={() => handleDelete(t.id)}
+                onClick={() => setDeleteConfirm(t.id)}
                 className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
                 title="Delete"
               >
@@ -597,6 +606,18 @@ export default function Transactions() {
 </AnimatePresence>
 
     </div>
+
+    {/* Reusable Delete Confirmation Modal */}
+    <ConfirmModal
+      open={!!deleteConfirm}
+      title="Delete Transaction"
+      description="Delete this transaction? This action cannot be undone."
+      confirmLabel="Delete"
+      confirmColor="red-500"
+      loading={!!deletingId}
+      onConfirm={() => handleDelete(deleteConfirm!)}
+      onClose={() => setDeleteConfirm(null)}
+    />
   </Layout>
 );
 

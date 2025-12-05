@@ -38,6 +38,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/budgets", label: "Budget", icon: "💰" },
     { href: "/debts", label: "Debts", icon: "⚖️" },
     { href: "/recurring", label: "Recurring", icon: "🔁" },
+    { href: "/calendar", label: "Calendar", icon: "📅" },
     { href: "/insights", label: "Insights", icon: "💡" },
     { href: "/profile", label: "Profile", icon: "👤" },
     { href: "/help", label: "Help", icon: "❓" },
