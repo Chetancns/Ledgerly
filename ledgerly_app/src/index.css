@@ -67,61 +67,61 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* Light theme variables - Gradient-based design matching dark theme style */
+/* Light theme variables - Clean light design with dark text for WCAG AA compliance */
 .light {
-  /* Keep the gradient background similar to dark theme but lighter */
-  --ledgerly-grad: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  /* Light gradient background - soft pastel version */
+  --ledgerly-grad: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #fce7f3 100%);
   
-  /* Background colors - Use semi-transparent whites on gradient */
-  --bg-primary: rgba(255, 255, 255, 0.15);
-  --bg-secondary: rgba(255, 255, 255, 0.2);
-  --bg-tertiary: rgba(255, 255, 255, 0.25);
-  --bg-card: rgba(255, 255, 255, 0.2);
-  --bg-card-hover: rgba(255, 255, 255, 0.3);
+  /* Background colors - Light solid backgrounds */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-card-hover: rgba(255, 255, 255, 1);
   
-  /* Text colors - White text on gradient backgrounds for WCAG AA compliance */
-  --text-primary: #ffffff;
-  --text-secondary: #f1f5f9;
-  --text-muted: rgba(255, 255, 255, 0.8);
-  --text-inverse: #1e293b;
+  /* Text colors - Dark text on light backgrounds for WCAG AA compliance (4.5:1+ ratio) */
+  --text-primary: #1e293b;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
   
   /* Border colors */
-  --border-primary: rgba(255, 255, 255, 0.3);
-  --border-secondary: rgba(255, 255, 255, 0.2);
+  --border-primary: rgba(0, 0, 0, 0.15);
+  --border-secondary: rgba(0, 0, 0, 0.08);
   
-  /* Accent colors */
-  --accent-primary: #facc15;
-  --accent-primary-hover: #fde047;
-  --accent-secondary: #ec4899;
+  /* Accent colors - Darker for better contrast on light backgrounds */
+  --accent-primary: #7c3aed;
+  --accent-primary-hover: #6d28d9;
+  --accent-secondary: #db2777;
   
-  /* Status colors */
-  --color-success: #4ade80;
-  --color-success-bg: rgba(74, 222, 128, 0.2);
-  --color-error: #f87171;
-  --color-error-bg: rgba(248, 113, 113, 0.2);
-  --color-warning: #fbbf24;
-  --color-warning-bg: rgba(251, 191, 36, 0.2);
-  --color-info: #60a5fa;
-  --color-info-bg: rgba(96, 165, 250, 0.2);
+  /* Status colors - Darker variants for light theme */
+  --color-success: #16a34a;
+  --color-success-bg: rgba(22, 163, 74, 0.1);
+  --color-error: #dc2626;
+  --color-error-bg: rgba(220, 38, 38, 0.1);
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.1);
+  --color-info: #2563eb;
+  --color-info-bg: rgba(37, 99, 235, 0.1);
   
   /* Skeleton loader colors */
-  --skeleton-base: rgba(255, 255, 255, 0.15);
-  --skeleton-shimmer: rgba(255, 255, 255, 0.3);
+  --skeleton-base: rgba(0, 0, 0, 0.08);
+  --skeleton-shimmer: rgba(0, 0, 0, 0.12);
   
   /* Navigation */
-  --nav-bg: rgba(255, 255, 255, 0.15);
-  --nav-active: #facc15;
+  --nav-bg: rgba(255, 255, 255, 0.9);
+  --nav-active: #7c3aed;
   
-  /* Input/Form colors - Semi-transparent for glass effect */
-  --input-bg: rgba(255, 255, 255, 0.2);
-  --input-border: rgba(255, 255, 255, 0.4);
-  --input-text: #ffffff;
-  --input-placeholder: rgba(255, 255, 255, 0.7);
+  /* Input/Form colors - Light backgrounds with dark text */
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-border: rgba(0, 0, 0, 0.2);
+  --input-text: #1e293b;
+  --input-placeholder: rgba(0, 0, 0, 0.5);
   
   /* Shadow */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 /* Theme utility classes */
