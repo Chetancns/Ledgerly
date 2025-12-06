@@ -13,8 +13,10 @@ import toast, { Toaster } from "react-hot-toast";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
 import NeumorphicInput from "@/components/NeumorphicInput";
 import ModernButton from "@/components/NeumorphicButton";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Accounts() {
+  const { theme } = useTheme();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [name, setName] = useState("");
   const [type, setType] = useState<AccountType>("bank");
@@ -22,7 +24,6 @@ export default function Accounts() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const accountTypes: AccountType[] = [
     "bank",
     "cash",
@@ -110,16 +111,19 @@ export default function Accounts() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-4">
-        {/* <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8"> */}
-          <h1 className="text-3xl font-bold text-white mb-6">Accounts</h1>
+      <div className="min-h-screen py-5 px-4" style={{ color: "var(--text-primary)" }}>
+          <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Accounts</h1>
 
           {/* Form for adding new accounts */}
           <form
             onSubmit={handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 mb-6 p-4 rounded-xl"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 rounded-xl backdrop-blur-lg"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-primary)",
+            }}
           >
-            <h2 className="md:col-span-2 text-xl font-semibold text-white mb-2">
+            <h2 className="md:col-span-2 text-xl font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
               Add New Account
             </h2>
             <span className="md:col-span-2">
@@ -171,22 +175,28 @@ export default function Accounts() {
             {accounts.map((a) => (
               <li
                 key={a.id}
-                className="bg-white/20 p-4 rounded-lg flex justify-between items-center"
+                className="p-4 rounded-lg flex justify-between items-center backdrop-blur-lg"
+                style={{
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border-primary)",
+                }}
               >
-                <span className="text-white font-semibold">
+                <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
                   {a.name} ({accountLabels[a.type ?? "bank"]}) with Balance : {a.balance}
                 </span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => openModal(a)}
-                    className="text-yellow-400 hover:text-yellow-600 transition-transform hover:scale-110"
+                    className="hover:scale-110 transition-transform"
+                    style={{ color: "var(--accent-primary)" }}
                     title="Edit"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(a.id)}
-                    className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
+                    className="hover:scale-110 transition-transform"
+                    style={{ color: "var(--color-error)" }}
                     title="Delete"
                   >
                     <TrashIcon className="h-5 w-5" />
@@ -196,13 +206,18 @@ export default function Accounts() {
             ))}
           </ul>
         </div>
-      {/*</div>
 
       {/* Modal for editing */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white/10 backdrop-blur-lg p-6 rounded-xl border border-white/20 w-full max-w-md">
-            <h2 className="text-white text-xl font-bold mb-4">Edit Account</h2>
+          <div 
+            className="backdrop-blur-lg p-6 rounded-xl w-full max-w-md"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-primary)",
+            }}
+          >
+            <h2 className="text-xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>Edit Account</h2>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <NeumorphicInput
               value={name}
@@ -211,17 +226,6 @@ export default function Accounts() {
               theme={theme}
               type="text"
               />
-              {/*<select
-                className="p-2 rounded-lg text-black"
-                value={type}
-                onChange={(e) => setType(e.target.value as AccountType)}
-              >
-                {accountTypes.map((acct) => (
-                  <option key={acct} value={acct}>
-                    {accountLabels[acct]}
-                  </option>
-                ))}
-              </select>*/}
               <NeumorphicSelect
             value={type}
             onChange={(val) => setType(val as AccountType)}
@@ -242,7 +246,11 @@ export default function Accounts() {
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-800 flex-1"
+                  className="p-2 rounded-lg flex-1 font-semibold"
+                  style={{
+                    background: "var(--accent-secondary)",
+                    color: "var(--text-primary)",
+                  }}
                 >
                   Update
                 </button>
@@ -252,7 +260,11 @@ export default function Accounts() {
                     setShowModal(false);
                     setEditingId(null);
                   }}
-                  className="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-700 flex-1"
+                  className="p-2 rounded-lg flex-1"
+                  style={{
+                    background: "var(--bg-tertiary)",
+                    color: "var(--text-primary)",
+                  }}
                 >
                   Cancel
                 </button>

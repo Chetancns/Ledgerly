@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
+import { useTheme } from "@/context/ThemeContext";
 
 interface SpendingInsights {
   period: {
@@ -100,6 +101,7 @@ interface AIUsage {
 
 export default function Insights() {
   const { format, formatCompact } = useCurrencyFormatter();
+  const { theme } = useTheme();
   const [insights, setInsights] = useState<SpendingInsights | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiUsage, setAiUsage] = useState<AIUsage | null>(null);
@@ -202,19 +204,20 @@ export default function Insights() {
   return (
     <Layout>
       <div className="mx-auto p-4">
-        <h1 className="text-4xl font-extrabold text-white tracking-tight mb-6 drop-shadow-lg">
+        <h1 className="text-4xl font-extrabold tracking-tight mb-6 drop-shadow-lg" style={{ color: "var(--text-primary)" }}>
           💡 Spending Insights & Trends
         </h1>
 
         {/* Filters */}
-        <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-6 mb-6">
+        <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-6 mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
           <div className="flex flex-wrap items-center gap-6">
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-white mb-1">Month</label>
+              <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Month</label>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="bg-white/20 backdrop-blur-xl border border-white/30 px-3 py-2 rounded-xl text-black hover:bg-white/30 transition"
+                className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 {months.map((m, i) => (
                   <option key={i} value={i + 1}>{m}</option>
@@ -223,11 +226,12 @@ export default function Insights() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-white mb-1">Year</label>
+              <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Year</label>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="bg-white/20 backdrop-blur-xl border border-white/30 px-3 py-2 rounded-xl text-black hover:bg-white/30 transition"
+                className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 {Array.from({ length: 5 }).map((_, i) => {
                   const year = today.getFullYear() - 2 + i;
@@ -237,7 +241,7 @@ export default function Insights() {
             </div>
 
             <div className="flex items-center gap-2 mt-6">
-              <label className="flex items-center gap-2 text-white text-sm cursor-pointer">
+              <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: "var(--text-primary)" }}>
                 <input
                   type="checkbox"
                   checked={compareWithPrevious}
@@ -250,20 +254,21 @@ export default function Insights() {
 
             <div className="ml-auto mt-6 flex items-center gap-3">
               {aiUsage && (
-                <div className="text-white text-sm bg-white/10 px-4 py-2 rounded-xl">
+                <div className="text-sm px-4 py-2 rounded-xl" style={{ color: "var(--text-primary)", background: "var(--bg-card-hover)" }}>
                   AI Usage: {aiUsage.used}/{aiUsage.limit} this month
                   {aiUsage.remaining > 0 && (
-                    <span className="text-green-400 ml-2">({aiUsage.remaining} left)</span>
+                    <span className="ml-2" style={{ color: "var(--color-success)" }}>({aiUsage.remaining} left)</span>
                   )}
                   {aiUsage.remaining === 0 && (
-                    <span className="text-red-400 ml-2">(limit reached)</span>
+                    <span className="ml-2" style={{ color: "var(--color-error)" }}>(limit reached)</span>
                   )}
                 </div>
               )}
               {history.length > 0 && (
                 <button
                   onClick={() => setShowHistory(true)}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm"
+                  className="px-4 py-2 rounded-xl text-sm"
+                  style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
                 >
                   📚 View Previous Insights
                 </button>
@@ -296,15 +301,16 @@ export default function Insights() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-2xl shadow-xl rounded-3xl border border-purple-500/30 p-6 mb-6"
+              className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-2xl shadow-xl rounded-3xl p-6 mb-6"
+              style={{ border: "1px solid var(--border-primary)" }}
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
                     🤖 AI Financial Analysis
                   </h2>
                   {aiAnalysis.cached && (
-                    <span className="text-xs bg-blue-500/30 text-blue-200 px-3 py-1 rounded-full border border-blue-500/50">
+                    <span className="text-xs px-3 py-1 rounded-full" style={{ background: "var(--color-info-bg)", color: "var(--color-info)", border: "1px solid var(--color-info)" }}>
                       📦 Cached
                     </span>
                   )}
@@ -314,7 +320,8 @@ export default function Insights() {
                     <button
                       onClick={() => handleGetAIInsights(true)}
                       disabled={loadingAI}
-                      className="text-sm bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg text-white transition"
+                      className="text-sm px-3 py-1 rounded-lg transition"
+                      style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
                       title="Generate fresh analysis (uses 1 credit)"
                     >
                       🔄 Regenerate
@@ -322,7 +329,8 @@ export default function Insights() {
                   )}
                   <button
                     onClick={() => setShowAI(false)}
-                    className="text-white/70 hover:text-white transition"
+                    className="transition"
+                    style={{ color: "var(--text-muted)" }}
                   >
                     ✕
                   </button>
@@ -331,19 +339,19 @@ export default function Insights() {
 
               {/* Health Assessment */}
               {aiAnalysis.sections.healthAssessment && (
-                <div className="bg-white/10 rounded-xl p-4 mb-4">
-                  <h3 className="text-lg font-bold text-white mb-2">💊 Financial Health</h3>
-                  <p className="text-white/90">{aiAnalysis.sections.healthAssessment}</p>
+                <div className="rounded-xl p-4 mb-4" style={{ background: "var(--bg-card-hover)" }}>
+                  <h3 className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>💊 Financial Health</h3>
+                  <p style={{ color: "var(--text-secondary)" }}>{aiAnalysis.sections.healthAssessment}</p>
                 </div>
               )}
 
               {/* Key Observations */}
               {aiAnalysis.sections.keyObservations.length > 0 && (
-                <div className="bg-white/10 rounded-xl p-4 mb-4">
-                  <h3 className="text-lg font-bold text-white mb-3">🔍 Key Observations</h3>
+                <div className="rounded-xl p-4 mb-4" style={{ background: "var(--bg-card-hover)" }}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: "var(--text-primary)" }}>🔍 Key Observations</h3>
                   <ul className="space-y-2">
                     {aiAnalysis.sections.keyObservations.map((obs, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-white/90">
+                      <li key={idx} className="flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
                         <span className="text-yellow-400 mt-1">•</span>
                         <span>{obs}</span>
                       </li>
@@ -354,11 +362,11 @@ export default function Insights() {
 
               {/* Recommendations */}
               {aiAnalysis.sections.recommendations.length > 0 && (
-                <div className="bg-white/10 rounded-xl p-4 mb-4">
-                  <h3 className="text-lg font-bold text-white mb-3">💡 Recommendations</h3>
+                <div className="rounded-xl p-4 mb-4" style={{ background: "var(--bg-card-hover)" }}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: "var(--text-primary)" }}>💡 Recommendations</h3>
                   <ul className="space-y-2">
                     {aiAnalysis.sections.recommendations.map((rec, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-white/90">
+                      <li key={idx} className="flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
                         <span className="text-green-400 font-bold mt-1">{idx + 1}.</span>
                         <span>{rec}</span>
                       </li>
@@ -369,11 +377,11 @@ export default function Insights() {
 
               {/* Budget Suggestions */}
               {aiAnalysis.sections.budgetSuggestions.length > 0 && (
-                <div className="bg-white/10 rounded-xl p-4 mb-4">
-                  <h3 className="text-lg font-bold text-white mb-3">💰 Budget Suggestions</h3>
+                <div className="rounded-xl p-4 mb-4" style={{ background: "var(--bg-card-hover)" }}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: "var(--text-primary)" }}>💰 Budget Suggestions</h3>
                   <ul className="space-y-2">
                     {aiAnalysis.sections.budgetSuggestions.map((sug, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-white/90">
+                      <li key={idx} className="flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
                         <span className="text-blue-400 mt-1">→</span>
                         <span>{sug}</span>
                       </li>
@@ -384,13 +392,13 @@ export default function Insights() {
 
               {/* Predictions */}
               {aiAnalysis.sections.predictions && (
-                <div className="bg-white/10 rounded-xl p-4">
-                  <h3 className="text-lg font-bold text-white mb-2">🔮 Predictions</h3>
-                  <p className="text-white/90">{aiAnalysis.sections.predictions}</p>
+                <div className="rounded-xl p-4" style={{ background: "var(--bg-card-hover)" }}>
+                  <h3 className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>🔮 Predictions</h3>
+                  <p style={{ color: "var(--text-secondary)" }}>{aiAnalysis.sections.predictions}</p>
                 </div>
               )}
 
-              <div className="text-xs text-white/50 mt-4 text-center">
+              <div className="text-xs mt-4 text-center" style={{ color: "var(--text-muted)" }}>
                 Generated at {dayjs(aiAnalysis.generatedAt).format('MMM DD, YYYY HH:mm')}
               </div>
             </motion.div>
@@ -406,10 +414,10 @@ export default function Insights() {
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             >
-              <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 w-full max-w-lg">
+              <div className="backdrop-blur-2xl rounded-3xl p-6 w-full max-w-lg" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white text-xl font-bold">Previous AI Insights</h3>
-                  <button className="text-white/70 hover:text-white" onClick={() => setShowHistory(false)}>✕</button>
+                  <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Previous AI Insights</h3>
+                  <button className="transition" style={{ color: "var(--text-muted)" }} onClick={() => setShowHistory(false)}>✕</button>
                 </div>
                 <div className="space-y-2">
                   {history.map(item => (
@@ -426,13 +434,14 @@ export default function Insights() {
                           toast.error("Failed to load previous insight");
                         }
                       }}
-                      className="w-full text-left bg-white/5 hover:bg-white/10 text-white p-3 rounded-xl"
+                      className="w-full text-left p-3 rounded-xl"
+                      style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
                     >
                       <div className="flex justify-between">
                         <span>
                           {dayjs(item.periodStart).format('MMM DD')} - {dayjs(item.periodEnd).format('MMM DD')}
                         </span>
-                        <span className="text-white/70 text-sm">
+                        <span className="text-sm" style={{ color: "var(--text-muted)" }}>
                           {dayjs(item.createdAt).format('MMM DD, YYYY HH:mm')}
                         </span>
                       </div>
@@ -445,7 +454,7 @@ export default function Insights() {
         </AnimatePresence>
 
         {loading && (
-          <div className="text-center text-white text-xl py-12">Loading insights...</div>
+          <div className="text-center text-xl py-12" style={{ color: "var(--text-primary)" }}>Loading insights...</div>
         )}
 
         {!loading && insights && (
@@ -484,18 +493,18 @@ export default function Insights() {
             </div>
 
             {/* Top Categories */}
-            <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">🏆 Top Spending Categories</h2>
+            <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+              <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>🏆 Top Spending Categories</h2>
               <div className="space-y-3">
                 {insights.topCategories.slice(0, 5).map((cat, idx) => (
                   <div key={cat.categoryId} className="flex items-center gap-4">
-                    <div className="text-2xl font-bold text-white/50 w-8">{idx + 1}</div>
+                    <div className="text-2xl font-bold w-8" style={{ color: "var(--text-muted)" }}>{idx + 1}</div>
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-white font-semibold">{cat.categoryName}</span>
-                        <span className="text-white font-bold">{format(cat.amount)}</span>
+                        <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{cat.categoryName}</span>
+                        <span className="font-bold" style={{ color: "var(--text-primary)" }}>{format(cat.amount)}</span>
                       </div>
-                      <div className="relative w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div className="relative w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--skeleton-base)" }}>
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${cat.percentage}%` }}
@@ -503,7 +512,7 @@ export default function Insights() {
                           className="absolute h-full bg-gradient-to-r from-purple-500 to-pink-500"
                         />
                       </div>
-                      <div className="flex justify-between text-xs text-white/70 mt-1">
+                      <div className="flex justify-between text-xs mt-1" style={{ color: "var(--text-muted)" }}>
                         <span>{cat.count} transactions</span>
                         <span>{cat.percentage.toFixed(1)}%</span>
                       </div>
@@ -514,14 +523,14 @@ export default function Insights() {
             </div>
 
             {/* Day of Week Pattern */}
-            <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-6">
-              <h2 className="text-2xl font-bold text-white mb-4">📆 Spending by Day of Week</h2>
+            <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+              <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>📆 Spending by Day of Week</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {insights.dayOfWeekSpending.map((day) => (
-                  <div key={day.day} className="bg-white/10 rounded-xl p-4 text-center">
-                    <div className="text-white font-semibold mb-2">{day.day.slice(0, 3)}</div>
-                    <div className="text-2xl font-bold text-white">{format(day.totalExpense)}</div>
-                    <div className="text-xs text-white/70 mt-1">{day.transactionCount} txns</div>
+                  <div key={day.day} className="rounded-xl p-4 text-center" style={{ background: "var(--bg-card-hover)" }}>
+                    <div className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>{day.day.slice(0, 3)}</div>
+                    <div className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{format(day.totalExpense)}</div>
+                    <div className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>{day.transactionCount} txns</div>
                   </div>
                 ))}
               </div>
@@ -529,13 +538,13 @@ export default function Insights() {
 
             {/* Weekly Trend */}
             {insights.weeklyTrend.length > 0 && (
-              <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">📈 Weekly Trend</h2>
+              <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+                <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>📈 Weekly Trend</h2>
                 <div className="space-y-3">
                   {insights.weeklyTrend.map((week) => (
-                    <div key={week.weekStart} className="bg-white/10 rounded-xl p-4">
+                    <div key={week.weekStart} className="rounded-xl p-4" style={{ background: "var(--bg-card-hover)" }}>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">
+                        <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
                           {dayjs(week.weekStart).format('MMM DD')} - {dayjs(week.weekEnd).format('MMM DD')}
                         </span>
                         <span className={clsx(
@@ -558,19 +567,19 @@ export default function Insights() {
 
             {/* Anomalies */}
             {insights.anomalies.length > 0 && (
-              <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">⚠️ Unusual Spending Days</h2>
+              <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+                <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>⚠️ Unusual Spending Days</h2>
                 <div className="space-y-3">
                   {insights.anomalies.map((anomaly) => (
-                    <div key={anomaly.date} className="bg-red-500/20 rounded-xl p-4 border border-red-500/30">
+                    <div key={anomaly.date} className="rounded-xl p-4" style={{ background: "var(--color-error-bg)", border: "1px solid var(--color-error)" }}>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-white font-semibold">{dayjs(anomaly.date).format('MMM DD, YYYY')}</span>
-                        <span className="text-red-300 font-bold">{format(anomaly.amount)}</span>
+                        <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{dayjs(anomaly.date).format('MMM DD, YYYY')}</span>
+                        <span className="font-bold" style={{ color: "var(--color-error)" }}>{format(anomaly.amount)}</span>
                       </div>
-                      <div className="text-sm text-white/80 mb-2">
+                      <div className="text-sm mb-2" style={{ color: "var(--text-secondary)" }}>
                         {formatPercent(anomaly.deviation)} higher than average ({format(anomaly.avgDailyExpense)})
                       </div>
-                      <div className="text-xs text-white/70">
+                      <div className="text-xs" style={{ color: "var(--text-muted)" }}>
                         Top transactions: {anomaly.topTransactions.map(t => t.category).join(', ')}
                       </div>
                     </div>
@@ -581,14 +590,14 @@ export default function Insights() {
 
             {/* Category Comparison */}
             {insights.categoryComparison && insights.categoryComparison.length > 0 && (
-              <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-3xl border border-white/20 p-6">
-                <h2 className="text-2xl font-bold text-white mb-4">📊 Category Changes vs Previous Period</h2>
+              <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+                <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>📊 Category Changes vs Previous Period</h2>
                 <div className="space-y-2">
                   {insights.categoryComparison.slice(0, 8).map((cat) => (
-                    <div key={cat.categoryId} className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                    <div key={cat.categoryId} className="flex justify-between items-center p-3 rounded-xl" style={{ background: "var(--bg-card-hover)" }}>
                       <div className="flex-1">
-                        <span className="text-white font-semibold">{cat.categoryName}</span>
-                        <div className="flex gap-4 text-xs text-white/70 mt-1">
+                        <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{cat.categoryName}</span>
+                        <div className="flex gap-4 text-xs mt-1" style={{ color: "var(--text-muted)" }}>
                           <span>Current: {format(cat.currentAmount)}</span>
                           <span>Previous: {format(cat.previousAmount)}</span>
                         </div>
@@ -599,8 +608,10 @@ export default function Insights() {
                         cat.trend === 'decreased' ? "text-green-400" :
                         cat.trend === 'new' ? "text-blue-400" :
                         cat.trend === 'stopped' ? "text-gray-400" :
-                        "text-white"
-                      )}>
+                        ""
+                      )}
+                      style={cat.trend !== 'increased' && cat.trend !== 'decreased' && cat.trend !== 'new' && cat.trend !== 'stopped' ? { color: "var(--text-primary)" } : undefined}
+                      >
                         {cat.trend === 'new' ? '🆕' : 
                          cat.trend === 'stopped' ? '🛑' :
                          formatPercent(cat.changePercent)}

@@ -6,9 +6,11 @@ import toast from 'react-hot-toast';
 import NeumorphicInput from '@/components/NeumorphicInput';
 import NeumorphicSelect from '@/components/NeumorphicSelect';
 import { ISO_4217 } from '@/utils/iso4217';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
+  const { theme } = useTheme();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -96,55 +98,55 @@ export default function ProfilePage() {
   return (
     <Layout>
       <div className="max-w-xl mx-auto p-6">
-        <h1 className="text-3xl font-bold text-white mb-4">User Profile</h1>
-        <form onSubmit={onSubmit} className="space-y-6 bg-white/5 backdrop-blur-xl p-6 rounded-3xl border border-white/20 shadow-[8px_8px_18px_rgba(0,0,0,0.35),-8px_-8px_18px_rgba(255,255,255,0.08)]">
+        <h1 className="text-3xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>User Profile</h1>
+        <form onSubmit={onSubmit} className="space-y-6 backdrop-blur-xl p-6 rounded-3xl" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)", boxShadow: "var(--shadow-lg)" }}>
           <section className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-white mb-2">Name</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Name</label>
               <NeumorphicInput
                 value={form.name}
                 onChange={(v) => setForm(f => ({ ...f, name: v }))}
                 placeholder="Your name"
-                theme="dark"
+                theme={theme}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-white mb-2">Email</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Email</label>
               <NeumorphicInput
                 value={form.email}
                 onChange={(v) => setForm(f => ({ ...f, email: v }))}
                 placeholder="you@example.com"
                 type="email"
-                theme="dark"
+                theme={theme}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-white mb-2">Currency</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Currency</label>
               <NeumorphicSelect
                 value={form.currency}
                 onChange={(v) => setForm(f => ({ ...f, currency: v }))}
                 options={ISO_4217}
                 placeholder="Select currency"
-                theme="dark"
+                theme={theme}
               />
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-white/80 font-semibold text-sm tracking-wide">Password (optional)</h2>
+            <h2 className="font-semibold text-sm tracking-wide" style={{ color: "var(--text-secondary)" }}>Password (optional)</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs uppercase tracking-wide text-white/50 mb-2">Current Password</label>
+                <label className="block text-xs uppercase tracking-wide mb-2" style={{ color: "var(--text-muted)" }}>Current Password</label>
                 <NeumorphicInput
                   value={form.currentPassword}
                   onChange={(v) => setForm(f => ({ ...f, currentPassword: v }))}
                   placeholder="••••••••"
                   type="password"
-                  theme="dark"
+                  theme={theme}
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wide text-white/50 mb-2">New Password</label>
+                <label className="block text-xs uppercase tracking-wide mb-2" style={{ color: "var(--text-muted)" }}>New Password</label>
                 <div onFocus={() => setShowPasswordHints(true)} onBlur={() => setTimeout(() => setShowPasswordHints(false), 200)}>
                   <NeumorphicInput
                     value={form.password}
@@ -154,22 +156,22 @@ export default function ProfilePage() {
                     }}
                     placeholder="Password (min 12 chars)"
                     type="password"
-                    theme="dark"
+                    theme={theme}
                   />
                   {showPasswordHints && form.password && (
                     <div className="mt-2 text-xs space-y-1">
                       {passwordErrors.length > 0 ? (
-                        <div className="bg-red-500/20 border border-red-400/30 rounded p-2">
-                          <p className="font-semibold text-red-200 mb-1">Password must have:</p>
-                          <ul className="list-disc list-inside text-red-200">
+                        <div className="rounded p-2" style={{ background: "var(--color-error-bg)", border: "1px solid var(--color-error)" }}>
+                          <p className="font-semibold mb-1" style={{ color: "var(--color-error)" }}>Password must have:</p>
+                          <ul className="list-disc list-inside" style={{ color: "var(--color-error)" }}>
                             {passwordErrors.map((err, i) => (
                               <li key={i}>{err}</li>
                             ))}
                           </ul>
                         </div>
                       ) : (
-                        <div className="bg-green-500/20 border border-green-400/30 rounded p-2">
-                          <p className="text-green-200 flex items-center gap-1">
+                        <div className="rounded p-2" style={{ background: "var(--color-success-bg)", border: "1px solid var(--color-success)" }}>
+                          <p className="flex items-center gap-1" style={{ color: "var(--color-success)" }}>
                             <span>✓</span> Password meets all requirements
                           </p>
                         </div>
@@ -180,17 +182,18 @@ export default function ProfilePage() {
               </div>
             </div>
             {form.password && !form.currentPassword && (
-              <p className="text-xs text-yellow-300/80">You did not enter current password — will overwrite if allowed.</p>
+              <p className="text-xs" style={{ color: "var(--color-warning)" }}>You did not enter current password — will overwrite if allowed.</p>
             )}
             {form.password && passwordErrors.length > 0 && (
-              <p className="text-xs text-red-300/80">Cannot save until password meets all requirements.</p>
+              <p className="text-xs" style={{ color: "var(--color-error)" }}>Cannot save until password meets all requirements.</p>
             )}
           </section>
 
           <div className="pt-2">
             <button
               disabled={loading || (form.password ? passwordErrors.length > 0 : false)}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-300 hover:to-orange-300 text-indigo-900 font-semibold py-3 rounded-2xl shadow-[6px_6px_14px_rgba(0,0,0,0.4),-6px_-6px_14px_rgba(255,255,255,0.06)] disabled:opacity-60 disabled:cursor-not-allowed transition"
+              className="w-full flex items-center justify-center gap-2 font-semibold py-3 rounded-2xl disabled:opacity-60 disabled:cursor-not-allowed transition"
+              style={{ background: "var(--accent-primary)", color: "var(--text-inverse)", boxShadow: "var(--shadow-lg)" }}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </button>

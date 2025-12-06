@@ -10,6 +10,7 @@ import { getTransactionsWithPagination } from "@/services/transactions";
 import { getRecurringTransactions } from "@/services/recurring";
 import { getUserAccount } from "@/services/accounts";
 import { getUserCategory } from "@/services/category";
+import { useTheme } from "@/context/ThemeContext";
 
 interface DailyAggregate {
   date: string; // YYYY-MM-DD
@@ -22,6 +23,7 @@ interface DailyAggregate {
 
 export default function CalendarPage() {
   const { formatCompact } = useCurrencyFormatter();
+  const { theme } = useTheme();
   const today = dayjs();
   const [month, setMonth] = useState<number>(today.month() + 1);
   const [year, setYear] = useState<number>(today.year());
@@ -178,15 +180,16 @@ export default function CalendarPage() {
   return (
     <Layout>
       <div className="mx-auto p-2 sm:p-4">
-        <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight mb-4 sm:mb-6 drop-shadow-lg">📅 Financial Calendar</h1>
+        <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-4 sm:mb-6 drop-shadow-lg" style={{ color: "var(--text-primary)" }}>📅 Financial Calendar</h1>
 
-        <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl border border-white/20 p-3 sm:p-6 mb-4 sm:mb-6">
+        <div className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-4 sm:mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 flex-1">
               <select
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
-                className="bg-white/20 border border-white/30 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-black hover:bg-white/30 text-sm sm:text-base flex-1"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 {months.map((m, i) => (
                   <option key={m} value={i + 1}>{m}</option>
@@ -195,7 +198,8 @@ export default function CalendarPage() {
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                className="bg-white/20 border border-white/30 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-black hover:bg-white/30 text-sm sm:text-base flex-1"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 {Array.from({ length: 6 }).map((_, i) => {
                   const y = today.year() - 3 + i;
@@ -206,13 +210,15 @@ export default function CalendarPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { const prev = startOfMonth.subtract(1, "month"); setMonth(prev.month() + 1); setYear(prev.year()); }}
-                className="px-3 sm:px-3 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 rounded-lg sm:rounded-xl text-white text-sm sm:text-base flex-1 sm:flex-none"
+                className="px-3 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1 sm:flex-none"
+                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
               >
                 ◀ Prev
               </button>
               <button
                 onClick={() => { const next = startOfMonth.add(1, "month"); setMonth(next.month() + 1); setYear(next.year()); }}
-                className="px-3 sm:px-3 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 rounded-lg sm:rounded-xl text-white text-sm sm:text-base flex-1 sm:flex-none"
+                className="px-3 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1 sm:flex-none"
+                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
               >
                 Next ▶
               </button>
@@ -221,12 +227,12 @@ export default function CalendarPage() {
         </div>
 
         {loading ? (
-          <div className="text-center text-white text-xl py-12">Loading daily data...</div>
+          <div className="text-center text-xl py-12" style={{ color: "var(--text-primary)" }}>Loading daily data...</div>
         ) : (
-          <div className="bg-white/10 backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl border border-white/20 p-2 sm:p-4">
+          <div className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-2 sm:p-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
             <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((w) => (
-                <div key={w} className="text-white/70 text-[10px] sm:text-sm text-center py-1 sm:py-2">{w}</div>
+                <div key={w} className="text-[10px] sm:text-sm text-center py-1 sm:py-2" style={{ color: "var(--text-muted)" }}>{w}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1 sm:gap-2 mt-1 sm:mt-2">
@@ -242,25 +248,26 @@ export default function CalendarPage() {
                     disabled={!c.date}
                     className={clsx(
                       "rounded-lg sm:rounded-xl p-2 sm:p-3 h-28 sm:h-32 text-left overflow-hidden",
-                      c.date ? "bg-white/10 hover:bg-white/15" : "bg-transparent cursor-default"
+                      c.date ? "" : "bg-transparent cursor-default"
                     )}
                     style={c.date ? {
-                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "var(--bg-card-hover)",
+                      border: "1px solid var(--border-primary)",
                       backgroundImage: net >= 0
                         ? `linear-gradient(to bottom, rgba(16,185,129,${0.15 * heat}), rgba(16,185,129,${0.05 * heat}))`
                         : `linear-gradient(to bottom, rgba(244,63,94,${0.15 * heat}), rgba(244,63,94,${0.05 * heat}))`,
                     } : undefined}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      <div className="text-white font-bold text-base sm:text-lg">{c.label}</div>
+                      <div className="font-bold text-base sm:text-lg" style={{ color: "var(--text-primary)" }}>{c.label}</div>
                       {agg?.count ? (
-                        <div className="text-[9px] sm:text-[10px] px-1.5 sm:px-1.5 py-0.5 rounded bg-white/20 text-white/80 font-medium">{agg.count}</div>
+                        <div className="text-[9px] sm:text-[10px] px-1.5 sm:px-1.5 py-0.5 rounded font-medium" style={{ background: "var(--bg-card)", color: "var(--text-muted)" }}>{agg.count}</div>
                       ) : null}
                     </div>
                     {agg && (
                       <div className="space-y-1">
                         {/* Income/Expense visual bar */}
-                        <div className="flex items-center gap-0.5 sm:gap-1 h-1 rounded-full overflow-hidden bg-white/10">
+                        <div className="flex items-center gap-0.5 sm:gap-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--skeleton-base)" }}>
                           {agg.income > 0 && (
                             <div 
                               className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500"
@@ -310,7 +317,7 @@ export default function CalendarPage() {
                         )}
                         
                         {/* Net cashflow */}
-                        <div className="pt-0.5 border-t border-white/10">
+                        <div className="pt-0.5" style={{ borderTop: "1px solid var(--border-primary)" }}>
                           <div className={clsx(
                             "text-[9px] sm:text-[10px] font-bold flex items-center justify-between",
                             net >= 0 ? "text-emerald-300" : "text-rose-300"
@@ -337,7 +344,7 @@ export default function CalendarPage() {
                           </span>
                         ))}
                         {recurringMarks[c.date].length > 3 && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/70">+{recurringMarks[c.date].length - 3} more</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--bg-card-hover)", color: "var(--text-muted)" }}>+{recurringMarks[c.date].length - 3} more</span>
                         )}
                       </div>
                     )}
@@ -351,17 +358,17 @@ export default function CalendarPage() {
         {/* Day detail modal */}
         {selectedDay && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
-            <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] flex flex-col" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
               <div className="flex items-center justify-between mb-3">
-                <div className="text-white font-bold text-xl">{dayjs(selectedDay).format("MMM DD, YYYY")}</div>
-                <button className="text-white/70 hover:text-white" onClick={() => { setSelectedDay(null); setDayTxns([]); }}>✕</button>
+                <div className="font-bold text-xl" style={{ color: "var(--text-primary)" }}>{dayjs(selectedDay).format("MMM DD, YYYY")}</div>
+                <button className="transition" style={{ color: "var(--text-muted)" }} onClick={() => { setSelectedDay(null); setDayTxns([]); }}>✕</button>
               </div>
               {/* Day summary from cashflow map */}
               {selectedDay && daily[selectedDay] && (
                 <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
-                  <div className="bg-white/10 rounded-lg p-2 text-green-300">Income = +{formatCompact(daily[selectedDay].income)}</div>
-                  <div className="bg-white/10 rounded-lg p-2 text-red-300">Expense = -{formatCompact(daily[selectedDay].expense)}</div>
-                  <div className={clsx("bg-white/10 rounded-lg p-2 font-bold", daily[selectedDay].netCashflow >= 0 ? "text-emerald-300" : "text-rose-300")}>Net = {formatCompact(daily[selectedDay].netCashflow)}</div>
+                  <div className="rounded-lg p-2 text-green-300" style={{ background: "var(--bg-card-hover)" }}>Income = +{formatCompact(daily[selectedDay].income)}</div>
+                  <div className="rounded-lg p-2 text-red-300" style={{ background: "var(--bg-card-hover)" }}>Expense = -{formatCompact(daily[selectedDay].expense)}</div>
+                  <div className={clsx("rounded-lg p-2 font-bold", daily[selectedDay].netCashflow >= 0 ? "text-emerald-300" : "text-rose-300")} style={{ background: "var(--bg-card-hover)" }}>Net = {formatCompact(daily[selectedDay].netCashflow)}</div>
                 </div>
               )}
               {/* Additional day totals derived from transactions: savings + transfers */}
@@ -379,39 +386,39 @@ export default function CalendarPage() {
                     );
                     return (
                       <>
-                        <div className="bg-white/10 rounded-lg p-2 text-blue-300">Savings = {formatCompact(totals.savings)}</div>
-                        <div className="bg-white/10 rounded-lg p-2 text-gray-300">Transfers = {formatCompact(totals.transfers)}</div>
+                        <div className="rounded-lg p-2 text-blue-300" style={{ background: "var(--bg-card-hover)" }}>Savings = {formatCompact(totals.savings)}</div>
+                        <div className="rounded-lg p-2 text-gray-300" style={{ background: "var(--bg-card-hover)" }}>Transfers = {formatCompact(totals.transfers)}</div>
                       </>
                     );
                   })()}
                 </div>
               )}
               {dayLoading ? (
-                <div className="text-center text-white py-8">Loading transactions...</div>
+                <div className="text-center py-8" style={{ color: "var(--text-primary)" }}>Loading transactions...</div>
               ) : (
                 <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                   {dayTxns.length === 0 ? (
-                    <div className="text-white/70">No transactions for this day.</div>
+                    <div style={{ color: "var(--text-muted)" }}>No transactions for this day.</div>
                   ) : (
                     dayTxns.map((t: any) => {
-                      const typeColor = t.type === "income" ? "text-emerald-300" : t.type === "expense" ? "text-rose-300" : t.type === "savings" ? "text-blue-300" : t.type === "transfer" ? "text-gray-300" : "text-white";
+                      const typeColor = t.type === "income" ? "text-emerald-300" : t.type === "expense" ? "text-rose-300" : t.type === "savings" ? "text-blue-300" : t.type === "transfer" ? "text-gray-300" : "";
                       const typeBadge = t.type === "income" ? "Income" : t.type === "expense" ? "Expense" : t.type === "savings" ? "Savings" : t.type === "transfer" ? "Transfer" : "";
                       const typeIcon = t.type === "income" ? "💰" : t.type === "expense" ? "💸" : t.type === "savings" ? "🏦" : t.type === "transfer" ? "🔀" : "";
                       return (
-                        <div key={t.id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
+                        <div key={t.id} className="flex justify-between items-center p-3 rounded-xl" style={{ background: "var(--bg-card-hover)" }}>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold">
+                              <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
                                 {categoryNames[t.categoryId] || t.categoryName || t.category || "Transaction"}
                               </span>
                               {typeBadge && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/70 border border-white/20">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-primary)" }}>
                                   {typeIcon} {typeBadge}
                                 </span>
                               )}
                             </div>
-                            <div className="text-white/70 text-sm">{t.description || t.note || ""}</div>
-                            <div className="text-white/50 text-xs">
+                            <div className="text-sm" style={{ color: "var(--text-muted)" }}>{t.description || t.note || ""}</div>
+                            <div className="text-xs" style={{ color: "var(--text-muted)" }}>
                               {(() => {
                                 const accLabel = accountNames[t.accountId] || t.accountName || t.account || t.accountId;
                                 const toAccLabel = accountNames[t.toAccountId] || t.toAccountName || t.toAccountId;
@@ -422,7 +429,7 @@ export default function CalendarPage() {
                               })()}
                             </div>
                             {(t.type === "transfer" || t.type === "savings") && (
-                              <div className="text-[10px] text-white/60 mt-1">Does not affect net cashflow</div>
+                              <div className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>Does not affect net cashflow</div>
                             )}
                           </div>
                           <div className={clsx("font-bold", typeColor)}>{formatCompact(Number(t.amount || 0))}</div>

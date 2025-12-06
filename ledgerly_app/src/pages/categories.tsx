@@ -9,8 +9,10 @@ import NeumorphicInput from "@/components/NeumorphicInput";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
 import { on } from "events";
 import ModernButton from "@/components/NeumorphicButton";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Categories() {
+  const { theme } = useTheme();
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
   const [type, setType] = useState<CategoryType>("expense");
@@ -18,7 +20,6 @@ export default function Categories() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const categoryTypes = [{ label: "Expense", value: "expense" }, { label: "Income", value: "income" }];
   const load = async () => {
     const res = await getUserCategory();
@@ -84,13 +85,19 @@ const onCancel = () => {
   
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-4">
-        {/*<div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">*/}
-          <h1 className="text-3xl font-bold text-white mb-6">Categories</h1>
+      <div className="min-h-screen py-5 px-4" style={{ color: "var(--text-primary)" }}>
+          <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Categories</h1>
 
           {/* Add Category Form */}
           
-          <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 rounded-xl bg-gradient-to-br from-zinc-900/80 to-zinc-800/60">
+          <form 
+            onSubmit={handleCreate} 
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 p-6 rounded-xl backdrop-blur-lg"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-primary)",
+            }}
+          >
             <NeumorphicInput
               value={name}
               onChange={setName}
@@ -125,22 +132,33 @@ const onCancel = () => {
           </form>
 
           {/* List Categories */}
-          <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
+          <div 
+            className="rounded-2xl shadow-2xl p-4 backdrop-blur-lg"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-primary)",
+            }}
+          >
             <ul className="flex flex-wrap gap-4 px-4">
               {categories.map((c) => (
                 <li
                   key={c.id}
-                  className={`bg-white  p-4 rounded-lg shadow border border-gray-200 flex justify-between items-center transition-opacity duration-300 ${
+                  className={`p-4 rounded-lg shadow flex justify-between items-center transition-opacity duration-300 ${
                     deletingId === c.id ? "opacity-0" : "opacity-100"
                   }`}
+                  style={{
+                    background: "var(--bg-card-hover)",
+                    border: "1px solid var(--border-secondary)",
+                  }}
                 >
                   <div>
-                    <span className="font-semibold text-gray-800">{c.name}</span>
-                    <span className="ml-2 text-sm text-gray-500">({c.type})</span>
+                    <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{c.name}</span>
+                    <span className="ml-2 text-sm" style={{ color: "var(--text-muted)" }}>({c.type})</span>
                   </div>
                   <button
   onClick={() => openModal(c)}
-  className="text-yellow-500 hover:text-yellow-700 transition-transform hover:scale-110 mr-2"
+  className="hover:scale-110 transition-transform mr-2"
+  style={{ color: "var(--accent-primary)" }}
   title="Edit"
 >
   ✏️
@@ -148,7 +166,8 @@ const onCancel = () => {
 
                   <button
   onClick={() => setDeleteConfirm(c.id)}
-  className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
+  className="hover:scale-110 transition-transform"
+  style={{ color: "var(--color-error)" }}
   title="Delete"
 >
   <TrashIcon className="h-5 w-5" />
@@ -158,23 +177,38 @@ const onCancel = () => {
               ))}
             </ul>
           </div>
-        {/*</div>*/}
       </div>
       {showModal && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white/10 backdrop-blur-lg p-6 rounded-xl border border-white/20 w-full max-w-md">
-      <h2 className="text-white text-xl font-bold mb-4">Edit Category</h2>
+    <div 
+      className="backdrop-blur-lg p-6 rounded-xl w-full max-w-md"
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border-primary)",
+      }}
+    >
+      <h2 className="text-xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>Edit Category</h2>
       <form onSubmit={handleCreate} className="flex flex-col gap-4">
         <input
-          className="p-2 rounded-lg text-black"
+          className="p-2 rounded-lg"
           placeholder="Category Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          style={{
+            background: "var(--input-bg)",
+            color: "var(--input-text)",
+            border: "1px solid var(--input-border)",
+          }}
         />
         <select
-          className="p-2 rounded-lg text-black"
+          className="p-2 rounded-lg"
           value={type}
           onChange={(e) => setType(e.target.value as CategoryType)}
+          style={{
+            background: "var(--input-bg)",
+            color: "var(--input-text)",
+            border: "1px solid var(--input-border)",
+          }}
         >
           <option value="expense">Expense</option>
           <option value="income">Income</option>
@@ -182,14 +216,22 @@ const onCancel = () => {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-800 flex-1"
+            className="p-2 rounded-lg flex-1 font-semibold"
+            style={{
+              background: "var(--accent-secondary)",
+              color: "var(--text-primary)",
+            }}
           >
             Update
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-700 flex-1"
+            className="p-2 rounded-lg flex-1"
+            style={{
+              background: "var(--bg-tertiary)",
+              color: "var(--text-primary)",
+            }}
           >
             Cancel
           </button>

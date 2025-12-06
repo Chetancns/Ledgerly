@@ -22,9 +22,19 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
+import { useTheme } from "@/context/ThemeContext";
 
 
 const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9D4EDD"];
+
+// Theme-aware colors for chart axes and text
+const getChartColors = (theme: "light" | "dark") => ({
+  axisStroke: theme === "light" ? "#374151" : "#ffffff",
+  gridStroke: theme === "light" ? "#d1d5db44" : "#ffffff22",
+  labelFill: theme === "light" ? "#374151" : "#ffffff",
+  tooltipBg: theme === "light" ? "rgba(255, 255, 255, 0.95)" : "#ffffff22",
+  tooltipColor: theme === "light" ? "#1e293b" : "#fff",
+});
 
 export function LineTrendChart({
   data,
@@ -34,6 +44,8 @@ export function LineTrendChart({
   view: "income" | "expense";
 }) {
   const { format } = useCurrencyFormatter();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   const totalIncome = data.reduce((sum, point) => sum + (point.income || 0), 0);
   const totalExpense = data.reduce((sum, point) => sum + (point.expense || 0), 0);
 
@@ -51,17 +63,17 @@ export function LineTrendChart({
           </linearGradient>
         </defs>
 
-        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
-        <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} />
-        <YAxis stroke="#fff" />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
+        <XAxis dataKey="date" stroke={colors.axisStroke} tick={{ fontSize: 10, fill: colors.labelFill }} />
+        <YAxis stroke={colors.axisStroke} tick={{ fill: colors.labelFill }} />
         <Tooltip
           formatter={(value: number) => `${format(value)}`}
           labelFormatter={(label) => `📅 ${label}`}
           contentStyle={{
-            backgroundColor: "#ffffff22",
+            backgroundColor: colors.tooltipBg,
             border: "none",
             borderRadius: "8px",
-            color: "#fff",
+            color: colors.tooltipColor,
             backdropFilter: "blur(6px)",
           }}
         />
@@ -71,6 +83,7 @@ export function LineTrendChart({
           formatter={() =>
             `💰 Income: ${format(totalIncome)} | 💸 Expense: ${format(totalExpense)}`
           }
+          wrapperStyle={{ color: colors.labelFill }}
         />
         {view === "income" && (
     <Line
@@ -101,6 +114,8 @@ export function LineTrendChart({
 
 export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
   const { format } = useCurrencyFormatter();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   function stringToColor(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -110,7 +125,7 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
     return `hsl(${hue}, 70%, 60%)`;
   }
 
-  const colors = useMemo(() => data.map((d) => stringToColor(d.name || d.category || "")), [data]);
+  const chartColors = useMemo(() => data.map((d) => stringToColor(d.name || d.category || "")), [data]);
   return (
     <ResponsiveContainer width="100%" height={250}>
       <PieChart>
@@ -124,16 +139,16 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
           dataKey="value"
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={colors[index]} />
+            <Cell key={`cell-${index}`} fill={chartColors[index]} />
           ))}
         </Pie>
         <Tooltip
           formatter={(value: number) => `${format(value)}`}
           contentStyle={{
-            backgroundColor: "#ffffff22",
+            backgroundColor: colors.tooltipBg,
             border: "none",
             borderRadius: "8px",
-            color: "#fff",
+            color: colors.tooltipColor,
             backdropFilter: "blur(6px)",
           }}
         />
@@ -144,6 +159,8 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
 }
 export function BarChartComponent({ data }: { data: any[] }) {
   const { format, formatCompact } = useCurrencyFormatter();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   const chartData = data.map((c) => {
     const budget = (c?.budget && Number(c.budget)) || 0;
     const actual = (c?.actual && Number(c.actual)) || 0;
@@ -161,23 +178,23 @@ export function BarChartComponent({ data }: { data: any[] }) {
     <ResponsiveContainer width="100%" height={300}>
       
         <BarChart data={chartData} barCategoryGap="20%">
-        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
-        <XAxis dataKey="name" stroke="#fff" tick={{ fontSize: 10 }} />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
+        <XAxis dataKey="name" stroke={colors.axisStroke} tick={{ fontSize: 10, fill: colors.labelFill }} />
         
         {/* Linear Y-axis starting at zero for accurate representation */}
-        <YAxis stroke="#fff" domain={[0, "dataMax"]} allowDataOverflow />
+        <YAxis stroke={colors.axisStroke} tick={{ fill: colors.labelFill }} domain={[0, "dataMax"]} allowDataOverflow />
 
         <Tooltip
           formatter={(value: number) => `${format(value)}`}
           contentStyle={{
-            backgroundColor: "#ffffff22",
+            backgroundColor: colors.tooltipBg,
             border: "none",
             borderRadius: "8px",
-            color: "#fff",
+            color: colors.tooltipColor,
             backdropFilter: "blur(6px)",
           }}
         />
-        <Legend verticalAlign="top" height={36} />
+        <Legend verticalAlign="top" height={36} wrapperStyle={{ color: colors.labelFill }} />
 
         <Bar
           dataKey="Budget"
@@ -189,7 +206,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
             dataKey="Budget"
             position="top"
             formatter={(label: any) => (label > 0 ? `${formatCompact(Number(label))}` : "")}
-            style={{ fill: "#fff", fontSize: 10 }}
+            style={{ fill: colors.labelFill, fontSize: 10 }}
           />
         </Bar>
 
@@ -203,7 +220,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
             dataKey="Actual"
             position="top"
             formatter={(label: any) => (label > 0 ? `${formatCompact(Number(label))}` : "")}
-            style={{ fill: "#fff", fontSize: 10 }}
+            style={{ fill: colors.labelFill, fontSize: 10 }}
           />
         </Bar>
         <Bar dataKey="Overspent" fill="#ff6b6b" radius={[4, 4, 0, 0]} animationDuration={800}>
@@ -211,7 +228,7 @@ export function BarChartComponent({ data }: { data: any[] }) {
     dataKey="Overspent"
     position="top"
     formatter={(label: any) => (label > 0 ? `+${formatCompact(Number(label))}` : "")}
-    style={{ fill: "#fff", fontSize: 10 }}
+    style={{ fill: colors.labelFill, fontSize: 10 }}
   />
 </Bar>
 
@@ -223,6 +240,8 @@ export function BarChartComponent({ data }: { data: any[] }) {
 }
 export function PieChartComponent({ data }: { data: any[] }) {
   const { format } = useCurrencyFormatter();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   const pieData = [
   {
     name: 'Overspent',
@@ -248,14 +267,14 @@ export function PieChartComponent({ data }: { data: any[] }) {
         <Tooltip
           formatter={(value: number) => `${format(value)}`}
           contentStyle={{
-            backgroundColor: "#ffffff22",
+            backgroundColor: colors.tooltipBg,
             border: "none",
             borderRadius: "8px",
-            color: "#fff",
+            color: colors.tooltipColor,
             backdropFilter: "blur(6px)",
           }}
         />
-        <Legend verticalAlign="bottom" height={36} />
+        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: colors.labelFill }} />
         <Pie
           data={pieData}
           dataKey="value"
@@ -287,6 +306,8 @@ export function ChashFlowLine({
   data: CashflowRow[];
 }) {
   const { format } = useCurrencyFormatter();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   return (
   <ResponsiveContainer width="100%" height={250}>
     
@@ -305,26 +326,26 @@ export function ChashFlowLine({
           <stop offset="100%" stopColor="#ffb347" stopOpacity={0.2} />
         </linearGradient>
         <linearGradient id="netChangeGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity={1} />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity={0.2} />
+          <stop offset="0%" stopColor={theme === "light" ? "#1e293b" : "#ffffff"} stopOpacity={1} />
+          <stop offset="100%" stopColor={theme === "light" ? "#1e293b" : "#ffffff"} stopOpacity={0.2} />
         </linearGradient>
       </defs>
       <Brush dataKey="date" height={10} stroke="#8884d8" />
-      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff22" />
-      <XAxis dataKey="date" stroke="#fff" tick={{ fontSize: 10 }} />
-      <YAxis stroke="#fff" />
+      <CartesianGrid strokeDasharray="3 3" stroke={colors.gridStroke} />
+      <XAxis dataKey="date" stroke={colors.axisStroke} tick={{ fontSize: 10, fill: colors.labelFill }} />
+      <YAxis stroke={colors.axisStroke} tick={{ fill: colors.labelFill }} />
       <Tooltip
         formatter={(value: number) => `${format(value)}`}
         labelFormatter={(label) => `📅 ${label}`}
         contentStyle={{
-          backgroundColor: "#ffffff22",
+          backgroundColor: colors.tooltipBg,
           border: "none",
           borderRadius: "8px",
-          color: "#fff",
+          color: colors.tooltipColor,
           backdropFilter: "blur(6px)",
         }}
       />
-      <Legend verticalAlign="top" height={36} />
+      <Legend verticalAlign="top" height={36} wrapperStyle={{ color: colors.labelFill }} />
       <Line
         type="monotone"
         dataKey="income"
@@ -369,6 +390,8 @@ export function ChashFlowLine({
 
 export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
   const { format } = useCurrencyFormatter();
+  const { theme } = useTheme();
+  const colors = getChartColors(theme);
   function stringToColor(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -406,14 +429,14 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
             `📂 ${name}`,
           ]}
           contentStyle={{
-            backgroundColor: "#ffffff22",
+            backgroundColor: colors.tooltipBg,
             border: "none",
             borderRadius: "8px",
-            color: "#fff",
+            color: colors.tooltipColor,
             backdropFilter: "blur(6px)",
           }}
-          itemStyle={{ color: "#fff", fontSize: 12 }}
-          labelStyle={{ color: "#fff", fontWeight: "bold" }}
+          itemStyle={{ color: colors.tooltipColor, fontSize: 12 }}
+          labelStyle={{ color: colors.tooltipColor, fontWeight: "bold" }}
         />
         {/* Optional: Add styled legend if needed */}
         {/* <Legend verticalAlign="bottom" height={36} /> */}
@@ -430,6 +453,7 @@ export function CatHeatmapPie({ data }: { data: CategoryRow[] }) {
 
 export function SummaryCard({ totals }: { totals: any }) {
   const { format } = useCurrencyFormatter();
+  const { theme } = useTheme();
   const [showIncome, setShowIncome] = useState(true);
   const [showExpense, setShowExpense] = useState(true);
 
@@ -451,17 +475,18 @@ export function SummaryCard({ totals }: { totals: any }) {
   };
 
   return (
-    <div className="space-y-6 text-white mt-4 mb-4">
+    <div className="space-y-6 mt-4 mb-4" style={{ color: "var(--text-primary)" }}>
       {/* ===== Top Summary ===== */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {summaryCards.map((c, i) => (
           <motion.div
             key={i}
             whileHover={{ scale: 1.03 }}
-            className={`bg-gradient-to-br ${c.color} backdrop-blur-lg border border-white/10 rounded-2xl p-5 shadow-md`}
+            className={`bg-gradient-to-br ${c.color} backdrop-blur-lg rounded-2xl p-5 shadow-md`}
+            style={{ border: "1px solid var(--border-primary)" }}
           >
-            <h4 className="text-sm opacity-75">{c.label}</h4>
-            <p className="text-2xl font-semibold mt-1">{format(c.value || 0)}</p>
+            <h4 className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.label}</h4>
+            <p className="text-2xl font-semibold mt-1" style={{ color: "var(--text-primary)" }}>{format(c.value || 0)}</p>
           </motion.div>
         ))}
       </div>
@@ -469,13 +494,13 @@ export function SummaryCard({ totals }: { totals: any }) {
       {/* ===== Income & Expense Side by Side ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* === Income Summary === */}
-        <div className="bg-gradient-to-br from-lime-400/20 to-emerald-500/20 rounded-2xl border border-white/10 p-5 shadow-md">
+        <div className="bg-gradient-to-br from-lime-400/20 to-emerald-500/20 rounded-2xl p-5 shadow-md" style={{ border: "1px solid var(--border-primary)" }}>
           <div
             className="flex justify-between items-center cursor-pointer"
             onClick={() => setShowIncome(!showIncome)}
           >
-            <h3 className="text-lg font-semibold text-lime-300">Income Summary</h3>
-            <motion.div animate={{ rotate: showIncome ? 180 : 0 }} transition={{ duration: 0.3 }}>
+            <h3 className="text-lg font-semibold" style={{ color: "var(--color-success)" }}>Income Summary</h3>
+            <motion.div animate={{ rotate: showIncome ? 180 : 0 }} transition={{ duration: 0.3 }} style={{ color: "var(--text-primary)" }}>
               <ChevronDown />
             </motion.div>
           </div>
@@ -492,15 +517,15 @@ export function SummaryCard({ totals }: { totals: any }) {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Budgeted Income */}
-                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-                    <h4 className="text-sm opacity-75">Budgeted Income</h4>
-                    <p className="text-xl font-semibold mt-1">{format(totals.totalBudgetIncome || 0)}</p>
+                  <div className="p-4 rounded-xl backdrop-blur-sm" style={{ background: "var(--bg-card)" }}>
+                    <h4 className="text-sm" style={{ color: "var(--text-secondary)" }}>Budgeted Income</h4>
+                    <p className="text-xl font-semibold mt-1" style={{ color: "var(--text-primary)" }}>{format(totals.totalBudgetIncome || 0)}</p>
                   </div>
 
                   {/* Actual Income */}
-                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-                    <h4 className="text-sm opacity-75">Actual Income</h4>
-                    <p className="text-xl font-semibold mt-1">{format(totals.totalActualIncome || 0)}</p>
+                  <div className="p-4 rounded-xl backdrop-blur-sm" style={{ background: "var(--bg-card)" }}>
+                    <h4 className="text-sm" style={{ color: "var(--text-secondary)" }}>Actual Income</h4>
+                    <p className="text-xl font-semibold mt-1" style={{ color: "var(--text-primary)" }}>{format(totals.totalActualIncome || 0)}</p>
                     <ProgressBar
                       percent={getPercentage(totals.totalActualIncome, totals.totalBudgetIncome)}
                       label="of budget achieved"
@@ -514,13 +539,13 @@ export function SummaryCard({ totals }: { totals: any }) {
         </div>
 
         {/* === Expense Summary === */}
-        <div className="bg-gradient-to-br from-orange-400/20 to-pink-500/20 rounded-2xl border border-white/10 p-5 shadow-md">
+        <div className="bg-gradient-to-br from-orange-400/20 to-pink-500/20 rounded-2xl p-5 shadow-md" style={{ border: "1px solid var(--border-primary)" }}>
           <div
             className="flex justify-between items-center cursor-pointer"
             onClick={() => setShowExpense(!showExpense)}
           >
-            <h3 className="text-lg font-semibold text-amber-300">Expense Summary</h3>
-            <motion.div animate={{ rotate: showExpense ? 180 : 0 }} transition={{ duration: 0.3 }}>
+            <h3 className="text-lg font-semibold" style={{ color: "var(--color-warning)" }}>Expense Summary</h3>
+            <motion.div animate={{ rotate: showExpense ? 180 : 0 }} transition={{ duration: 0.3 }} style={{ color: "var(--text-primary)" }}>
               <ChevronDown />
             </motion.div>
           </div>
@@ -537,15 +562,15 @@ export function SummaryCard({ totals }: { totals: any }) {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Budgeted Expense */}
-                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-                    <h4 className="text-sm opacity-75">Budgeted Expense</h4>
-                    <p className="text-xl font-semibold mt-1">{format(totals.totalBudgetExpense || 0)}</p>
+                  <div className="p-4 rounded-xl backdrop-blur-sm" style={{ background: "var(--bg-card)" }}>
+                    <h4 className="text-sm" style={{ color: "var(--text-secondary)" }}>Budgeted Expense</h4>
+                    <p className="text-xl font-semibold mt-1" style={{ color: "var(--text-primary)" }}>{format(totals.totalBudgetExpense || 0)}</p>
                   </div>
 
                   {/* Actual Expense */}
-                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-                    <h4 className="text-sm opacity-75">Actual Expense</h4>
-                    <p className="text-xl font-semibold mt-1">{format(totals.totalActualExpense || 0)}</p>
+                  <div className="p-4 rounded-xl backdrop-blur-sm" style={{ background: "var(--bg-card)" }}>
+                    <h4 className="text-sm" style={{ color: "var(--text-secondary)" }}>Actual Expense</h4>
+                    <p className="text-xl font-semibold mt-1" style={{ color: "var(--text-primary)" }}>{format(totals.totalActualExpense || 0)}</p>
                     <ProgressBar
                       percent={getPercentage(totals.totalActualExpense, totals.totalBudgetExpense)}
                       label="of budget used"
@@ -584,7 +609,7 @@ function ProgressBar({
 
   return (
     <div className="mt-2">
-      <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--skeleton-base)" }}>
         <motion.div
           className={`h-full bg-gradient-to-r ${getBarColor()}`}
           initial={{ width: 0 }}
@@ -592,7 +617,7 @@ function ProgressBar({
           transition={{ duration: 1 }}
         />
       </div>
-      <p className="text-xs text-white/70 mt-1">
+      <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
         {Math.min(percent, 150).toFixed(0)}% {label}
       </p>
     </div>
