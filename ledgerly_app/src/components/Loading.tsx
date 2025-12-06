@@ -10,13 +10,13 @@ export default function Loading() {
       style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
     >
       <div 
-        className="w-full max-w-3xl rounded-3xl shadow-2xl"
+        className="w-full h-full rounded-3xl shadow-2xl"
         style={{
           background: "var(--bg-card)",
           border: "1px solid var(--border-primary)",
         }}
       >
-        <div className="p-6 sm:p-8">
+        <div className=" h-full w-full p-6 sm:p-8">
           <div className="flex items-center gap-4 mb-6">
             <div
               className="relative w-12 h-12 sm:w-14 sm:h-14"

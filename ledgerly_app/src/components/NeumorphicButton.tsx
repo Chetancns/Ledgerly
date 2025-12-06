@@ -44,7 +44,7 @@ export default function ModernButton({
   className,
 }: ModernButtonProps) {
   const baseColors = {
-    solid: `bg-${color} text-white hover:bg-${color.replace("600", "700")}`,
+    solid: `bg-${color} text-black hover:bg-${color.replace("600", "700")} dark:text-black`,
     outline: `border border-${color} text-${color} hover:bg-${color}/10`,
     ghost: `text-${color} hover:bg-${color}/15`,
   };
