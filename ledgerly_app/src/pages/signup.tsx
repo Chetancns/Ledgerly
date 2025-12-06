@@ -3,9 +3,12 @@ import { useAuth } from "../hooks/useAuth";
 import router from "next/router";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { useTheme } from "@/context/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Signup() {
   const { doSignup } = useAuth();
+  const { theme } = useTheme();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,8 +60,7 @@ export default function Signup() {
 
     const success = await signupPromise;
     if (success) {
-          //console.log("redirect called");
-    router.push('/'); // redirects to index page
+    router.push('/');
   } }catch (err: any) {
     console.error("Sign up failed:", err);
     const errorMessage = err?.response?.data?.message;
@@ -74,46 +76,83 @@ export default function Signup() {
   };
 
     const showError = () =>{
-    //console.error("Sign up Failed");
     setError("Account creation failed. If the issue persists, contact support.");
     setTimeout(() => setError(null), 5000);
     }
 
 return (
-  <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 flex items-center justify-center px-4">
+  <div 
+    className="min-h-screen flex items-center justify-center px-4 py-6"
+    style={{ background: "var(--ledgerly-grad)" }}
+  >
+    {/* Theme Toggle - Fixed Position */}
+    <div className="fixed top-4 right-4 z-50">
+      <ThemeToggle />
+    </div>
+    
     {error && (
-  <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in-out z-50">
+  <div 
+    className="fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg animate-fade-in-out z-50 max-w-md text-center"
+    style={{ backgroundColor: "var(--color-error)", color: "var(--text-inverse)" }}
+  >
     {error}
   </div>
 )}
-    <div className="grid grid-cols-1 md:grid-cols-2 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl border border-white/20">
+    <div 
+      className="grid grid-cols-1 md:grid-cols-2 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl"
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border-primary)",
+      }}
+    >
       
       {/* Left Panel: Branding */}
-      <div className="hidden md:flex flex-col justify-center items-center p-10 text-white space-y-6 bg-gradient-to-br from-purple-800 to-indigo-800">
-        <h1 className="text-4xl font-bold tracking-wide">Ledgerly</h1>
-        <p className="text-lg text-white/80 text-center">
+      <div 
+        className="hidden md:flex flex-col justify-center items-center p-8 lg:p-10 space-y-6"
+        style={{
+          background: theme === 'dark' 
+            ? "linear-gradient(to bottom right, rgba(88, 28, 135, 0.9), rgba(49, 46, 129, 0.9))"
+            : "linear-gradient(to bottom right, rgba(124, 58, 237, 0.9), rgba(79, 70, 229, 0.9))",
+        }}
+      >
+        <h1 className="text-3xl lg:text-4xl font-bold tracking-wide text-white">Ledgerly</h1>
+        <p className="text-base lg:text-lg text-white/80 text-center">
           Join Ledgerly and take control of your financial future.
         </p>
-        {/* <img src="/logo.svg" alt="Ledgerly Logo" className="w-24 h-24" /> */}
       </div>
 
       {/* Right Panel: Signup Form */}
-      <div className="p-8 md:p-12 bg-white/5">
-        <h2 className="text-2xl font-semibold text-white mb-6">Create Account</h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="p-6 md:p-8 lg:p-12" style={{ background: "var(--bg-card)" }}>
+        <h2 
+          className="text-xl md:text-2xl font-semibold mb-6"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Create Account
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
           <input
             type="text"
             placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition min-h-[48px]"
+            style={{
+              backgroundColor: "var(--input-bg)",
+              color: "var(--input-text)",
+              border: "1px solid var(--input-border)",
+            }}
           />
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-yellow-300 transition"
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition min-h-[48px]"
+            style={{
+              backgroundColor: "var(--input-bg)",
+              color: "var(--input-text)",
+              border: "1px solid var(--input-border)",
+            }}
           />
           <div>
             <input
@@ -123,25 +162,54 @@ return (
               onChange={(e) => handlePasswordChange(e.target.value)}
               onFocus={() => setShowPasswordHints(true)}
               onBlur={() => setTimeout(() => setShowPasswordHints(false), 200)}
-              className={`w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 transition ${
-                password && passwordErrors.length === 0 ? 'ring-2 ring-green-400' : 
-                password && passwordErrors.length > 0 ? 'ring-2 ring-red-400' : 'focus:ring-yellow-300'
-              }`}
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition min-h-[48px]"
+              style={{
+                backgroundColor: "var(--input-bg)",
+                color: "var(--input-text)",
+                border: password && passwordErrors.length === 0 
+                  ? "2px solid var(--color-success)" 
+                  : password && passwordErrors.length > 0 
+                    ? "2px solid var(--color-error)" 
+                    : "1px solid var(--input-border)",
+              }}
             />
             {showPasswordHints && password && (
               <div className="mt-2 text-xs space-y-1">
                 {passwordErrors.length > 0 ? (
-                  <div className="bg-red-500/20 border border-red-400/30 rounded p-2">
-                    <p className="font-semibold text-red-200 mb-1">Password must have:</p>
-                    <ul className="list-disc list-inside text-red-200">
+                  <div 
+                    className="rounded p-2"
+                    style={{ 
+                      backgroundColor: "var(--color-error-bg)", 
+                      border: "1px solid var(--color-error)" 
+                    }}
+                  >
+                    <p 
+                      className="font-semibold mb-1"
+                      style={{ color: "var(--color-error)" }}
+                    >
+                      Password must have:
+                    </p>
+                    <ul 
+                      className="list-disc list-inside"
+                      style={{ color: "var(--color-error)" }}
+                    >
                       {passwordErrors.map((err, i) => (
                         <li key={i}>{err}</li>
                       ))}
                     </ul>
                   </div>
                 ) : (
-                  <div className="bg-green-500/20 border border-green-400/30 rounded p-2">
-                    <p className="text-green-200 flex items-center gap-1">
+                  <div 
+                    className="rounded p-2"
+                    style={{ 
+                      backgroundColor: "var(--color-success-bg)", 
+                      border: "1px solid var(--color-success)" 
+                    }}
+                  >
+                    <p 
+                      className="flex items-center gap-1"
+                      style={{ color: "var(--color-success)" }}
+                    >
                       <span>✓</span> Password meets all requirements
                     </p>
                   </div>
@@ -151,13 +219,27 @@ return (
           </div>
           <button
             type="submit"
-            className="w-full py-3 bg-yellow-300 text-indigo-900 font-semibold rounded-lg hover:bg-yellow-400 transition"
+            className="w-full py-3 font-semibold rounded-lg transition min-h-[48px]"
+            style={{
+              backgroundColor: "var(--accent-primary)",
+              color: "var(--text-inverse)",
+            }}
           >
             Sign Up
           </button>
         </form>
-        <p className="text-white/80 mt-6 text-sm text-center">
-          Already have an account? <Link href="/login" className="underline text-yellow-300 hover:text-yellow-400">Log in</Link>
+        <p 
+          className="mt-6 text-sm text-center"
+          style={{ color: "var(--text-muted)" }}
+        >
+          Already have an account?{" "}
+          <Link 
+            href="/login" 
+            className="underline hover:opacity-80"
+            style={{ color: "var(--accent-primary)" }}
+          >
+            Log in
+          </Link>
         </p>
       </div>
     </div>

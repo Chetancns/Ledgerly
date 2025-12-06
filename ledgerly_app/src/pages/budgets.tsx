@@ -19,6 +19,7 @@ import clsx from "clsx";
 import NeumorphicInput from "@/components/NeumorphicInput";
 import toast from "react-hot-toast";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
+import { useTheme } from "@/context/ThemeContext";
 
 // ------------------------------
 // Types
@@ -60,7 +61,13 @@ const getEndDateFor = (period: BudgetPeriod, startIso: string) => {
 // ------------------------------
 function SkeletonCard() {
   return (
-    <div className="animate-pulse p-5 rounded-2xl bg-white/6 backdrop-blur border border-white/6 h-40" />
+    <div 
+      className="animate-pulse p-5 rounded-2xl backdrop-blur h-40" 
+      style={{
+        background: "var(--skeleton-base)",
+        border: "1px solid var(--border-secondary)",
+      }}
+    />
   );
 }
 
@@ -92,14 +99,18 @@ function BudgetCard({
       whileHover={{ scale: disabled ? 1 : 1.01 }}
       transition={{ type: "spring", stiffness: 260, damping: 24 }}
       className={clsx(
-        "relative bg-white/10 backdrop-blur-lg p-5 rounded-3xl border border-white/10 shadow-lg flex flex-col gap-3",
+        "relative backdrop-blur-lg p-5 rounded-3xl shadow-lg flex flex-col gap-3",
         disabled && "opacity-70 pointer-events-none"
       )}
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border-primary)",
+      }}
     >
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-white text-lg font-semibold">{categoryName ?? "Uncategorized"}</p>
-          <p className="text-white/75 text-sm mt-1">
+          <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{categoryName ?? "Uncategorized"}</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
             {b.period} • {b.startDate} → {b.endDate}
           </p>
         </div>
@@ -108,7 +119,8 @@ function BudgetCard({
           <button
             onClick={onEdit}
             title="Edit"
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-white"
+            className="p-2 rounded-lg transition"
+            style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
             aria-label={`Edit budget for ${categoryName ?? "category"}`}
           >
             <PencilIcon className="h-5 w-5" />
@@ -116,7 +128,8 @@ function BudgetCard({
           <button
             onClick={onDelete}
             title="Delete"
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-red-400"
+            className="p-2 rounded-lg transition"
+            style={{ background: "var(--bg-card-hover)", color: "var(--color-error)" }}
             aria-label={`Delete budget for ${categoryName ?? "category"}`}
           >
             <TrashIcon className="h-5 w-5" />
@@ -126,29 +139,32 @@ function BudgetCard({
 
       <div>
         <div className="flex items-baseline gap-3">
-          <p className="text-white/90 font-semibold text-xl">{format(amountNum)}</p>
-          <p className="text-xs text-white/60">Allocated</p>
+          <p className="font-semibold text-xl" style={{ color: "var(--text-primary)" }}>{format(amountNum)}</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Allocated</p>
           {b.carriedOver && (
-            <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded-full">
+            <span className="ml-2 text-xs px-2 py-1 rounded-full" style={{ background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>
               Carry over
             </span>
           )}
         </div>
 
-        <div className="mt-2 text-sm text-white/70">
+        <div className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
           <span className="mr-3">Spent: {format(spent)}</span>
           <span>Remaining: {format(remaining)}</span>
         </div>
       </div>
 
       <div className="mt-auto">
-        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+        <div className="w-full rounded-full h-2 overflow-hidden" style={{ background: "var(--skeleton-base)" }}>
           <div
-            className={clsx("h-full transition-all", percent >= 100 ? "bg-red-500" : "bg-amber-400")}
-            style={{ width: `${percent}%` }}
+            className="h-full transition-all"
+            style={{ 
+              width: `${percent}%`,
+              backgroundColor: percent >= 100 ? "var(--color-error)" : "var(--color-warning)",
+            }}
           />
         </div>
-        <p className="text-white/60 text-xs mt-2">{percent}% used</p>
+        <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{percent}% used</p>
       </div>
     </motion.li>
   );
@@ -158,6 +174,7 @@ function BudgetCard({
 // Page
 // ------------------------------
 export default function BudgetsPage() {
+  const { theme } = useTheme();
   const { format } = useCurrencyFormatter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -357,23 +374,26 @@ export default function BudgetsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-6">
-        <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="min-h-screen p-6" style={{ color: "var(--text-primary)" }}>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight mb-1 drop-shadow">Budgets</h1>
-            <p className="text-white/70">Create and manage your budgets </p>
+            <h1 className="text-4xl font-extrabold tracking-tight mb-1 drop-shadow" style={{ color: "var(--text-primary)" }}>Budgets</h1>
+            <p style={{ color: "var(--text-muted)" }}>Create and manage your budgets </p>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="flex bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-1 shadow-inner relative">
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            <div 
+              className="flex backdrop-blur-xl rounded-2xl p-1 shadow-inner relative"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+            >
               <motion.div
                 layout
-                className="absolute top-[6px] bottom-[6px] w-[48%] bg-white/14 rounded-xl shadow-md"
+                className="absolute top-[6px] bottom-[6px] w-[48%] rounded-xl shadow-md"
                 transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                style={{ left: viewMode === "grid" ? 6 : "calc(50% + 6px)" }}
+                style={{ left: viewMode === "grid" ? 6 : "calc(50% + 6px)", background: "var(--bg-card-hover)" }}
               />
 
-              <label className="relative z-10 flex items-center gap-2 px-4 py-2 w-[120px] justify-center cursor-pointer select-none text-white font-semibold">
+              <label className="relative z-10 flex items-center gap-2 px-4 py-2 w-[120px] justify-center cursor-pointer select-none font-semibold" style={{ color: "var(--text-primary)" }}>
                 <input
                   type="radio"
                   name="view-toggle"
@@ -385,7 +405,7 @@ export default function BudgetsPage() {
                 🧾 Grid
               </label>
 
-              <label className="relative z-10 flex items-center gap-2 px-4 py-2 w-[120px] justify-center cursor-pointer select-none text-white font-semibold">
+              <label className="relative z-10 flex items-center gap-2 px-4 py-2 w-[120px] justify-center cursor-pointer select-none font-semibold" style={{ color: "var(--text-primary)" }}>
                 <input
                   type="radio"
                   name="view-toggle"
@@ -421,7 +441,10 @@ export default function BudgetsPage() {
           </div>
         </div>
 
-        <div className="bg-white/8 backdrop-blur-lg p-6 rounded-2xl border border-white/10 mb-6 shadow-lg">
+        <div 
+          className="backdrop-blur-lg p-6 rounded-2xl mb-6 shadow-lg"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+        >
           <form
             className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
             onSubmit={(e) => {
@@ -430,30 +453,32 @@ export default function BudgetsPage() {
             }}
           >
             <div>
-              <label className="text-xs text-white/70 block mb-1">Start</label>
+              <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>Start</label>
               <input
                 type="date"
                 name="startDate"
                 value={form.startDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 rounded-lg bg-white/6 text-black"
+                className="w-full px-3 py-2 rounded-lg"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
              
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">End</label>
+              <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>End</label>
               <input
                 type="date"
                 name="endDate"
                 value={form.endDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 rounded-lg bg-white/6 text-black"
+                className="w-full px-3 py-2 rounded-lg"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
             </div>
             
             <div>
-              <label className="text-xs text-white/70 block mb-1">Period</label>
+              <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>Period</label>
               <NeumorphicSelect
                 value={form.period}
                 onChange={(v) =>
@@ -466,7 +491,7 @@ export default function BudgetsPage() {
                   { value: "yearly", label: "Yearly" },
                 ]}
                 placeholder="Period"
-                theme="light"
+                theme={theme}
               />
             </div>
 
@@ -528,11 +553,12 @@ export default function BudgetsPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="overflow-x-auto bg-white/6 backdrop-blur-lg rounded-2xl p-4"
+              className="overflow-x-auto backdrop-blur-lg rounded-2xl p-4"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
             >
               <table className="min-w-full table-auto">
                 <thead>
-                  <tr className="text-left text-white/80 text-sm">
+                  <tr className="text-left text-sm" style={{ color: "var(--text-secondary)" }}>
                     <th className="px-3 py-2">Category</th>
                     <th className="px-3 py-2">Amount</th>
                     <th className="px-3 py-2">Spent</th>
@@ -543,18 +569,18 @@ export default function BudgetsPage() {
                 </thead>
                 <tbody>
                   {budgets.map((b) => (
-                    <tr key={b.id} className="border-t border-white/6">
-                      <td className="px-3 py-2 text-white">{categoryMap.get(b.categoryId) || "Unknown"}</td>
-                      <td className="px-3 py-2 text-white">{format(b.amount)}</td>
-                      <td className="px-3 py-2 text-white">{format(b.spent ?? 0)}</td>
-                      <td className="px-3 py-2 text-white/80">{b.period}</td>
-                      <td className="px-3 py-2 text-white/60">{b.startDate} → {b.endDate}</td>
+                    <tr key={b.id} style={{ borderTop: "1px solid var(--border-secondary)" }}>
+                      <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>{categoryMap.get(b.categoryId) || "Unknown"}</td>
+                      <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>{format(b.amount)}</td>
+                      <td className="px-3 py-2" style={{ color: "var(--text-primary)" }}>{format(b.spent ?? 0)}</td>
+                      <td className="px-3 py-2" style={{ color: "var(--text-secondary)" }}>{b.period}</td>
+                      <td className="px-3 py-2" style={{ color: "var(--text-muted)" }}>{b.startDate} → {b.endDate}</td>
                       <td className="px-3 py-2 text-right">
                         <div className="inline-flex gap-2">
-                          <button onClick={() => openEditModal(b)} className="p-2 rounded-lg bg-white/6 hover:bg-white/8 transition text-white" aria-label="Edit budget">
+                          <button onClick={() => openEditModal(b)} className="p-2 rounded-lg transition" style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }} aria-label="Edit budget">
                             <PencilIcon className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 transition text-red-300" aria-label="Delete budget">
+                          <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg transition" style={{ background: "var(--color-error-bg)", color: "var(--color-error)" }} aria-label="Delete budget">
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
@@ -563,7 +589,7 @@ export default function BudgetsPage() {
                   ))}
                   {isEmpty && (
                     <tr>
-                      <td colSpan={6} className="px-3 py-6 text-center text-white/70">
+                      <td colSpan={6} className="px-3 py-6 text-center" style={{ color: "var(--text-muted)" }}>
                         No budgets for this period. Click "New Budget" to create one or use "Copy Prev".
                       </td>
                     </tr>
@@ -590,17 +616,18 @@ export default function BudgetsPage() {
                 animate={{ scale: 1, y: 0, opacity: 1 }}
                 exit={{ scale: 0.98, y: 6, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 28 }}
-                className="w-full max-w-lg bg-white/6 backdrop-blur-lg rounded-2xl border border-white/10 p-6"
+                className="w-full max-w-lg backdrop-blur-lg rounded-2xl p-6"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
               >
                 <div className="flex items-start justify-between">
-                  <h3 className="text-xl font-semibold text-white mb-4">{editing ? "Edit Budget" : "Create Budget"}</h3>
-                  <button onClick={closeModal} className="text-white/60 hover:text-white">
+                  <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>{editing ? "Edit Budget" : "Create Budget"}</h3>
+                  <button onClick={closeModal} style={{ color: "var(--text-muted)" }}>
                     <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
 
                 <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="grid grid-cols-1 gap-3">
-                  <label className="text-xs text-white/70">Category</label>
+                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>Category</label>
 
                   {categories.length > 0 ? (
                     <>
@@ -610,6 +637,7 @@ export default function BudgetsPage() {
                         onChange={(v) => setForm((p) => ({ ...p, categoryId: v }))}
                         options={categories.map((c) => ({ value: c.id, label: c.name || "Unnamed" }))}
                         placeholder="Select Category"
+                        theme={theme}
                       />
 
                       {/* Native select fallback (keeps keyboard accessibility) */}
@@ -628,12 +656,13 @@ export default function BudgetsPage() {
                       </div>
                     </>
                   ) : (
-                    <div className="p-3 rounded-md bg-white/6 text-white/80">
+                    <div className="p-3 rounded-md" style={{ background: "var(--bg-card-hover)", color: "var(--text-secondary)" }}>
                       No categories found. Create a category first to assign budgets.
                       <div className="mt-3">
                         <a
                           href="/categories"
-                          className="inline-block px-3 py-2 bg-indigo-600 text-white rounded-md text-sm"
+                          className="inline-block px-3 py-2 rounded-md text-sm"
+                          style={{ background: "var(--accent-secondary)", color: "var(--text-primary)" }}
                         >
                           Create Category
                         </a>
@@ -641,7 +670,7 @@ export default function BudgetsPage() {
                     </div>
                   )}
 
-                  <label className="text-xs text-white/70">Amount</label>
+                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>Amount</label>
                   
                   <NeumorphicInput
                     value={form.amount}
@@ -649,9 +678,10 @@ export default function BudgetsPage() {
                     placeholder="Amount"
                     type="number"
                     aria-label="Budget amount"
+                    theme={theme}
                   />
 
-                  <label className="text-xs text-white/70">Period</label>
+                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>Period</label>
                   <NeumorphicSelect
                     value={form.period}
                     onChange={(v) =>
@@ -663,30 +693,33 @@ export default function BudgetsPage() {
                       { value: "bi-weekly", label: "Bi-Weekly" },
                       { value: "yearly", label: "Yearly" },
                     ]}
+                    theme={theme}
                   />
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-white/70">Start</label>
+                      <label className="text-xs" style={{ color: "var(--text-muted)" }}>Start</label>
                       <NeumorphicInput
                         value={form.startDate}
                         onChange={(v: string) => setForm((p) => ({ ...p, startDate: v, endDate: getEndDateFor(p.period, v) }))}
                         type="date"
+                        theme={theme}
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-white/70">End</label>
+                      <label className="text-xs" style={{ color: "var(--text-muted)" }}>End</label>
                       <NeumorphicInput
                         value={form.endDate}
                         onChange={(v: string) => setForm((p) => ({ ...p, endDate: v }))}
                         type="date"
+                        theme={theme}
                       />
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mt-2">
-                    <input id="carry" type="checkbox" checked={carryOver} onChange={() => setCarryOver((c) => !c)} className="h-5 w-5 accent-yellow-300" />
-                    <label htmlFor="carry" className="text-white/80 text-sm">Carry Over Unused</label>
+                    <input id="carry" type="checkbox" checked={carryOver} onChange={() => setCarryOver((c) => !c)} className="h-5 w-5" style={{ accentColor: "var(--accent-primary)" }} />
+                    <label htmlFor="carry" className="text-sm" style={{ color: "var(--text-secondary)" }}>Carry Over Unused</label>
                   </div>
 
                   <div className="flex gap-3 justify-end mt-4">

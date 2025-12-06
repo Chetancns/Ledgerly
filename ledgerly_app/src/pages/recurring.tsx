@@ -13,8 +13,10 @@ import { getUserCategory } from "../services/category";
 import { Frequency, RecurringTransaction, TxType } from "../models/recurring";
 import { TrashIcon, PauseIcon, PlayIcon } from "@heroicons/react/24/solid";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function Recurring() {
+  const { theme } = useTheme();
   const { format } = useCurrencyFormatter();
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -168,20 +170,23 @@ export default function Recurring() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 py-5 px-2">
-        {/* <div className="mx-auto bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8"> */}
-          <h1 className="text-3xl font-bold text-white m-4">Recurring Transactions</h1>
+      <div className="min-h-screen py-5 px-2" style={{ color: "var(--text-primary)" }}>
+          <h1 className="text-3xl font-bold m-4" style={{ color: "var(--text-primary)" }}>Recurring Transactions</h1>
 
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-4 px-4">
             <button
               onClick={() => openModal()}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+              className="px-4 py-2 rounded-lg transition"
+              style={{ background: "var(--accent-secondary)", color: "var(--text-primary)" }}
             >
               + Add Recurring
             </button>
           </div>
 
-          <div className="rounded-2xl shadow-2xl bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-4">
+          <div 
+            className="rounded-2xl shadow-2xl p-4 backdrop-blur-lg"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          >
             <ul className="flex flex-wrap gap-4">
               {transactions.map((tx) => {
               const account = accounts.find(a => a.id === tx.accountId);
@@ -189,28 +194,29 @@ export default function Recurring() {
               return (
   <li
     key={tx.id}
-    className="group relative bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
-               rounded-2xl p-5 shadow-md hover:shadow-lg hover:shadow-blue-500/10 
-               transition-all duration-300 flex justify-between items-start gap-4"
+    className="group relative rounded-2xl p-5 shadow-md transition-all duration-300 flex justify-between items-start gap-4"
+    style={{
+      background: "var(--bg-card-hover)",
+      border: "1px solid var(--border-secondary)",
+    }}
   >
     {/* Left side: transaction details */}
     <div className="space-y-1.5">
-      <p className="text-base font-semibold text-white/90 tracking-tight">
+      <p className="text-base font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
         {tx.description || "(No description)"}{" "}
-        <span className="text-blue-400 font-bold">{format(tx.amount)}</span>
+        <span style={{ color: "var(--color-info)" }} className="font-bold">{format(tx.amount)}</span>
       </p>
 
-      <div className="text-sm text-gray-400 flex flex-wrap gap-2">
+      <div className="text-sm flex flex-wrap gap-2" style={{ color: "var(--text-muted)" }}>
         <span>
-          Frequency: <span className="text-gray-200">{tx.frequency}</span>
+          Frequency: <span style={{ color: "var(--text-secondary)" }}>{tx.frequency}</span>
         </span>
         <span>•</span>
         <span>
           Type:{" "}
           <span
-            className={`font-medium ${
-              tx.type === "income" ? "text-green-400" : "text-red-400"
-            }`}
+            style={{ color: tx.type === "income" ? "var(--color-success)" : "var(--color-error)" }}
+            className="font-medium"
           >
             {tx.type}
           </span>
@@ -219,30 +225,27 @@ export default function Recurring() {
         <span>
           Status:{" "}
           <span
-            className={`font-semibold ${
-              tx.status === "active"
-                ? "text-emerald-400"
-                : "text-yellow-400"
-            }`}
+            className="font-semibold"
+            style={{ color: tx.status === "active" ? "var(--color-success)" : "var(--color-warning)" }}
           >
             {tx.status}
           </span>
         </span>
       </div>
 
-      <p className="text-sm text-gray-400">
+      <p className="text-sm" style={{ color: "var(--text-muted)" }}>
         Next Occurrence:{" "}
-        <span className="text-gray-200 font-medium">
+        <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
           {tx.nextOccurrence}
         </span>
       </p>
 
-      <p className="text-sm text-gray-400">
-        Account: <span className="text-gray-200 font-medium">{account?.name}</span>
+      <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+        Account: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{account?.name}</span>
       </p>
 
-      <p className="text-sm text-gray-400">
-        Category: <span className="text-gray-200 font-medium">{category?.name}</span>
+      <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+        Category: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{category?.name}</span>
       </p>
     </div>
 
@@ -250,7 +253,8 @@ export default function Recurring() {
     <div className="flex items-center gap-1">
       <button
         onClick={() => openModal(tx)}
-        className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-yellow-400"
+        className="p-2 rounded-full transition-transform hover:scale-110"
+        style={{ color: "var(--accent-primary)" }}
         title="Edit"
       >
         ✏️
@@ -258,7 +262,8 @@ export default function Recurring() {
 
       <button
         onClick={() => setPauseResumeConfirm({ id: tx.id, status: tx.status })}
-        className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-blue-400"
+        className="p-2 rounded-full transition-transform hover:scale-110"
+        style={{ color: "var(--color-info)" }}
         title={tx.status === "active" ? "Pause" : "Resume"}
       >
         {tx.status === "active" ? (
@@ -270,7 +275,8 @@ export default function Recurring() {
 
       <button
         onClick={() => setDeleteConfirm(tx.id)}
-        className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-110 text-red-400"
+        className="p-2 rounded-full transition-transform hover:scale-110"
+        style={{ color: "var(--color-error)" }}
         title="Delete"
       >
         <TrashIcon className="h-5 w-5" />
@@ -284,13 +290,15 @@ export default function Recurring() {
 );              })}
             </ul>
           </div>
-        {/* </div> */}
       </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white/10 backdrop-blur-lg p-6 rounded-xl border border-white/20 w-full max-w-md">
-            <h2 className="text-white text-xl font-bold mb-4">
+          <div 
+            className="backdrop-blur-lg p-6 rounded-xl w-full max-w-md"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          >
+            <h2 className="text-xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>
               {editingId ? "Edit Recurring" : "Add Recurring"}
             </h2>
 
@@ -300,7 +308,8 @@ export default function Recurring() {
                 name="accountId"
                 value={form.accountId ?? ""}
                 onChange={handleChange}
-                className="p-2 rounded-lg text-black"
+                className="p-2 rounded-lg"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 <option value="">Select Account</option>
                 {accounts.map((acc) => (
@@ -315,7 +324,8 @@ export default function Recurring() {
                 name="categoryId"
                 value={form.categoryId ?? ""}
                 onChange={handleChange}
-                className="p-2 rounded-lg text-black"
+                className="p-2 rounded-lg"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 <option value="">Select Category</option>
                 {categories.map((cat) => (
@@ -328,9 +338,10 @@ export default function Recurring() {
               {/* Type */}
               <select
                 name="type"
-                className="p-2 rounded-lg text-black"
+                className="p-2 rounded-lg"
                 value={form.type ?? "expense"}
                 onChange={handleChange}
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
@@ -339,9 +350,10 @@ export default function Recurring() {
               {/* Frequency */}
               <select
                 name="frequency"
-                className="p-2 rounded-lg text-black"
+                className="p-2 rounded-lg"
                 value={form.frequency ?? "monthly"}
                 onChange={handleChange}
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
@@ -352,43 +364,48 @@ export default function Recurring() {
               {/* Amount */}
               <input
                 name="amount"
-                className="p-2 rounded-lg text-black"
+                className="p-2 rounded-lg"
                 placeholder="Amount"
                 type="number"
                 value={form.amount ?? ""}
                 onChange={handleChange}
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
 
               {/* Next Occurrence */}
               <input
                 name="nextOccurrence"
                 type="date"
-                className="p-2 rounded-lg text-black"
+                className="p-2 rounded-lg"
                 value={form.nextOccurrence ?? ""}
                 onChange={handleChange}
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
 
               {/* Description */}
               <textarea
                 name="description"
-                className="p-2 rounded-lg text-black"
+                className="p-2 rounded-lg"
                 placeholder="Description"
                 value={form.description ?? ""}
                 onChange={handleChange}
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
 
               <div className="flex gap-2">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-800 flex-1"
+                  className="p-2 rounded-lg flex-1 font-semibold"
+                  style={{ background: "var(--accent-secondary)", color: "var(--text-primary)" }}
                 >
                   {editingId ? "Update" : "Add"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-700 flex-1"
+                  className="p-2 rounded-lg flex-1"
+                  style={{ background: "var(--bg-tertiary)", color: "var(--text-primary)" }}
                 >
                   Cancel
                 </button>

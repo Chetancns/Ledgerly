@@ -17,8 +17,11 @@ import UploadReceipt from "./UploadReceipt";
 import UploadAudio from "./UploadAudio";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { useAuth } from "@/hooks/useAuth";
+import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "@/context/ThemeContext";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { theme } = useTheme();
   //const [user, setUser] = useState<{ name?: string }>({});
   const [showModal, setShowModal] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -164,23 +167,32 @@ const stopRecording = () => {
       </Head>
 
       {/* Main wrapper - covers full mobile viewport */}
-      <div className="app-fullheight bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 text-white overflow-x-hidden">
+      <div 
+        className="app-fullheight overflow-x-hidden transition-colors duration-300"
+        style={{
+          background: "var(--ledgerly-grad)",
+          color: "var(--text-primary)",
+        }}
+      >
 
         {/* Desktop Navbar */}
         <nav
-          className="sticky top-0 z-50 hidden md:flex items-center px-6 py-3 backdrop-blur-md"
+          className="sticky top-0 z-50 hidden md:flex items-center px-4 lg:px-6 py-3 backdrop-blur-md"
           aria-label="Main navigation"
           style={{
-            background: "rgba(255, 255, 255, 0.08)",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+            background: "var(--nav-bg)",
+            borderBottom: "1px solid var(--border-primary)",
+            boxShadow: "var(--shadow-lg)",
           }}
         >
-          <span className="text-lg md:text-2xl font-extrabold tracking-wide text-white drop-shadow-md mr-6">
+          <span 
+            className="text-lg md:text-2xl font-extrabold tracking-wide drop-shadow-md mr-4 lg:mr-6"
+            style={{ color: "var(--text-primary)" }}
+          >
             <a href="/">💰 Ledgerly</a>
           </span>
 
-          <div className="flex gap-4 flex-1">
+          <div className="flex gap-2 lg:gap-4 flex-1 flex-wrap">
             {navItems.map((item) => {
               const isActive = router.pathname === item.href;
               return (
@@ -189,50 +201,79 @@ const stopRecording = () => {
                   href={item.href}
                   aria-label={`Navigate to ${item.label}`}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold transition ${
+                  className={`flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1.5 rounded-lg font-semibold transition min-h-[44px] ${
                     isActive
-                      ? "bg-white/20 text-yellow-300"
-                      : "text-white/80 hover:bg-white/10"
+                      ? "bg-[var(--bg-card-hover)]"
+                      : "hover:bg-[var(--bg-card)]"
                   }`}
+                  style={{
+                    color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
+                  }}
                 >
-                  {item.icon}
-                  {item.label}
+                  <span className="text-base lg:text-lg">{item.icon}</span>
+                  <span className="hidden lg:inline text-sm">{item.label}</span>
                 </Link>
               );
             })}
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
-            <span className="font-semibold text-sm md:text-base text-white/90">
+          <div className="ml-auto flex items-center gap-2 lg:gap-3">
+            <ThemeToggle />
+            <span 
+              className="font-semibold text-sm md:text-base hidden sm:inline"
+              style={{ color: "var(--text-secondary)" }}
+            >
               {user?.name || "Guest"}
             </span>
             <button
               onClick={logout}
               aria-label="Log out of your account"
-              className="flex items-center gap-1 bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-sm md:text-base font-semibold shadow-md transition"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm md:text-base font-semibold shadow-md transition min-h-[44px]"
+              style={{
+                backgroundColor: "var(--color-error)",
+                color: "var(--text-inverse)",
+              }}
             >
-              <FaSignOutAlt /> Logout
+              <FaSignOutAlt /> <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </nav>
 
         {/* Mobile Top Header */}
-        <div className="flex items-center justify-between px-4 py-4 md:hidden bg-black/50 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
-          <span className="text-xl font-extrabold">💰 Ledgerly</span>
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-sm truncate max-w-[100px]">{user?.name || "Guest"}</span>
+        <div 
+          className="flex items-center justify-between px-3 py-3 md:hidden backdrop-blur-md sticky top-0 z-50"
+          style={{
+            background: "var(--nav-bg)",
+            borderBottom: "1px solid var(--border-primary)",
+          }}
+        >
+          <span className="text-lg font-extrabold" style={{ color: "var(--text-primary)" }}>
+            💰 Ledgerly
+          </span>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <span 
+              className="font-semibold text-xs truncate max-w-[80px]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {user?.name || "Guest"}
+            </span>
             <button
               onClick={logout}
               aria-label="Log out"
-              className="bg-red-600 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-red-700 transition"
+              className="px-2 py-2 rounded-lg text-xs font-semibold transition min-h-[44px] min-w-[44px] flex items-center justify-center"
+              style={{
+                backgroundColor: "var(--color-error)",
+                color: "var(--text-inverse)",
+              }}
             >
-              Logout
+              <FaSignOutAlt />
             </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 pb-20 md:pb-4" role="main" aria-label="Main content">
+        <main className="flex-1 pb-24 md:pb-4" role="main" aria-label="Main content">
           {/* Dev Warning Banner */}
           <DevWarningBanner />
           {children}
@@ -240,7 +281,13 @@ const stopRecording = () => {
         </main>
 
         {/* Mobile Bottom Nav - Showing primary items + More */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center px-3 py-3 bg-black/50 backdrop-blur-md border-t border-white/20 md:hidden bottom-nav safe-area-padding">
+        <nav 
+          className="fixed bottom-0 left-0 right-0 z-40 flex justify-around items-center px-2 py-2 backdrop-blur-md md:hidden bottom-nav safe-area-padding"
+          style={{
+            background: "var(--nav-bg)",
+            borderTop: "1px solid var(--border-primary)",
+          }}
+        >
           {navItems.slice(0, 4).map((item) => {
             const isActive = router.pathname === item.href;
             return (
@@ -249,11 +296,12 @@ const stopRecording = () => {
                 href={item.href}
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex flex-col items-center gap-1 text-[10px] font-medium transition min-w-[60px] ${
-                  isActive ? "text-yellow-300" : "text-white/80 hover:text-white"
-                }`}
+                className="flex flex-col items-center gap-0.5 text-[11px] font-medium transition min-w-[60px] min-h-[48px] justify-center tap-target"
+                style={{
+                  color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
+                }}
               >
-                <div className="text-2xl">{item.icon}</div>
+                <div className="text-xl">{item.icon}</div>
                 <span className="text-center leading-tight">{item.label}</span>
               </Link>
             );
@@ -261,9 +309,10 @@ const stopRecording = () => {
           <button
             onClick={() => setShowMoreMenu(true)}
             aria-label="More menu"
-            className="flex flex-col items-center gap-1 text-[10px] font-medium transition min-w-[60px] text-white/80 hover:text-white"
+            className="flex flex-col items-center gap-0.5 text-[11px] font-medium transition min-w-[60px] min-h-[48px] justify-center tap-target"
+            style={{ color: "var(--text-secondary)" }}
           >
-            <div className="text-2xl">⋯</div>
+            <div className="text-xl">⋯</div>
             <span className="text-center leading-tight">More</span>
           </button>
         </nav>
@@ -276,21 +325,36 @@ const stopRecording = () => {
               if (e.target === e.currentTarget) setShowMoreMenu(false);
             }}
           >
-            <div className="bg-gradient-to-br from-indigo-900/95 to-purple-900/95 backdrop-blur-xl rounded-t-3xl md:rounded-3xl p-6 w-full md:max-w-md border-t md:border border-white/30 shadow-2xl animate-slideUp">
+            <div 
+              className="backdrop-blur-xl rounded-t-3xl md:rounded-3xl p-6 w-full md:max-w-md shadow-2xl animate-slideUp"
+              style={{
+                background: theme === 'dark' 
+                  ? "linear-gradient(to bottom right, rgba(49, 46, 129, 0.95), rgba(88, 28, 135, 0.95))"
+                  : "linear-gradient(to bottom right, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.95))",
+                borderTop: "1px solid var(--border-primary)",
+              }}
+            >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <h2 
+                  className="text-2xl font-bold flex items-center gap-2"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   <span className="text-3xl">⋯</span>
                   More Options
                 </h2>
                 <button
                   onClick={() => setShowMoreMenu(false)}
-                  className="text-white/70 hover:text-white hover:rotate-90 transition-all text-2xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10"
+                  className="hover:rotate-90 transition-all text-2xl w-10 h-10 flex items-center justify-center rounded-full min-h-[44px] min-w-[44px]"
+                  style={{ 
+                    color: "var(--text-muted)",
+                    background: "var(--bg-card)",
+                  }}
                   aria-label="Close more menu"
                 >
                   ✖
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {navItems.slice(4).map((item) => {
                   const isActive = router.pathname === item.href;
                   return (
@@ -298,19 +362,24 @@ const stopRecording = () => {
                       key={item.href}
                       href={item.href}
                       onClick={() => setShowMoreMenu(false)}
-                      className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl transition-all transform hover:scale-105 active:scale-95 ${
-                        isActive
-                          ? "bg-yellow-400/30 border-2 border-yellow-400 text-yellow-300 shadow-lg shadow-yellow-400/20"
-                          : "bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 hover:border-white/40"
-                      }`}
+                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all transform hover:scale-105 active:scale-95 min-h-[80px]"
+                      style={{
+                        background: isActive ? "var(--accent-primary)" : "var(--bg-card)",
+                        border: `2px solid ${isActive ? "var(--accent-primary)" : "var(--border-primary)"}`,
+                        color: isActive ? "var(--text-inverse)" : "var(--text-primary)",
+                        boxShadow: isActive ? "var(--shadow-md)" : "none",
+                      }}
                     >
-                      <div className="text-5xl animate-bounce-subtle">{item.icon}</div>
+                      <div className="text-3xl">{item.icon}</div>
                       <span className="text-sm font-semibold text-center">{item.label}</span>
                     </Link>
                   );
                 })}
               </div>
-              <div className="mt-6 text-center text-white/50 text-xs">
+              <div 
+                className="mt-4 text-center text-xs"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Tap outside to close
               </div>
             </div>
@@ -319,7 +388,7 @@ const stopRecording = () => {
 
         {/* Floating Expandable FAB */}
       {/* 🚀 Expandable Floating Action Button - Positioned for mobile nav */}
-<div className="fixed bottom-24 right-5 md:bottom-10 flex flex-col items-center gap-3 z-50">
+<div className="fixed bottom-28 right-4 md:bottom-10 flex flex-col items-center gap-3 z-50">
   {expanded && (
     <div className="flex flex-col items-center gap-3 mb-2 transition-all duration-300">
       {/* 📸 Upload Receipt */}
@@ -332,7 +401,11 @@ const stopRecording = () => {
       <button
         onClick={() => setShowForm(true)}
         aria-label="Add transaction manually"
-        className="bg-white/90 text-indigo-900 rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-yellow-200 transition"
+        className="rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition min-h-[48px] min-w-[48px]"
+        style={{
+          backgroundColor: "var(--bg-card)",
+          color: "var(--accent-primary)",
+        }}
         title="Add Manually"
       >
         <FaEdit className="text-lg" />
@@ -345,10 +418,14 @@ const stopRecording = () => {
     onClick={() => setExpanded((prev) => !prev)}
     aria-label={expanded ? "Close add transaction menu" : "Open add transaction menu"}
     aria-expanded={expanded}
-    className="bg-yellow-400 text-indigo-900 rounded-full w-16 h-16 flex items-center justify-center shadow-2xl hover:bg-yellow-300 transition"
+    className="rounded-full w-14 h-14 flex items-center justify-center shadow-2xl transition min-h-[56px] min-w-[56px]"
+    style={{
+      backgroundColor: "var(--accent-primary)",
+      color: "var(--text-inverse)",
+    }}
   >
     <FaPlus
-      className={`text-2xl transform transition-transform ${
+      className={`text-xl transform transition-transform ${
         expanded ? "rotate-45" : ""
       }`}
     />
@@ -361,7 +438,13 @@ const stopRecording = () => {
         {showModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
             <div
-              className="bg-indigo-900/95 backdrop-blur-xl rounded-2xl p-6 w-full max-w-md relative shadow-xl border border-white/20 flex flex-col gap-6"
+              className="backdrop-blur-xl rounded-2xl p-6 w-full max-w-md relative shadow-xl flex flex-col gap-6"
+              style={{
+                background: theme === 'dark' 
+                  ? "rgba(49, 46, 129, 0.95)"
+                  : "rgba(255, 255, 255, 0.95)",
+                border: "1px solid var(--border-primary)",
+              }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -379,12 +462,16 @@ const stopRecording = () => {
                   setPreviewImage(null);
                   setPreviewAudio(null);
                 }}
-                className="absolute top-3 right-3 text-white hover:text-yellow-300 text-xl"
+                className="absolute top-3 right-3 text-xl min-h-[44px] min-w-[44px] flex items-center justify-center"
+                style={{ color: "var(--text-muted)" }}
               >
                 ✖
               </button>
 
-              <h2 className="text-xl font-bold text-center mb-2">
+              <h2 
+                className="text-xl font-bold text-center mb-2"
+                style={{ color: "var(--text-primary)" }}
+              >
                 Add Transaction
               </h2>
 
