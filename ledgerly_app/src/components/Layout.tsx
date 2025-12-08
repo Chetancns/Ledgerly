@@ -17,8 +17,12 @@ import UploadReceipt from "./UploadReceipt";
 import UploadAudio from "./UploadAudio";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationTriggers } from "@/hooks/useNotificationTriggers";
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
+import NotificationCenter from "./NotificationCenter";
+import OnboardingModal, { useOnboardingKeyboard } from "./OnboardingModal";
+import SkipLink from "./SkipLink";
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -48,6 +52,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ];
   const { user, loading, logoutapi } = useAuth();
   useAuthRedirect(user, loading);
+  
+  // Enable notification triggers for budgets, debts, and recurring payments
+  useNotificationTriggers();
+  
+  // Enable keyboard navigation for onboarding
+  useOnboardingKeyboard();
  //console.log("Layout user:", user);
   const logout = async () => {
     await logoutapi();
@@ -166,6 +176,9 @@ const stopRecording = () => {
         <title>💰 Ledgerly - Budget with Style</title>
       </Head>
 
+      {/* Skip Link for Accessibility */}
+      <SkipLink />
+
       {/* Main wrapper - covers full mobile viewport */}
       <div 
         className="app-fullheight overflow-x-hidden transition-colors duration-300"
@@ -218,6 +231,7 @@ const stopRecording = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-2 lg:gap-3">
+            <NotificationCenter />
             <ThemeToggle />
             <span 
               className="font-semibold text-sm md:text-base hidden sm:inline"
@@ -251,6 +265,7 @@ const stopRecording = () => {
             💰 Ledgerly
           </span>
           <div className="flex items-center gap-2">
+            <NotificationCenter />
             <ThemeToggle />
             <span 
               className="font-semibold text-xs truncate max-w-[80px]"
@@ -273,7 +288,7 @@ const stopRecording = () => {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 pb-24 md:pb-4" role="main" aria-label="Main content">
+        <main className="flex-1 pb-24 md:pb-4" role="main" aria-label="Main content" id="main-content">
           {/* Dev Warning Banner */}
           <DevWarningBanner />
           {children}
@@ -590,6 +605,9 @@ const stopRecording = () => {
             </div>
           </div>
         )}
+        
+        {/* Onboarding Modal */}
+        <OnboardingModal />
       </div>
     </>
   );

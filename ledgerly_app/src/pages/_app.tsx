@@ -3,12 +3,18 @@ import '../index.css'; // or wherever your Tailwind CSS lives
 import type { AppProps } from 'next/app';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { NotificationProvider } from '@/context/NotificationContext';
+import { OnboardingProvider } from '@/context/OnboardingContext';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider>
-      <Toaster position="top-center" />
-      <Component {...pageProps} />
+      <NotificationProvider>
+        <OnboardingProvider>
+          <Toaster position="top-center" />
+          <Component {...pageProps} />
+        </OnboardingProvider>
+      </NotificationProvider>
     </ThemeProvider>
   );
 }
