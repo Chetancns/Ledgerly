@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNotifications } from "@/context/NotificationContext";
 import { getBudgets } from "@/services/budget";
-import { getDebts } from "@/services/debts";
+import { getUserDebts } from "@/services/debts";
 import { getRecurringTransactions } from "@/services/recurring";
 
 /**
@@ -14,8 +14,12 @@ export function useNotificationTriggers() {
   useEffect(() => {
     const checkBudgetLimits = async () => {
       try {
-        const response = await getBudgets();
-        const budgets = response.data;
+        // Get current month budgets
+        const now = new Date();
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+        
+        const budgets = await getBudgets(startDate, endDate, "monthly");
 
         if (Array.isArray(budgets)) {
           budgets.forEach((budget: any) => {
@@ -48,8 +52,7 @@ export function useNotificationTriggers() {
 
     const checkDebtReminders = async () => {
       try {
-        const response = await getDebts();
-        const debts = response.data;
+        const debts = await getUserDebts();
 
         if (Array.isArray(debts)) {
           debts.forEach((debt: any) => {
@@ -85,8 +88,7 @@ export function useNotificationTriggers() {
 
     const checkRecurringPayments = async () => {
       try {
-        const response = await getRecurringTransactions();
-        const recurring = response.data;
+        const recurring = await getRecurringTransactions();
 
         if (Array.isArray(recurring)) {
           recurring.forEach((transaction: any) => {
