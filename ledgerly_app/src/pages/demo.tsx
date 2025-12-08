@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Head from "next/head";
-import { ThemeProvider } from "@/context/ThemeContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { NotificationProvider, useNotifications } from "@/context/NotificationContext";
 import { OnboardingProvider, useOnboarding } from "@/context/OnboardingContext";
 import NotificationCenter from "@/components/NotificationCenter";
@@ -10,7 +10,6 @@ import Tooltip, { InfoTooltip } from "@/components/Tooltip";
 import SkipLink from "@/components/SkipLink";
 import AccessibleInput from "@/components/AccessibleInput";
 import AccessibleSelect from "@/components/AccessibleSelect";
-import { useTheme } from "@/context/ThemeContext";
 
 function DemoContent() {
   const { addNotification, notifications, unreadCount } = useNotifications();

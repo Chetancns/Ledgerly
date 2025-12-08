@@ -24,6 +24,7 @@ interface OnboardingContextType {
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 const STORAGE_KEY = "ledgerly-onboarding-complete";
+const ONBOARDING_START_DELAY = 1000; // 1 second delay before auto-starting
 
 const defaultSteps: OnboardingStep[] = [
   {
@@ -79,7 +80,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         // Small delay to ensure the app is loaded
         setTimeout(() => {
           setIsOnboarding(true);
-        }, 1000);
+        }, ONBOARDING_START_DELAY);
       }
     }
   }, []);

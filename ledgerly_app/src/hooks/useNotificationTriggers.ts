@@ -4,6 +4,9 @@ import { getBudgets } from "@/services/budget";
 import { getUserDebts } from "@/services/debts";
 import { getRecurringTransactions } from "@/services/recurring";
 
+// Check interval: every 5 minutes
+const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
 /**
  * Hook to check for budget limits, debt reminders, and recurring payments
  * and trigger notifications when appropriate
@@ -132,7 +135,7 @@ export function useNotificationTriggers() {
     runChecks();
 
     // Run every 5 minutes
-    const interval = setInterval(runChecks, 5 * 60 * 1000);
+    const interval = setInterval(runChecks, CHECK_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, [addNotification]);
