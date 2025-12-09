@@ -54,17 +54,18 @@ Ledgerly is a full-stack personal finance management application built with mode
 ### Backend Modules
 
 #### 1. Authentication Module (`src/auth/`)
-- **Purpose**: Handles user authentication and authorization
+- **Purpose**: Handles user authentication, JWT token signing, CSRF protection, and login/logout flows.
 - **Key Files**:
-  - `auth.controller.ts`: Login, register, refresh, logout endpoints
-  - `auth.service.ts`: Authentication business logic
+  - `auth.controller.ts`: Login, register, refresh, logout, `/csrf-token` endpoints
+  - `auth.service.ts`: Authentication business logic, token generation/validation
   - `jwt.strategy.ts`: JWT validation strategy
   - `jwt.guard.ts`: Route protection guard
 - **Features**:
-  - JWT-based authentication
-  - Refresh token rotation
-  - CSRF protection
-  - HTTP-only cookies for token storage
+  - JWT-based authentication with HTTP-only cookies
+  - Refresh token rotation (15m access / 7d refresh)
+  - CSRF token issuance and rotation (see csrf.middleware)
+  - Throttling on register/login (5 req/min)
+  - Get current user via `/auth/me` (also rotates CSRF on GET)
 
 #### 2. Users Module (`src/users/`)
 - **Purpose**: User management and profile operations
@@ -130,53 +131,69 @@ Ledgerly is a full-stack personal finance management application built with mode
 ### Frontend Structure
 
 #### Pages (`src/pages/`)
-- `index.tsx`: Dashboard/home page
-- `login.tsx`: User login
+- `index.tsx`: Dashboard/home page with summary and quick-access FAB
+- `login.tsx`: User login with email/password
 - `signup.tsx`: User registration
-- `transactions.tsx`: Transaction management
-- `accounts.tsx`: Account management
-- `budgets.tsx`: Budget planning
-- `categories.tsx`: Category management
-- `debts.tsx`: Debt tracking
-- `recurring.tsx`: Recurring transactions
-- `help.tsx`: Help and documentation
+- `transactions.tsx`: Transaction management (list, filter, add via form or AI)
+- `accounts.tsx`: Account management (bank, credit, cash, investments)
+- `budgets.tsx`: Budget planning and category allocation
+- `categories.tsx`: Transaction category management (expense/income types)
+- `debts.tsx`: Debt tracking with payment history
+- `recurring.tsx`: Recurring transaction templates
+- `calendar.tsx`: Calendar view of transactions
+- `insights.tsx`: Analytics and spending trends
+- `profile.tsx`: User profile and settings
+- `help.tsx`: Help and documentation links
 
 #### Components (`src/components/`)
-- `Layout.tsx`: Global layout wrapper with navigation
+- `Layout.tsx`: **Global wrapper** with:
+  - Desktop navbar (Dashboard + Transactions + all nav items)
+  - Transactions dropdown (opens recurring submenu)
+  - Mobile top header (user, notifications, logout)
+  - Mobile bottom nav with "More" modal (3-col grid + recurring section)
+  - Expandable FAB for adding transactions (receipt upload, audio record, manual entry)
+  - Onboarding modal
 - `TransactionForm.tsx`: Form for adding/editing transactions
-- `Chart.tsx`: Data visualization component
-- `DebtForm.tsx`: Debt entry form
-- `DebtList.tsx`: Debt display component
-- `UploadReceipt.tsx`: Receipt image upload
-- `UploadAudio.tsx`: Voice transaction entry
-- `AiInput.tsx`: AI chat interface
-- `DevWarningBanner.tsx`: Development environment indicator
+- `UploadReceipt.tsx`: Receipt image upload with drag-drop
+- `UploadAudio.tsx`: Voice recording for transactions
+- `DebtForm.tsx`, `DebtList.tsx`: Debt UI
+- `Chart.tsx`: Data visualization
+- `NotificationCenter.tsx`: Budget/debt/recurring alerts
+- `ThemeToggle.tsx`: Dark/light mode
+- `AiInput.tsx`: Chat-like AI interface (if present)
+- `Loading.tsx`, `Skeleton.tsx`: Loading states
+- `DevWarningBanner.tsx`: Dev environment indicator
+- `NeumorphicButton.tsx`, `NeumorphicInput.tsx`, `NeumorphicSelect.tsx`: Custom UI components
 
 #### Services (`src/services/`)
-- `api.ts`: Base Axios configuration with interceptors
-- `auth.ts`: Authentication API calls
-- `transactions.ts`: Transaction API calls
-- `accounts.ts`: Account API calls
-- `category.ts`: Category API calls
-- `budget.ts`: Budget API calls
-- `debts.ts`: Debt API calls
-- `recurring.ts`: Recurring transaction API calls
-- `reports.ts`: Reports API calls
-- `ai.ts`: AI service API calls
+- `api.ts`: **Base Axios client** with:
+  - `withCredentials: true` for cookies
+  - Request interceptor: calls `initCsrf` before POST/PUT/PATCH/DELETE
+  - Response interceptor: 401 triggers `/auth/refresh` and retry; failed refresh clears state and redirects
+- `auth.ts`: Auth API calls (login, signup, logout, `initCsrf` to fetch `/auth/csrf-token`)
+- `transactions.ts`, `accounts.ts`, `budget.ts`, `debts.ts`, `recurring.ts`, `reports.ts`: CRUD and domain-specific calls
+- `ai.ts`: AI endpoints (`uploadReceiptImage`, `uploadAudioFile`, parse functions)
+
+#### Hooks (`src/hooks/`)
+- `useAuth.ts`: Manages current user, login, signup, logout (calls `/auth/me` on mount)
+- `useAuthRedirect.ts`: Auto-redirects unauthenticated users to `/login`
+- `useNotificationTriggers.ts`: Polls for budget/debt/recurring alerts
+- `useCurrencyFormatter.ts`: Format amounts by user's currency
+- `useOnboardingKeyboard.ts`: Keyboard nav for onboarding steps
 
 ## Data Flow
 
 ### Authentication Flow
 ```
 1. User submits login credentials
-2. Frontend sends POST to /auth/login
-3. Backend validates credentials
-4. Backend generates JWT access & refresh tokens
-5. Backend sets HTTP-only cookies
-6. Frontend stores user data in localStorage
-7. Subsequent requests include cookies automatically
-8. Backend validates JWT on protected routes
-9. Frontend refreshes tokens when expired
+2. Frontend (axios withCredentials) sends POST to /auth/login
+3. Backend validates credentials and sets httpOnly access + refresh cookies
+4. CSRF middleware rotates `XSRF-TOKEN` on every GET; GET /auth/csrf-token returns the current token
+5. Frontend request interceptor calls `initCsrf` before POST/PUT/PATCH/DELETE and attaches `X-CSRF-Token`
+6. Subsequent requests rely on cookies (no Authorization header/localStorage tokens)
+7. Backend validates JWT on protected routes
+8. 401 triggers /auth/refresh; cookies are rotated
+9. Failed refresh clears client state and redirects to /login
 ```
 
 ### Transaction Creation Flow
@@ -206,27 +223,32 @@ Ledgerly is a full-stack personal finance management application built with mode
 
 ## Security Architecture
 
-### Authentication
-- JWT tokens with short expiration (15 minutes)
-- Refresh tokens with longer expiration (7 days)
-- HTTP-only cookies prevent XSS attacks
-- Secure flag enabled in production
-- Token rotation on refresh
+### Authentication & Token Management
+- **Access Token**: JWT signed with `JWT_SECRET`, expires in 15 minutes, stored in HTTP-only `accessToken` cookie
+- **Refresh Token**: JWT with 7-day expiry, stored in HTTP-only `refreshToken` cookie; rotated on `/auth/refresh`
+- **Token Validation**: `jwt.guard.ts` validates on protected routes; `jwt.strategy.ts` extracts claims
+- **Cookie Flags** (Production):
+  - `httpOnly: true` (prevents XSS theft)
+  - `secure: true` (HTTPS only)
+  - `sameSite: 'none'` (allows cross-origin if needed; production must set correct origins)
 
 ### CSRF Protection
-- CSRF tokens for state-changing operations
-- Token validation in request interceptor
-- Separate CSRF endpoint for token retrieval
+- **Middleware**: `src/middlewares/csrf.middleware.ts` runs on all requests
+  - **GET requests**: Proactively rotate `XSRF-TOKEN` cookie (no validation needed)
+  - **Unsafe methods** (POST/PUT/PATCH/DELETE): Validate `X-CSRF-Token` header against `XSRF-TOKEN` cookie
+- **Frontend Flow**: `api.ts` request interceptor calls `initCsrf()` (GET `/auth/csrf-token`) before unsafe requests
+- **Token Lifecycle**: 24-hour max age; rotated on every GET to prevent stale tokens in long-idle tabs
 
 ### Authorization
-- Route-level guards using `@UseGuards(JwtAuthGuard)`
-- User-specific data filtering (userId in queries)
-- Cascade deletes for data ownership
+- **Route-level Guards**: `@UseGuards(JwtAuthGuard)` on protected endpoints
+- **User-specific Filtering**: Queries include `WHERE userId = <jwt.sub>` to isolate data
+- **Cascade Deletes**: Related records (accounts, transactions, etc.) deleted when user is deleted
 
-### Database Security
-- SSL connections in production (configurable)
-- Parameterized queries via TypeORM
-- Password hashing (not visible in entities)
+### Data Security
+- **Password Hashing**: Bcrypt (verified in entity but never returned)
+- **Refresh Token Hash**: Stored hashed; validated during rotation
+- **Database SSL**: Configurable via `DB_SSL` env; recommended in production
+- **Parameterized Queries**: TypeORM handles SQL injection prevention
 
 ## Database Schema
 

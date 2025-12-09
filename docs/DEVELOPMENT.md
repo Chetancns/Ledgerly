@@ -373,6 +373,10 @@ src/
 └── index.css          # Global styles
 ```
 
+**HTTP/auth client:** `src/services/api.ts` sets `withCredentials: true` and, before any POST/PUT/PATCH/DELETE, calls `initCsrf` to refresh the `XSRF-TOKEN` cookie and attach `X-CSRF-Token`. Tokens live in HTTP-only cookies; 401s trigger `/auth/refresh` and failed refresh redirects to `/login`. Avoid manual Authorization headers or localStorage token storage—use the shared client/hooks.
+
+**Navigation:** `src/components/Layout.tsx` now groups Transactions + Recurring under a dropdown (desktop + mobile) and moves the remaining links into a “More” modal; reuse that pattern for new nav items.
+
 ### Creating a New Page
 
 ```typescript
@@ -607,19 +611,25 @@ curl -X POST http://localhost:3001/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123","name":"Test User"}'
 
-# Login
+# Login (saves cookies)
 curl -X POST http://localhost:3001/auth/login \
   -H "Content-Type: application/json" \
   -c cookies.txt \
   -d '{"email":"test@example.com","password":"password123"}'
 
-# Get transactions (with cookie)
+# Fetch CSRF token (rotate token + return value)
+curl -X GET http://localhost:3001/auth/csrf-token \
+  -b cookies.txt -c cookies.txt
+# copy csrfToken from the response into $CSRF
+
+# Get transactions (with cookies)
 curl -X GET http://localhost:3001/transactions \
   -b cookies.txt
 
-# Create transaction
+# Create transaction (needs CSRF header)
 curl -X POST http://localhost:3001/transactions \
   -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF" \
   -b cookies.txt \
   -d '{"amount":"50.00","type":"expense","description":"Test"}'
 ```

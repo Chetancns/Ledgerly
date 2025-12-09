@@ -1,68 +1,13 @@
-## Quick orientation for AI coding agents
+# Ledgerly AI Assistant Playbook
 
-This file documents the minimal, concrete knowledge an AI agent needs to be productive in Ledgerly — where code lives, how the pieces talk, and the exact commands and env vars used in practice.
-
-Key facts
-- The repo contains two main apps:
-  - `ledgerly-api/` — NestJS backend (TypeScript + TypeORM). Entities and modules live under `ledgerly-api/src/*` (users, accounts, transactions, budgets, debts, AIChat, reports).
-  - `ledgerly_app/` — Next.js frontend (TypeScript + React + Tailwind). Pages live under `ledgerly_app/src/pages` and UI components under `ledgerly_app/src/components` (see `Layout.tsx`).
-
-Architecture & data flow (short)
-- Frontend calls backend HTTP API. Example: frontend service `ledgerly_app/src/services/api.ts` sets axios baseURL to `http://192.168.1.50:3001` and `withCredentials: true`.
-- Auth is JWT-based:
-  - Backend endpoints: `POST /auth/register` and `POST /auth/login` (`ledgerly-api/src/auth/*`).
-  - Backend signs tokens with `process.env.JWT_SECRET` and `process.env.JWT_EXPIRES` (see `ledgerly-api/src/auth/auth.service.ts`).
-  - Frontend stores the `accessToken` in `localStorage` and injects it into the Authorization header via `ledgerly_app/src/services/api.ts`.
-- Backend DB access uses TypeORM with migrations. Config lives in `ledgerly-api/data-source.ts` and `ledgerly-api/src/app.module.ts` (env-driven connection). Note: `synchronize: false` — use migrations for schema changes.
-
-Concrete developer workflows (commands)
-- Start backend in dev (PowerShell):
-```powershell
-cd ledgerly-api; npm install; npm run start:dev
-```
-- Run DB migrations (when you changed entities):
-```powershell
-cd ledgerly-api; npm run migration:generate  # generate
-cd ledgerly-api; npm run migration:run       # apply
-```
-- Start frontend in dev (PowerShell):
-```powershell
-cd ledgerly_app; npm install; npm run dev
-```
-- Run backend tests:
-```powershell
-cd ledgerly-api; npm run test
-```
-
-Important env variables (search/define before running)
-- DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, DB_SSL — used by `data-source.ts` and `app.module.ts`.
-- JWT_SECRET, JWT_EXPIRES — used for signing and validating tokens (`ledgerly-api/src/auth/*`).
-- PORT — backend listen port (default fallback in `main.ts`).
-
-Practical gotchas & conventions
-- Default front-end axios baseURL points to `http://192.168.1.50:3001` in `ledgerly_app/src/services/api.ts`. Verify this matches backend `PORT` (or update the front-end baseURL) when running locally.
-- CORS and dev origins: `ledgerly-api/src/main.ts` enables CORS for `http://localhost:3000` and `http://192.168.1.50:3000`; `ledgerly_app/next.config.ts` contains `allowedDevOrigins: ["http://192.168.1.50:3000"]`.
-- TypeORM: the project uses migrations (see `ledgerly-api/src/migrations/` and `data-source.ts`). Do not set `synchronize: true` in production; follow migration workflow.
-- Database schema: `data-source.ts` sets `schema: 'dbo'` (unusual for Postgres). Confirm your DB expects that or remove/adjust when necessary.
-- Auth flow examples:
-  - Register: `POST /auth/register` with { email, password, name } → returns `{ accessToken, user }`
-  - Login: `POST /auth/login` with { email, password } → returns `{ accessToken, user }`
-  - Frontend interceptor sets header `Authorization: Bearer <token>` from `localStorage.getItem('accessToken')`.
-
-Where to look for answers (key files)
-- Backend entry / DI: `ledgerly-api/src/main.ts`, `ledgerly-api/src/app.module.ts`.
-- DB config / migrations: `ledgerly-api/data-source.ts`, `ledgerly-api/src/migrations/`.
-- Auth: `ledgerly-api/src/auth/{auth.controller.ts,auth.service.ts,jwt.strategy.ts}`.
-- Entities & modules: `ledgerly-api/src/{users,accounts,categories,transactions,budgets,debts,AIChat,reports}`.
-- Frontend API callers: `ledgerly_app/src/services/*` (notable: `api.ts`, `auth.ts`, `transactions.ts`, `reports.ts`).
-- Frontend UI patterns: `ledgerly_app/src/components/Layout.tsx` (global layout + localStorage-based user), pages under `ledgerly_app/src/pages`.
-
-If you need to change behavior
-- When updating API routes, run migration and update any front-end service using that route (grep `ledgerly_app/src/services` for usages).
-- When changing JWT signing/validation, update `process.env` usage in `auth.service.ts` and `jwt.strategy.ts` and ensure env is present in dev/test.
-
-If something isn't discoverable here
-- Check `ledgerly-api/README.md` and `ledgerly_app/README.md` for high-level setup hints.
-- If env file is missing, create one in `ledgerly-api/` with the variables listed above for local dev. Always verify `PORT` matches the front-end baseURL or update `ledgerly_app/src/services/api.ts`.
-
-Questions or unclear sections? Reply which area you want expanded (e.g., migrations, auth token lifecycle, or common frontend edit patterns) and I'll iterate.
+- **Repo layout**: `ledgerly-api/` NestJS + TypeORM backend (PostgreSQL, schema `dbo`); `ledgerly_app/` Next.js 15 + React 19 + Tailwind frontend; docs live in `/docs` (Architecture, Development, API, DB schema, Troubleshooting).
+- **Dev servers**: backend `npm run start:dev` on 3001; frontend `npm run dev` on 3000; Windows shortcut `./start-apps.bat` to run both. Production: backend `npm run build && npm run start:prod`; frontend `npm run build && npm start`.
+- **Env setup**: backend `.env` requires DB_* (host/port/user/pass/name), `DB_SSL`, `JWT_SECRET`, `JWT_EXPIRES`, `PORT`, `NODE_ENV`, optional `OPENAI_API_KEY`, `FRONTEND_ORIGIN` (comma list of allowed origins, validated in `src/main.ts` with fallback to localhost/Vercel). Frontend `.env.local` needs `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://192.168.1.50:3001` if missing) and `NODE_ENV`.
+- **CORS/CSRF/auth**: Backend enables CORS with `credentials:true` and whitelisted origins; cookies carry JWT/refresh. CSRF middleware (`src/middlewares/csrf.middleware.ts`) issues/rotates `XSRF-TOKEN` on every GET and requires `X-CSRF-Token` header for unsafe methods. Frontend axios client (`src/services/api.ts`) auto-calls `initCsrf` before POST/PUT/PATCH/DELETE and injects the header + cookie. 401s trigger `/auth/refresh` retry; on refresh failure it clears client state and redirects to `/login`. Avoid manual token storage—use provided services/hooks.
+- **Frontend patterns**: Pages in `src/pages`, shared UI in `src/components` (e.g., `Layout.tsx` handles nav, theme, notifications, FAB for uploads). API calls live in `src/services/*` (wrap `api.ts` client). Auth flow uses `useAuth` hook (`src/hooks/useAuth.ts`) which calls `/auth/me` on mount and exposes `doLogin`, `doSignup`, `logoutapi`, `refreshUser`. Keep new API interactions inside `src/services` and consume via hooks.
+- **AI features**: Receipt OCR and audio parsing are wired through `UploadReceipt`/`UploadAudio` components using `uploadReceiptImage`/`uploadAudioFile` (see `src/services/ai.ts`). Backend AI routes sit under `/ai` module; expect longer latencies—surface toast states like existing flow in `Layout.tsx`.
+- **Database & migrations**: TypeORM datasource in `data-source.ts` sets schema `dbo` and points migrations to `dist/migrations/*.js`. After entity changes: `npm run migration:generate` then `npm run migration:run`; use `npm run migration:revert` to roll back. Do not enable synchronize in production.
+- **Testing & quality**: Backend: `npm run test`, `npm run test:e2e`, `npm run test:cov`, `npm run lint`, `npm run format`. Frontend: `npm run lint`, `npm run type-check`, `npm run test` (if configured). Run lint/type-check before PRs.
+- **API surface (quick)**: Auth `/auth/login|register|refresh|me|logout`; CRUD modules follow plural nouns (`/transactions`, `/accounts`, `/categories`, `/budgets`, `/debts`, `/recurring`); reports under `/reports/*`; AI under `/ai/parse-transaction`, `/ai/image`, `/ai/audio`. Use `src/services` as reference for payload shapes.
+- **Docs to consult first**: `/docs/QUICK_REFERENCE.md` (commands), `/docs/DEVELOPMENT.md` (setup, workflows), `/docs/ARCHITECTURE.md` (module map, data flows), `/docs/API_REFERENCE.md` (request/response), `/docs/DATABASE_SCHEMA.md` (tables, relations). Update relevant doc + `CHANGELOG.md` when changing behavior.
+- **Common pitfalls**: Missing `FRONTEND_ORIGIN` causes CORS fallback warning; set proper origins for deployed hosts. CSRF header mismatches return 403—ensure requests go through `api.ts`. DB schema fixed to `dbo`; adjust queries/migrations accordingly. Keep `withCredentials` true on axios calls.
