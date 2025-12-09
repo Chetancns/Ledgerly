@@ -162,7 +162,7 @@ Transaction categorization system.
 
 ### transactions
 
-Financial transaction records.
+Financial transaction records. Supports expense, income, savings, and transfer types.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -171,7 +171,7 @@ Financial transaction records.
 | accountId | UUID | NULLABLE, FOREIGN KEY | Source account |
 | categoryId | UUID | NULLABLE, FOREIGN KEY | Transaction category |
 | amount | NUMERIC(12,2) | NOT NULL | Transaction amount |
-| type | VARCHAR(20) | NOT NULL | Transaction type |
+| type | VARCHAR(20) | NOT NULL | Transaction type (expense, income, savings, transfer) |
 | description | TEXT | NULLABLE | Transaction description/notes |
 | transactionDate | DATE | NOT NULL | Date of transaction |
 | toAccountId | UUID | NULLABLE | Target account (for transfers) |
@@ -179,13 +179,16 @@ Financial transaction records.
 
 **Indexes:**
 - PRIMARY KEY on `id`
-- INDEX on `userId`
-- INDEX on `transactionDate`
+- INDEX on `userId` (for user-scoped queries)
+- INDEX on `transactionDate` (for date-range filters)
+- Composite INDEX on `(userId, transactionDate DESC)` (for most common queries)
+- Partial indexes on `categoryId` and `accountId` (only non-NULL values)
 
 **Foreign Keys:**
 - `userId` → `users.id` (CASCADE DELETE)
 - `accountId` → `accounts.id` (SET NULL)
 - `categoryId` → `categories.id` (SET NULL)
+- `toAccountId` → `accounts.id` (implicit, used for transfer validation)
 
 **Valid Types:**
 - `expense`: Money spent
@@ -197,6 +200,7 @@ Financial transaction records.
 - For `transfer` type, `toAccountId` must be set
 - Amount should be positive
 - TransactionDate should not be in future (recommended)
+- Account and category may be NULL (for unspecified entries)
 
 ---
 

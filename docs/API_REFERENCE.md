@@ -8,13 +8,18 @@ Production: Configure via NEXT_PUBLIC_API_BASE_URL
 
 ## Authentication
 
-All authenticated endpoints require a valid JWT token in HTTP-only cookies. The token is automatically included when using the configured Axios client.
+All authenticated endpoints require a valid JWT token in HTTP-only cookies (set by `/auth/login` or `/auth/register`). The shipped Axios client uses `withCredentials: true`, auto-fetches `/auth/csrf-token` before unsafe methods, and retries `/auth/refresh` on 401.
+
+For manual clients (curl/Postman):
+- Send the `accessToken`/`refreshToken` cookies.
+- Call `GET /auth/csrf-token` after login/refresh to obtain the latest token.
+- Include `X-CSRF-Token` on POST/PUT/PATCH/DELETE.
 
 ### Headers
 ```
-Authorization: Bearer <token> (if not using cookies)
 X-CSRF-Token: <csrf-token> (for POST/PUT/PATCH/DELETE)
 Content-Type: application/json
+Authorization: Bearer <token> (optional, if you are not using the cookies)
 ```
 
 ---

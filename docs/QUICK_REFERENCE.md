@@ -174,6 +174,12 @@ curl -X POST http://localhost:3001/auth/login \
   -c cookies.txt \
   -d '{"email":"test@example.com","password":"password123"}'
 
+# Fetch CSRF token (needed for POST/PUT/PATCH/DELETE)
+# Response: {"csrfToken":"..."} and rotates the XSRF-TOKEN cookie
+curl -X GET http://localhost:3001/auth/csrf-token \
+  -b cookies.txt -c cookies.txt
+# copy the csrfToken value into $CSRF (or manually paste below)
+
 # Get transactions (use cookies)
 curl -X GET http://localhost:3001/transactions \
   -b cookies.txt
@@ -181,6 +187,7 @@ curl -X GET http://localhost:3001/transactions \
 # Create transaction
 curl -X POST http://localhost:3001/transactions \
   -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF" \
   -b cookies.txt \
   -d '{"amount":"50.00","type":"expense","description":"Test"}'
 ```
@@ -258,7 +265,7 @@ npm install
 Check backend main.ts CORS config includes frontend URL
 
 ### "JWT expired"
-Clear browser cookies and localStorage, login again
+Clear browser cookies (and localStorage if any legacy tokens remain), then login again
 
 ## 📦 Dependency Management
 
