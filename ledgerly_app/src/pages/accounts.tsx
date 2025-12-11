@@ -131,7 +131,6 @@ export default function Accounts() {
               value={name}
               onChange={setName}
               placeholder="Account Name"
-              theme={theme}
               type="text"
             />
             </span>
@@ -140,7 +139,6 @@ export default function Accounts() {
               value={balance}
               onChange={setBalance}
               placeholder="Balance"
-              theme={theme}
               type="number"
             />
             <NeumorphicSelect
@@ -150,20 +148,21 @@ export default function Accounts() {
               value: acct,
               label: accountLabels[acct],
             }))}
-            theme={theme}
             placeholder="Select Account Type"
             />
             <ModernButton
               type="submit"
               color="indigo-600"
               variant="solid"
-              theme={theme}
+              size="md"
+              rounded="lg"
             >Add Account</ModernButton>
             <ModernButton
               onClick={onCancel}
-              color="gray-600"
-              variant="solid"
-              theme={theme}
+              color="red-600"
+              variant="outline"
+              size="md"
+              rounded="lg"
               type="button"
             >
               Cancel
@@ -223,7 +222,6 @@ export default function Accounts() {
               value={name}
               onChange={setName}
               placeholder="Account Name"
-              theme={theme}
               type="text"
               />
               <NeumorphicSelect
@@ -234,40 +232,36 @@ export default function Accounts() {
               label: accountLabels[acct],
             }))}
             placeholder="Select Account Type"
-            theme={theme}
           />
               <NeumorphicInput
                 value={balance}
                 onChange={setBalance}
                 placeholder="Balance"
-                theme={theme}
                 type="number"
               />
               <div className="flex gap-2">
-                <button
+                <ModernButton
                   type="submit"
-                  className="p-2 rounded-lg flex-1 font-semibold"
-                  style={{
-                    background: "var(--accent-secondary)",
-                    color: "var(--text-primary)",
-                  }}
+                  color="green-600"
+                  variant="solid"
+                  size="md"
+                  fullWidth
                 >
                   Update
-                </button>
-                <button
+                </ModernButton>
+                <ModernButton
                   type="button"
                   onClick={() => {
                     setShowModal(false);
                     setEditingId(null);
                   }}
-                  className="p-2 rounded-lg flex-1"
-                  style={{
-                    background: "var(--bg-tertiary)",
-                    color: "var(--text-primary)",
-                  }}
+                  color="red-600"
+                  variant="outline"
+                  size="md"
+                  fullWidth
                 >
                   Cancel
-                </button>
+                </ModernButton>
               </div>
             </form>
           </div>

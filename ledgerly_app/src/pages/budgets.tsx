@@ -430,7 +430,7 @@ export default function BudgetsPage() {
 
             <ModernButton
               onClick={() => setCopyConfirmOpen(true)}
-              color="green-400"
+              color="green-600"
               variant="outline"
               size="md"
               leftIcon={<ArrowPathIcon className="h-5 w-5" />}
@@ -454,26 +454,19 @@ export default function BudgetsPage() {
           >
             <div>
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>Start</label>
-              <input
+              <NeumorphicInput
                 type="date"
-                name="startDate"
                 value={form.startDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 rounded-lg"
-                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                onChange={(v: string) => setForm((p) => ({ ...p, startDate: v, endDate: getEndDateFor(p.period, v) }))}
               />
-             
             </div>
 
             <div>
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>End</label>
-              <input
+              <NeumorphicInput
                 type="date"
-                name="endDate"
                 value={form.endDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 rounded-lg"
-                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                onChange={(v: string) => setForm((p) => ({ ...p, endDate: v }))}
               />
             </div>
             
@@ -491,12 +484,18 @@ export default function BudgetsPage() {
                   { value: "yearly", label: "Yearly" },
                 ]}
                 placeholder="Period"
-                theme={theme}
               />
             </div>
 
             <div className="flex gap-2">
-              <ModernButton type="submit" onClick={() => loadData()} color="indigo-500" variant="outline" size="md" disabled={loading}>
+              <ModernButton 
+                type="submit" 
+                onClick={() => loadData()} 
+                color="emerald-600" 
+                variant="outline" 
+                size="md" 
+                disabled={loading}
+              >
                 Refresh
               </ModernButton>
               <ModernButton
@@ -507,8 +506,8 @@ export default function BudgetsPage() {
                     endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
                   }));
                 }}
-                color="yellow-400"
-                variant="ghost"
+                color="emerald-600"
+                variant="outline"
                 size="md"
               >
                 This month
@@ -637,7 +636,6 @@ export default function BudgetsPage() {
                         onChange={(v) => setForm((p) => ({ ...p, categoryId: v }))}
                         options={categories.map((c) => ({ value: c.id, label: c.name || "Unnamed" }))}
                         placeholder="Select Category"
-                        theme={theme}
                       />
 
                       {/* Native select fallback (keeps keyboard accessibility) */}
@@ -678,7 +676,6 @@ export default function BudgetsPage() {
                     placeholder="Amount"
                     type="number"
                     aria-label="Budget amount"
-                    theme={theme}
                   />
 
                   <label className="text-xs" style={{ color: "var(--text-muted)" }}>Period</label>
@@ -693,7 +690,6 @@ export default function BudgetsPage() {
                       { value: "bi-weekly", label: "Bi-Weekly" },
                       { value: "yearly", label: "Yearly" },
                     ]}
-                    theme={theme}
                   />
 
                   <div className="grid grid-cols-2 gap-2">
@@ -703,7 +699,6 @@ export default function BudgetsPage() {
                         value={form.startDate}
                         onChange={(v: string) => setForm((p) => ({ ...p, startDate: v, endDate: getEndDateFor(p.period, v) }))}
                         type="date"
-                        theme={theme}
                       />
                     </div>
                     <div>
@@ -712,7 +707,6 @@ export default function BudgetsPage() {
                         value={form.endDate}
                         onChange={(v: string) => setForm((p) => ({ ...p, endDate: v }))}
                         type="date"
-                        theme={theme}
                       />
                     </div>
                   </div>
@@ -723,7 +717,12 @@ export default function BudgetsPage() {
                   </div>
 
                   <div className="flex gap-3 justify-end mt-4">
-                    <ModernButton onClick={closeModal} variant="ghost" color="gray-400" disabled={actionLoading}>
+                    <ModernButton 
+                      onClick={closeModal} 
+                      variant="outline" 
+                      color="red-600" 
+                      disabled={actionLoading}
+                    >
                       Cancel
                     </ModernButton>
 
@@ -731,7 +730,8 @@ export default function BudgetsPage() {
                       type="button"
                       onClick={() => handleSubmit()}
                       leftIcon={<CheckIcon className="h-4 w-4" />}
-                      color="yellow-400"
+                      color="green-600"
+                      variant="solid"
                       disabled={actionLoading || categories.length === 0}
                     >
                       {editing ? "Update Budget" : "Create Budget"}

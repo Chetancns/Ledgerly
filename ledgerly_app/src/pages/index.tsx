@@ -498,9 +498,9 @@ useEffect(() => {
                     "
                     style={{
                       background:
-                        acc.type === "Savings"
+                        acc.type === "savings"
                           ? "linear-gradient(135deg, #4ade80, #22c55e)"
-                          : acc.type === "Credit"
+                          : acc.type === "credit_card"
                           ? "linear-gradient(135deg, #f87171, #ef4444)"
                           : "linear-gradient(135deg, #60a5fa, #3b82f6)",
                     }}
@@ -519,7 +519,7 @@ useEffect(() => {
                           acc.type === "savings"
                             ? "linear-gradient(135deg, #22c55e, #16a34a)"
                             : acc.type === "credit_card"
-                            ? "linear-gradient(135deg, #ef4444, #dc2626)"
+                            ? "linear-gradient(135  deg, #ef4444, #dc2626)"
                             : "linear-gradient(135deg, #3b82f6, #2563eb)",
                       }}
                     >
@@ -527,7 +527,7 @@ useEffect(() => {
                       {acc.type === "credit_card" && "💳"}
                       {acc.type === "cash" && "💵"}
                       {acc.type === "wallet" && "💼"}
-                      {!["savings", "credit_card", "cash", "wallet"].includes(acc.type) && "🏦"}
+                      {acc.type && !["savings", "credit_card", "cash", "wallet"].includes(acc.type) && "🏦"}
                     </div>
 
                     {/* Text */}

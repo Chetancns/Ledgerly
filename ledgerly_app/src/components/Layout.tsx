@@ -545,7 +545,7 @@ const stopRecording = () => {
               style={{
                 background: theme === 'dark' 
                   ? "linear-gradient(135deg, rgba(49, 46, 129, 0.98), rgba(88, 28, 135, 0.98))"
-                  : "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98))",
+                  : "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(5, 63, 121, 0.98))",
                 border: "1px solid var(--border-primary)",
               }}
             >

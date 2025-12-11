@@ -1,11 +1,19 @@
 import { motion } from "framer-motion";
+import { useTheme } from "@/context/ThemeContext";
 
 type NeumorphicInputProps = {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  type?: string;
-  theme?: "dark" | "light";
+  type?: "text" | "password" | "email" | "number" | "date" | "datetime-local" | "month" | "week" | "time" | "tel" | "url" | "search";
+  disabled?: boolean;
+  required?: boolean;
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
+  maxLength?: number;
+  readOnly?: boolean;
+  "aria-label"?: string;
 };
 
 export default function NeumorphicInput({
@@ -13,53 +21,60 @@ export default function NeumorphicInput({
   onChange,
   placeholder = "",
   type = "text",
-  theme = "dark",
+  disabled = false,
+  required = false,
+  min,
+  max,
+  step,
+  maxLength,
+  readOnly = false,
+  "aria-label": ariaLabel,
 }: NeumorphicInputProps) {
+  const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const baseBg = isDark ? "bg-[#1d1f24] text-white" : "bg-[#f4f4f6] text-black";
-  const softShadow = isDark
-    ? "shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33]"
-    : "shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff]";
+  const inputBg = isDark
+    ? "bg-slate-800/80 backdrop-blur-lg border-slate-700/60"
+    : "bg-slate-50/95 backdrop-blur-lg border-slate-300/80";
 
-  const focusShadow = isDark
-    ? "shadow-[inset_4px_4px_10px_#0e0f11,inset_-4px_-4px_10px_#2c2f33]"
-    : "shadow-[inset_3px_3px_8px_#d1d1d4,inset_-3px_-3px_8px_#ffffff]";
+  const inputText = isDark ? "text-white" : "text-slate-900";
+  const placeholderColor = isDark ? "placeholder:text-slate-400" : "placeholder:text-slate-500";
+
+  const focusStyle = isDark
+    ? "focus:border-blue-500/80 focus:ring-1 focus:ring-blue-500/50 focus:shadow-lg focus:shadow-blue-500/20"
+    : "focus:border-blue-400/80 focus:ring-1 focus:ring-blue-400/50 focus:shadow-lg focus:shadow-blue-400/20";
+
+  const disabledStyle = disabled
+    ? isDark
+      ? "bg-slate-700/40 text-slate-400 cursor-not-allowed"
+      : "bg-slate-200/50 text-slate-400 cursor-not-allowed"
+    : "";
 
   return (
     <motion.div
       initial={false}
-      animate={{ scale: value ? 1.01 : 1 }} // optional micro animation
-      transition={{ type: "spring", stiffness: 250, damping: 20 }}
-      className="
-        w-full rounded-2xl transition-all duration-200
-      "
+      className="w-full"
     >
       <motion.input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-            if (e.key === "Enter") {
-            e.preventDefault(); // ⛔️ stops form submission
-            }
-        }}
         placeholder={placeholder}
+        disabled={disabled}
+        required={required}
+        readOnly={readOnly}
+        min={min}
+        max={max}
+        step={step}
+        maxLength={maxLength}
+        aria-label={ariaLabel}
         className={`
-          w-full px-4 py-3 rounded-2xl outline-none
-          ${baseBg} ${softShadow}
-          placeholder:${isDark ? "text-white/40" : "text-black/40"}
+          w-full px-4 py-3 rounded-xl outline-none border-2 font-medium
           transition-all duration-200
+          ${inputBg} ${inputText} ${placeholderColor} ${focusStyle} ${disabledStyle}
+          shadow-md
         `}
-        whileFocus={{
-          scale: 1.015,
-        }}
-        onFocus={(e) => {
-          e.currentTarget.classList.add(...focusShadow.split(" "));
-        }}
-        onBlur={(e) => {
-          e.currentTarget.classList.remove(...focusShadow.split(" "));
-        }}
+        whileFocus={{ scale: 1.01 }}
       />
     </motion.div>
   );

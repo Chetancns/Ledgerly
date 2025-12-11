@@ -3,6 +3,11 @@ import { useState, useEffect, FormEvent } from "react";
 import { createDebt } from "@/services/debts";
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
+import NeumorphicInput from "./NeumorphicInput";
+import NeumorphicSelect from "./NeumorphicSelect";
+import ModernButton from "./NeumorphicButton";
+import toast from "react-hot-toast";
+import { useTheme } from "@/context/ThemeContext";
 
 // If you have a shared Frequency type, import instead.
 // For safety we define the const here:
@@ -11,6 +16,7 @@ type Frequency = typeof FREQUENCIES[number];
 const isFrequency = (v: any): v is Frequency => FREQUENCIES.includes(v);
 
 export default function DebtForm({ onCreated }: { onCreated: () => void }) {
+  const { theme } = useTheme();
   const today = new Date().toISOString().split("T")[0];
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -122,69 +128,79 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <div 
-      className="backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full p-6 md:p-10"
+      className="backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden w-full p-2 md:p-6"
       style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
     >
       <h2 className="text-2xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Add Debt</h2>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-2">
         {/* Debt name */}
         <div className="md:col-span-2">
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Debt Name</label>
-          <input name="name" value={form.name} onChange={handleChange}
+          <NeumorphicInput 
+            value={form.name} 
+            onChange={(v) => setForm((prev) => ({ ...prev, name: v }))}
             placeholder="e.g. Car Loan (Chase)"
-            className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+            type="text"
+          />
         </div>
 
         {/* Account */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Account</label>
-          <select name="accountId" value={form.accountId} onChange={handleChange}
-            className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}>
-            <option value="">Select Account</option>
-            {loadingAccounts ? <option>Loading...</option> : accounts.map(a => (
-              <option key={a.id} value={a.id}>{a.name} ({a.type})</option>
-            ))}
-          </select>
+          <NeumorphicSelect 
+            value={form.accountId} 
+            onChange={(v) => setForm((prev) => ({ ...prev, accountId: v }))}
+            options={loadingAccounts ? [] : accounts.map(a => ({ value: a.id, label: `${a.name} (${a.type})` }))}
+            placeholder={loadingAccounts ? "Loading..." : "Select Account"}
+          />
         </div>
 
         {/* Principal */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Principal (original amount)</label>
-          <input name="principalAmount" value={form.principalAmount} onChange={handleChange}
-            inputMode="decimal" placeholder="5000.00" className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <NeumorphicInput 
+            value={form.principalAmount} 
+            onChange={(v) => setForm((prev) => ({ ...prev, principalAmount: v }))}
+            placeholder="5000.00" 
+            type="number"
+          />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Total loan amount when issued. Used to compute installments if Term is provided.</p>
         </div>
 
         {/* Current balance */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Current balance (remaining)</label>
-          <input name="currentBalance" value={form.currentBalance} onChange={handleChange}
-            inputMode="decimal" placeholder="Leave blank to set = Principal" className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <NeumorphicInput 
+            value={form.currentBalance} 
+            onChange={(v) => setForm((prev) => ({ ...prev, currentBalance: v }))}
+            placeholder="Leave blank to set = Principal" 
+            type="number"
+          />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>What you still owe now. Defaults to Principal if empty.</p>
         </div>
 
         {/* Term months */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Term (months)</label>
-          <input name="termMonths" value={form.termMonths} onChange={handleChange}
-            inputMode="numeric" placeholder="e.g. 60" className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <NeumorphicInput 
+            value={form.termMonths} 
+            onChange={(v) => setForm((prev) => ({ ...prev, termMonths: v }))}
+            placeholder="e.g. 60" 
+            type="number"
+          />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Optional. If provided and auto-calc is ON, installment is calculated as Principal / (term × frequency multiplier).</p>
         </div>
 
         {/* Frequency */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Frequency</label>
-          <select name="frequency" value={form.frequency} onChange={handleChange}
-            className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}>
-            {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
+          <NeumorphicSelect 
+            value={form.frequency} 
+            onChange={(v) => setForm((prev) => ({ ...prev, frequency: v as Frequency }))}
+            options={FREQUENCIES.map(f => ({ value: f, label: f }))}
+            placeholder="Select Frequency"
+          />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Payment cadence (weekly / biweekly / monthly).</p>
         </div>
 
@@ -198,35 +214,48 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
         {/* Installment amount */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Installment amount</label>
-          <input name="installmentAmount" value={form.installmentAmount} onChange={handleChange}
-            inputMode="decimal" placeholder="e.g. 250.00" className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <NeumorphicInput 
+            value={form.installmentAmount} 
+            onChange={(v) => setForm((prev) => ({ ...prev, installmentAmount: v }))}
+            placeholder="e.g. 250.00" 
+            type="number"
+          />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Amount to pay each period. Auto-filled when Auto-calc is on and Term is provided.</p>
         </div>
 
         {/* Start Date */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Start date (loan start)</label>
-          <input type="date" name="startDate" value={form.startDate} onChange={handleChange}
-            className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <NeumorphicInput 
+            value={form.startDate} 
+            onChange={(v) => setForm((prev) => ({ ...prev, startDate: v }))}
+            type="date"
+          />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>The date loan started or when payments begin.</p>
         </div>
 
         {/* Next Due Date */}
         <div>
           <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Next due date</label>
-          <input type="date" name="nextDueDate" value={form.nextDueDate} onChange={handleChange}
-            className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+          <NeumorphicInput 
+            value={form.nextDueDate} 
+            onChange={(v) => setForm((prev) => ({ ...prev, nextDueDate: v }))}
+            type="date"
+          />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Next scheduled payment date. Defaults to Start date but you can change it.</p>
         </div>
 
         {/* submit */}
         <div className="md:col-span-2">
-          <button type="submit" className="w-full py-3 font-semibold rounded" style={{ background: "var(--accent-primary)", color: "var(--text-inverse)" }}>
+          <ModernButton 
+            type="submit" 
+            color="indigo-600" 
+            variant="solid" 
+            size="lg"
+            fullWidth
+          >
             Add Debt
-          </button>
+          </ModernButton>
         </div>
       </form>
     </div>

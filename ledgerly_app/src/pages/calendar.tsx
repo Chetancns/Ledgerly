@@ -11,6 +11,8 @@ import { getRecurringTransactions } from "@/services/recurring";
 import { getUserAccount } from "@/services/accounts";
 import { getUserCategory } from "@/services/category";
 import { useTheme } from "@/context/ThemeContext";
+import NeumorphicSelect from "@/components/NeumorphicSelect";
+import ModernButton from "@/components/NeumorphicButton";
 
 interface DailyAggregate {
   date: string; // YYYY-MM-DD
@@ -185,43 +187,39 @@ export default function CalendarPage() {
         <div className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-4 sm:mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 flex-1">
-              <select
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1"
-                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-              >
-                {months.map((m, i) => (
-                  <option key={m} value={i + 1}>{m}</option>
-                ))}
-              </select>
-              <select
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1"
-                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-              >
-                {Array.from({ length: 6 }).map((_, i) => {
+              <NeumorphicSelect
+                value={String(month)}
+                onChange={(v) => setMonth(Number(v))}
+                options={months.map((m, i) => ({ value: String(i + 1), label: m }))}
+                placeholder="Select Month"
+              />
+              <NeumorphicSelect
+                value={String(year)}
+                onChange={(v) => setYear(Number(v))}
+                options={Array.from({ length: 6 }).map((_, i) => {
                   const y = today.year() - 3 + i;
-                  return <option key={y} value={y}>{y}</option>;
+                  return { value: String(y), label: String(y) };
                 })}
-              </select>
+                placeholder="Select Year"
+              />
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <ModernButton
                 onClick={() => { const prev = startOfMonth.subtract(1, "month"); setMonth(prev.month() + 1); setYear(prev.year()); }}
-                className="px-3 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1 sm:flex-none"
-                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                color="cyan-600"
+                variant="outline"
+                size="md"
               >
                 ◀ Prev
-              </button>
-              <button
+              </ModernButton>
+              <ModernButton
                 onClick={() => { const next = startOfMonth.add(1, "month"); setMonth(next.month() + 1); setYear(next.year()); }}
-                className="px-3 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-sm sm:text-base flex-1 sm:flex-none"
-                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                color="cyan-600"
+                variant="outline"
+                size="md"
               >
                 Next ▶
-              </button>
+              </ModernButton>
             </div>
           </div>
         </div>

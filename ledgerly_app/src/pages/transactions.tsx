@@ -15,6 +15,7 @@ import {motion,AnimatePresence} from "framer-motion";
 import clsx from "clsx";
 import { div } from "framer-motion/client";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
+import ModernButton from "@/components/NeumorphicButton";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -400,27 +401,29 @@ export default function Transactions() {
             </div>
             
             <div className="flex items-center gap-2">
-              <button
+              <ModernButton
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition"
-                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                color="indigo-600"
+                variant="outline"
+                size="sm"
               >
                 Previous
-              </button>
+              </ModernButton>
               
               <span className="font-semibold px-4" style={{ color: "var(--text-primary)" }}>
                 Page {currentPage} of {Math.ceil(totalTransactions / pageSize)}
               </span>
               
-              <button
+              <ModernButton
                 onClick={() => setCurrentPage(Math.min(Math.ceil(totalTransactions / pageSize), currentPage + 1))}
                 disabled={currentPage >= Math.ceil(totalTransactions / pageSize)}
-                className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition"
-                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                color="indigo-600"
+                variant="outline"
+                size="sm"
               >
                 Next
-              </button>
+              </ModernButton>
             </div>
           </div>
         </div>
@@ -499,20 +502,24 @@ export default function Transactions() {
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            <button
+            <ModernButton
               onClick={() => handleEdit(t)}
-              className="text-blue-600 hover:text-blue-800 transition"
-              title="Edit"
+              color="blue-600"
+              variant="ghost"
+              size="sm"
+              leftIcon="✏️"
             >
-              ✏️
-            </button>
-            <button
+              Edit
+            </ModernButton>
+            <ModernButton
               onClick={() => setDeleteConfirm(t.id)}
-              className="text-red-600 hover:text-red-800 transition"
-              title="Delete"
+              color="red-600"
+              variant="ghost"
+              size="sm"
+              leftIcon={<TrashIcon className="h-4 w-4" />}
             >
-              <TrashIcon className="h-4 w-4" />
-            </button>
+              Delete
+            </ModernButton>
           </div>
         </div>
       </li>
@@ -569,20 +576,24 @@ export default function Transactions() {
               {t.type ? tLabels[t.type] : 'Unknown'}
             </td>
             <td className="px-3 py-2 text-right flex gap-2 justify-end">
-              <button
+              <ModernButton
                 onClick={() => handleEdit(t)}
-                className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
-                title="Edit"
+                color="blue-600"
+                variant="ghost"
+                size="sm"
+                leftIcon="✏️"
               >
-                ✏️
-              </button>
-              <button
+                Edit
+              </ModernButton>
+              <ModernButton
                 onClick={() => setDeleteConfirm(t.id)}
-                className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
-                title="Delete"
+                color="red-600"
+                variant="ghost"
+                size="sm"
+                leftIcon={<TrashIcon className="h-4 w-4" />}
               >
-                <TrashIcon className="h-4 w-4" />
-              </button>
+                Delete
+              </ModernButton>
             </td>
           </tr>
         );

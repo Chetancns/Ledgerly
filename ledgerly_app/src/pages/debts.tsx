@@ -10,10 +10,10 @@ export default function DebtsPage() {
   return (
     <Layout>
         <div 
-          className="mx-auto backdrop-blur-lg rounded-2xl shadow-2xl p-8 w-full"
+          className="mx-auto backdrop-blur-lg rounded-2xl shadow-2xl p-4 w-full"
           style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
         >
-          <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Debt Management</h1>
+          <h1 className="text-3xl font-bold m-2" style={{ color: "var(--text-primary)" }}>Debt Management</h1>
 
           <DebtForm onCreated={() => setRefresh(refresh + 1)} />
 

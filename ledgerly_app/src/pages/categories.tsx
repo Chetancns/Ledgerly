@@ -102,7 +102,6 @@ const onCancel = () => {
               value={name}
               onChange={setName}
               placeholder="Category Name"
-              theme={theme}
               type="text"
             />
             <NeumorphicSelect
@@ -110,22 +109,23 @@ const onCancel = () => {
               onChange={(val) => setType(val as CategoryType)}
               options={categoryTypes}
               placeholder="Select Category Type"
-              theme={theme}
             />
             <ModernButton
               type="submit"
               color="indigo-600"
               variant="solid"
-              theme={theme}
+              size="md"
+              rounded="lg"
             >
               Add Category
             </ModernButton>
             <ModernButton
               type="button"
               onClick={onCancel}
-              color="gray-600"
-              variant="solid"
-              theme={theme}
+              color="red-600"
+              variant="outline"
+              size="md"
+              rounded="lg"
             >
               Cancel
             </ModernButton>
@@ -214,27 +214,25 @@ const onCancel = () => {
           <option value="income">Income</option>
         </select>
         <div className="flex gap-2">
-          <button
+          <ModernButton
             type="submit"
-            className="p-2 rounded-lg flex-1 font-semibold"
-            style={{
-              background: "var(--accent-secondary)",
-              color: "var(--text-primary)",
-            }}
+            color="green-600"
+            variant="solid"
+            size="md"
+            fullWidth
           >
             Update
-          </button>
-          <button
+          </ModernButton>
+          <ModernButton
             type="button"
             onClick={onCancel}
-            className="p-2 rounded-lg flex-1"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: "var(--text-primary)",
-            }}
+            color="red-600"
+            variant="outline"
+            size="md"
+            fullWidth
           >
             Cancel
-          </button>
+          </ModernButton>
         </div>
       </form>
     </div>

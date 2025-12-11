@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import NeumorphicSelect from "./NeumorphicSelect";
 import NeumorphicInput from "./NeumorphicInput";
 import ModernButton from "./NeumorphicButton";
+import { useTheme } from "@/context/ThemeContext";
 
 type TransactionFormData = Omit<Transaction, "id">;
 
@@ -36,13 +37,14 @@ export default function TransactionForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [showImportPopup, setShowImportPopup] = useState(false);
   const [importInput, setImportInput] = useState("");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   // 🔹 new state for type + destination
   const [kind, setKind] = useState<"normal" | "transfer" | "savings">("normal");
   const [toAccountId, setToAccountId] = useState<string>("");
 
   // 🔹 new state for import loading / progress
   const [importLoading, setImportLoading] = useState(false);
+  
+  const { theme } = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -211,35 +213,37 @@ export default function TransactionForm({
   };
 
   return (
-      <div className="relative bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
-                      backdrop-blur-2xl rounded-2xl shadow-xl p-4 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible">
-        <h2 className="text-2xl font-semibold text-white mb-2 flex items-center gap-2">
+      <div className={`relative backdrop-blur-2xl rounded-2xl shadow-xl p-4 w-full transition-all duration-300 overflow-visible border
+        ${theme === "dark" 
+          ? "bg-gradient-to-br from-indigo-900/80 to-pink-800/60 border-white/10 hover:shadow-pink-500/10" 
+          : "bg-gradient-to-br from-blue-50/60 to-slate-100/60 border-slate-300/50 hover:shadow-blue-400/10"
+        }`}>
+        <h2 className={`text-2xl font-semibold mb-2 flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
           {transaction ? "✏️ Edit Transaction" : "➕ Add Transaction"}
         </h2>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {/* Account */}
           <div>
-            <label htmlFor="accountId" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="accountId" className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
               Account
             </label>
               <NeumorphicSelect 
                 options={accounts.map(acc => ({
                     value: acc.id,
                     label: acc.name ?? "Unnamed Account"
-                  }))}
+                  }))}  
                 value={form.accountId}
                 onChange={(val) =>
                     setForm((prev) => ({ ...prev, accountId: val }))
                   }
                 placeholder="Select Account"
-                theme={theme}
               />
           </div>
 
           {/* Category */}
           <div>
-            <label htmlFor="categoryId" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="categoryId" className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
               Category
             </label>
             <NeumorphicSelect
@@ -252,14 +256,13 @@ export default function TransactionForm({
                 setForm((prev) => ({ ...prev, categoryId: val }))
               }
               placeholder="Select Category"
-              theme={theme}
             />
 
           </div>
 
           {/* Amount */}
           <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="amount" className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
               Amount
             </label>
             <NeumorphicInput
@@ -269,13 +272,12 @@ export default function TransactionForm({
               onChange={(val) =>
                 setForm((prev) => ({ ...prev, amount: val }))
               }
-              theme={theme}
             />
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="description" className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
               Description
             </label>
             <NeumorphicInput
@@ -285,13 +287,12 @@ export default function TransactionForm({
               onChange={(val) =>
                 setForm((prev) => ({ ...prev, description: val }))
               }
-              theme={theme}
             />
           </div>
 
           {/* Transaction Date */}
           <div>
-            <label htmlFor="transactionDate" className="block text-sm font-medium text-white/80 mb-2">
+            <label htmlFor="transactionDate" className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
               Transaction Date
             </label>
             <NeumorphicInput
@@ -301,21 +302,19 @@ export default function TransactionForm({
               onChange={(val) =>
                 setForm((prev) => ({ ...prev, transactionDate: val }))
               }
-              theme={theme}
             />
           </div>
 
           {/* To Account (only for transfer/savings) */}
           {(kind === "transfer" || kind === "savings") && (
             <div className="relative">
-              <label htmlFor="toAccountId" className="block text-sm font-medium text-white/80 mb-2">
+              <label htmlFor="toAccountId" className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>
                 {kind === "transfer" ? "Destination Account" : "Savings Account"}
               </label>
               <NeumorphicSelect
                 placeholder="Select Destination Account"
                 value={toAccountId}
                 onChange={(val) => setToAccountId(val)}
-                theme={theme}
                 options={accounts
                   .filter((acc) => acc.id !== form.accountId)
                   .map((acc) => ({
@@ -328,7 +327,7 @@ export default function TransactionForm({
 
           {/* Transaction Type */}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-white/80 mb-2">Transaction Type</label>
+            <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-white/80" : "text-slate-700"}`}>Transaction Type</label>
             <div className="flex gap-3">
               {["normal", "transfer", "savings"].map((t) => (
                 <button
@@ -338,8 +337,12 @@ export default function TransactionForm({
                   className={`px-4 py-2 rounded-xl font-semibold w-1/3 transition-all duration-200 
                     ${
                       kind === t
-                        ? "bg-blue-400 text-indigo-900 shadow-lg shadow-blue-500/20"
-                        : "bg-white/10 text-white hover:bg-white/20"
+                        ? theme === "dark"
+                          ? "bg-blue-400 text-indigo-900 shadow-lg shadow-blue-500/20"
+                          : "bg-blue-500 text-white shadow-lg shadow-blue-400/20"
+                        : theme === "dark"
+                          ? "bg-white/10 text-white hover:bg-white/20"
+                          : "bg-slate-300/40 text-slate-800 hover:bg-slate-300/60"
                     }`}
                 >
                   {t === "normal" ? "💸 Normal" : t === "transfer" ? "🔀 Transfer" : "🏦 Savings"}
@@ -353,10 +356,9 @@ export default function TransactionForm({
             {/* Add / Update Transaction */}
             <ModernButton
               type="submit"
-              color="yellow-400"
+              color="blue-600"
               variant="solid"
               size="lg"
-              theme={theme}
               className="flex-1 text-indigo-900 font-semibold"
             >
               {transaction ? "Update Transaction" : "Add Transaction"}
@@ -366,10 +368,9 @@ export default function TransactionForm({
             <ModernButton
               type="button"
               onClick={() => { resetForm(); onCancel?.(); }}
-              color="gray-600"
+              color="orange-600"
               variant="solid"
               size="lg"
-              theme={theme}
               className="text-white font-semibold"
             >
               Cancel
@@ -379,10 +380,9 @@ export default function TransactionForm({
             <ModernButton
               type="button"
               onClick={() => setShowImportPopup(true)}
-              color="blue-500"
+              color="cyan-600"
               variant="solid"
               size="lg"
-              theme={theme}
               className="text-white font-semibold"
               leftIcon={<span>📥</span>}
             >
@@ -394,16 +394,16 @@ export default function TransactionForm({
         {/* Import Popup */}
         {showImportPopup && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-zinc-900/90 border border-white/10 text-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
-              <h3 className="text-lg font-semibold mb-3">AI Transaction Import</h3>
-              <p className="text-sm text-gray-400 mb-4">
+            <div className={`border rounded-2xl p-6 w-full max-w-lg shadow-2xl ${theme === "dark" ? "bg-zinc-900/90 border-white/10 text-white" : "bg-white/90 border-slate-300/50 text-slate-900"}`}>
+              <h3 className={`text-lg font-semibold mb-3 ${theme === "dark" ? "text-white" : "text-slate-900"}`}>AI Transaction Import</h3>
+              <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-slate-600"}`}>
                 Paste transaction details below and let AI parse them automatically.
               </p>
 
               <textarea
                 value={importInput}
                 onChange={(e) => setImportInput(e.target.value)}
-                className="w-full h-32 p-3 rounded-xl bg-white/10 text-white/90 border border-white/10 mb-4 resize-y"
+                className={`w-full h-32 p-3 rounded-xl border mb-4 resize-y ${theme === "dark" ? "bg-white/10 text-white/90 border-white/10" : "bg-slate-100 text-slate-900 border-slate-300"}`}
                 placeholder="Example: 'Transfer 500 to Savings for groceries on 2025-11-08'"
                 disabled={importLoading}
               />
@@ -411,7 +411,7 @@ export default function TransactionForm({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowImportPopup(false)}
-                  className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-500 transition"
+                  className={`px-4 py-2 rounded-lg hover:opacity-80 transition ${theme === "dark" ? "bg-gray-600 text-white hover:bg-gray-500" : "bg-slate-400 text-white hover:bg-slate-500"}`}
                 >
                   Cancel
                 </button>
@@ -419,7 +419,7 @@ export default function TransactionForm({
                 <button
                   onClick={CallAIbackendAPI}
                   disabled={importLoading}
-                  className={`px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-400 flex items-center gap-2 transition 
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition ${theme === "dark" ? "bg-green-500 text-white hover:bg-green-400" : "bg-green-600 text-white hover:bg-green-700"}
                             ${importLoading ? "opacity-70 cursor-not-allowed" : ""}`}
                 >
                   {importLoading && (

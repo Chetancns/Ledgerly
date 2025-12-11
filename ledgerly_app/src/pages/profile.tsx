@@ -107,7 +107,6 @@ export default function ProfilePage() {
                 value={form.name}
                 onChange={(v) => setForm(f => ({ ...f, name: v }))}
                 placeholder="Your name"
-                theme={theme}
               />
             </div>
             <div>
@@ -117,7 +116,6 @@ export default function ProfilePage() {
                 onChange={(v) => setForm(f => ({ ...f, email: v }))}
                 placeholder="you@example.com"
                 type="email"
-                theme={theme}
               />
             </div>
             <div>
@@ -127,7 +125,6 @@ export default function ProfilePage() {
                 onChange={(v) => setForm(f => ({ ...f, currency: v }))}
                 options={ISO_4217}
                 placeholder="Select currency"
-                theme={theme}
               />
             </div>
           </section>
@@ -142,7 +139,6 @@ export default function ProfilePage() {
                   onChange={(v) => setForm(f => ({ ...f, currentPassword: v }))}
                   placeholder="••••••••"
                   type="password"
-                  theme={theme}
                 />
               </div>
               <div>
@@ -156,7 +152,6 @@ export default function ProfilePage() {
                     }}
                     placeholder="Password (min 12 chars)"
                     type="password"
-                    theme={theme}
                   />
                   {showPasswordHints && form.password && (
                     <div className="mt-2 text-xs space-y-1">
