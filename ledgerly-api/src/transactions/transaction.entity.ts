@@ -42,6 +42,18 @@ export class Transaction {
   @Index() @Column({ type: 'date' }) transactionDate: string;
 
   @Column({ type:'uuid', nullable: true }) toAccountId: string | null;
+
+  // Reimbursement fields
+  @Column({ type: 'varchar', length: 200, nullable: true }) counterpartyName?: string;
+  
+  @Column({ type: 'boolean', default: false }) isReimbursable: boolean;
+  
+  @Column({ type: 'varchar', length: 100, nullable: true }) settlementGroupId?: string | null;
+  
+  @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 }) reimbursedAmount: string;
+  
+  @Column({ type: 'text', nullable: true }) notes?: string;
+
   @CreateDateColumn() createdAt: Date;
   constructor(partial: Partial<Transaction>) {
     Object.assign(this, partial);

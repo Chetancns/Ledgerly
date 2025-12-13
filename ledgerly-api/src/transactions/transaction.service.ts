@@ -108,6 +108,9 @@ export class TransactionsService {
       categoryId?: string; 
       accountId?: string;
       type?: 'expense'|'income' | 'savings'|'transfer';
+      isReimbursable?: boolean;
+      settlementGroupId?: string;
+      counterpartyName?: string;
       skip?: number;
       take?: number;
     }
@@ -117,6 +120,9 @@ export class TransactionsService {
     if (filters?.categoryId) where.categoryId = filters.categoryId;
     if (filters?.accountId) where.accountId = filters.accountId;
     if (filters?.type) where.type = filters.type;
+    if (filters?.isReimbursable !== undefined) where.isReimbursable = filters.isReimbursable;
+    if (filters?.settlementGroupId) where.settlementGroupId = filters.settlementGroupId;
+    if (filters?.counterpartyName) where.counterpartyName = filters.counterpartyName;
     
     const order = { transactionDate: 'DESC' as const, createdAt: 'DESC' as const };
     
@@ -208,6 +214,76 @@ export class TransactionsService {
       // ✅ If anything above fails, TypeORM rolls back automatically
       return { deleted: true };
     });
+  }
+
+  /**
+   * Create a settlement for a group of reimbursable transactions
+   */
+  async createSettlement(userId: string, settlementGroupId: string, settlementAmount: string, settlementDate: string, notes?: string) {
+    // Find all transactions in this settlement group
+    const transactions = await this.txRepo.find({
+      where: {
+        userId,
+        settlementGroupId,
+        isReimbursable: true,
+      },
+    });
+
+    if (transactions.length === 0) {
+      throw new NotFoundException('No reimbursable transactions found for this settlement group');
+    }
+
+    const amount = parseSafeAmount(settlementAmount);
+    if (!amount) throw new BadRequestException('Invalid settlement amount');
+
+    // Calculate total pending reimbursement
+    const totalPending = transactions.reduce((sum, tx) => {
+      const txAmount = Number(tx.amount);
+      const reimbursed = Number(tx.reimbursedAmount);
+      return sum + (txAmount - reimbursed);
+    }, 0);
+
+    if (amount > totalPending) {
+      throw new BadRequestException('Settlement amount exceeds pending reimbursement total');
+    }
+
+    // Distribute settlement proportionally across transactions
+    let remainingAmount = amount;
+    for (const tx of transactions) {
+      const txAmount = Number(tx.amount);
+      const alreadyReimbursed = Number(tx.reimbursedAmount);
+      const pending = txAmount - alreadyReimbursed;
+
+      if (pending > 0 && remainingAmount > 0) {
+        const toReimburse = Math.min(pending, remainingAmount);
+        tx.reimbursedAmount = (alreadyReimbursed + toReimburse).toFixed(2);
+        remainingAmount -= toReimburse;
+        await this.txRepo.save(tx);
+      }
+    }
+
+    return {
+      settlementGroupId,
+      settledAmount: amount.toFixed(2),
+      settledDate: settlementDate,
+      transactionsUpdated: transactions.length,
+      notes,
+    };
+  }
+
+  /**
+   * Mark a transaction as reimbursable
+   */
+  async markReimbursable(userId: string, id: string, counterpartyName: string, settlementGroupId?: string) {
+    const tx = await this.txRepo.findOne({ where: { id, userId } });
+    if (!tx) throw new NotFoundException('Transaction not found');
+
+    tx.isReimbursable = true;
+    tx.counterpartyName = counterpartyName;
+    tx.settlementGroupId = settlementGroupId || null;
+    tx.reimbursedAmount = '0';
+
+    return this.txRepo.save(tx);
   }
 
 }

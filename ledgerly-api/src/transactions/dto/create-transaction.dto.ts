@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsUUID, IsOptional, IsNumberString, IsIn, IsDateString, IsString, IsNotEmpty } from 'class-validator';
+import { IsUUID, IsOptional, IsNumberString, IsIn, IsDateString, IsString, IsNotEmpty, IsBoolean } from 'class-validator';
 import { sanitizeInput } from '../../utils/sanitize.util';
 
 export class CreateTransactionDto {
@@ -19,6 +19,25 @@ export class CreateTransactionDto {
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   description?: string;
   @IsOptional() @IsUUID() toAccountId?: string | null; // for transfers, the destination account
+  
+  // Reimbursement fields
+  @IsOptional() 
+  @IsString()
+  @Transform(({ value }) => value ? sanitizeInput(value) : value)
+  counterpartyName?: string;
+  
+  @IsOptional() 
+  @IsBoolean()
+  isReimbursable?: boolean;
+  
+  @IsOptional() 
+  @IsString()
+  settlementGroupId?: string;
+  
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value ? sanitizeInput(value) : value)
+  notes?: string;
 }
 
 export class TransferDto {
@@ -45,3 +64,22 @@ export class TransferDto {
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   description: string;
 }
+
+export class SettlementDto {
+  @IsString()
+  @IsNotEmpty()
+  settlementGroupId: string;
+  
+  @IsNotEmpty()
+  @IsNumberString()
+  amount: string;
+  
+  @IsDateString()
+  date: string;
+  
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value ? sanitizeInput(value) : value)
+  notes?: string;
+}
+
