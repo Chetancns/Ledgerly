@@ -1,13 +1,17 @@
 // services/debts.ts
-import { Debt, DebtUpdate } from "@/models/debt";
+import { Debt, DebtUpdate, Repayment } from "@/models/debt";
 import api from "./api"; // your axios/fetch wrapper
 
-export async function getUserDebts(): Promise<Debt[]> {
-  const res = await api.get("/debts");
+export async function getUserDebts(filters?: {
+  role?: string;
+  status?: string;
+  counterpartyName?: string;
+}): Promise<Debt[]> {
+  const res = await api.get("/debts", { params: filters });
   return res.data;
 }
 
-export async function createDebt(debt: Omit<Debt, "id">): Promise<Debt> {
+export async function createDebt(debt: Partial<Debt>): Promise<Debt> {
   const res = await api.post("/debts", debt);
   return res.data;
 }
@@ -31,7 +35,40 @@ export async function catchUpDebts(): Promise<{ message: string }> {
   return res.data;
 }
 
-export async function payDebtEarly(id:string):Promise<Debt> {
+export async function payDebtEarly(id: string): Promise<Debt> {
   const res = await api.get(`/debts/${id}/pay-early`);
   return res.data;
 }
+
+// New repayment functions
+export async function addRepayment(
+  debtId: string,
+  data: {
+    amount: string;
+    adjustmentAmount?: string;
+    date: string;
+    notes?: string;
+  }
+): Promise<Debt> {
+  const res = await api.post(`/debts/${debtId}/repayments`, data);
+  return res.data;
+}
+
+export async function getRepayments(debtId: string): Promise<Repayment[]> {
+  const res = await api.get(`/debts/${debtId}/repayments`);
+  return res.data;
+}
+
+// Filtered debt queries
+export async function getLentDebts(): Promise<Debt[]> {
+  return getUserDebts({ role: 'lent' });
+}
+
+export async function getBorrowedDebts(): Promise<Debt[]> {
+  return getUserDebts({ role: 'borrowed' });
+}
+
+export async function getInstitutionalDebts(): Promise<Debt[]> {
+  return getUserDebts({ role: 'institutional' });
+}
+

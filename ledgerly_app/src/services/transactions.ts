@@ -23,6 +23,9 @@ export const getFilterTransactions = ({
   categoryId,
   accountId,
   type,
+  isReimbursable,
+  settlementGroupId,
+  counterpartyName,
   skip,
   take
 }: {
@@ -31,16 +34,22 @@ export const getFilterTransactions = ({
   categoryId?: string;
   accountId?: string;
   type?: string;
+  isReimbursable?: boolean;
+  settlementGroupId?: string;
+  counterpartyName?: string;
   skip?: number;
   take?: number;
 },options?:AxiosRequestConfig) => {
-  const params: Record<string, string | number> = {};
+  const params: Record<string, string | number | boolean> = {};
 
   if (from) params.from = from;
   if (to) params.to = to;
   if (categoryId) params.categoryId = categoryId;
   if (accountId) params.accountId = accountId;
   if (type) params.type = type;
+  if (isReimbursable !== undefined) params.isReimbursable = isReimbursable;
+  if (settlementGroupId) params.settlementGroupId = settlementGroupId;
+  if (counterpartyName) params.counterpartyName = counterpartyName;
   if (skip !== undefined) params.skip = skip;
   if (take !== undefined) params.take = take;
   //console.log(params);
@@ -57,6 +66,9 @@ export const getTransactionsWithPagination = async ({
   categoryId?: string;
   accountId?: string;
   type?: string;
+  isReimbursable?: boolean;
+  settlementGroupId?: string;
+  counterpartyName?: string;
   skip?: number;
   take?: number;
 }) => {
@@ -89,3 +101,20 @@ export const getTransactionSummary = ({
 };
 
 export const updateTransaction = (id:string, data:Partial<Transaction>)=> api.put(`/transactions/${id}`,data);
+
+// Reimbursement functions
+export const markReimbursable = (id: string, data: { counterpartyName: string; settlementGroupId?: string }) =>
+  api.patch(`/transactions/${id}/reimbursable`, data);
+
+export const createSettlement = (data: {
+  settlementGroupId: string;
+  amount: string;
+  date: string;
+  notes?: string;
+}) => api.post("/transactions/settlements", data);
+
+export const listReimbursables = (filters?: {
+  settlementGroupId?: string;
+  counterpartyName?: string;
+}) => getFilterTransactions({ isReimbursable: true, ...filters });
+

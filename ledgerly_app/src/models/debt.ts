@@ -3,22 +3,47 @@ import { Transaction } from "./Transaction";
 // models/debt.ts
 export const FREQUENCIES = ['weekly', 'biweekly', 'monthly'] as const;
 export type Frequency = typeof FREQUENCIES[number];
+
+export const DEBT_ROLES = ['lent', 'borrowed', 'institutional'] as const;
+export type DebtRole = typeof DEBT_ROLES[number];
+
+export const DEBT_STATUSES = ['open', 'settled', 'overdue'] as const;
+export type DebtStatus = typeof DEBT_STATUSES[number];
+
 export interface Debt {
   id: string;
   userId?: string;
   name: string;
-  accountId: string;
-  // store amounts as numbers client-side to make UI math easy
-  installmentAmount: number;
+  accountId?: string;
+  
+  // Core amounts
+  principal: number;
   currentBalance: number;
-  frequency: Frequency;
-  startDate: string; // ISO date (YYYY-MM-DD)
-  nextDueDate:string;
+  
+  // Role-based fields
+  role: DebtRole;
+  counterpartyName?: string;
+  paidAmount: number;
+  adjustmentTotal: number;
+  dueDate?: string;
+  status: DebtStatus;
+  notes?: string;
+  
+  // Institutional debt fields (optional)
+  installmentAmount?: number;
+  frequency?: Frequency;
+  startDate?: string;
+  nextDueDate?: string;
+  term?: number;
+  
+  // Timestamps
   createdAt?: string;
-  principal:number;
-  term:number;
+  updatedAt?: string;
+  
+  // Computed fields (from backend)
+  remaining?: string;
+  progress?: string;
 }
-
 
 // models/debtUpdate.ts
 export interface DebtUpdate {
@@ -26,6 +51,18 @@ export interface DebtUpdate {
   debtId: string;
   updateDate: string;
   transactionId: string;
-  transaction:Transaction,
+  transaction: Transaction;
   status: "paid" | "pending" | "skipped";
 }
+
+// models/repayment.ts
+export interface Repayment {
+  id: string;
+  debtId: string;
+  amount: string;
+  adjustmentAmount: string;
+  date: string;
+  notes?: string;
+  createdAt: string;
+}
+
