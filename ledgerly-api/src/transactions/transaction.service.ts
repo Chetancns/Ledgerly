@@ -247,8 +247,10 @@ export class TransactionsService {
       throw new BadRequestException('Settlement amount exceeds pending reimbursement total');
     }
 
-    // Distribute settlement proportionally across transactions
+    // Distribute settlement proportionally across transactions and collect updates
+    const updatedTransactions: Transaction[] = [];
     let remainingAmount = amount;
+    
     for (const tx of transactions) {
       const txAmount = Number(tx.amount);
       const alreadyReimbursed = Number(tx.reimbursedAmount);
@@ -258,15 +260,20 @@ export class TransactionsService {
         const toReimburse = Math.min(pending, remainingAmount);
         tx.reimbursedAmount = (alreadyReimbursed + toReimburse).toFixed(2);
         remainingAmount -= toReimburse;
-        await this.txRepo.save(tx);
+        updatedTransactions.push(tx);
       }
+    }
+
+    // Batch save all updated transactions
+    if (updatedTransactions.length > 0) {
+      await this.txRepo.save(updatedTransactions);
     }
 
     return {
       settlementGroupId,
       settledAmount: amount.toFixed(2),
       settledDate: settlementDate,
-      transactionsUpdated: transactions.length,
+      transactionsUpdated: updatedTransactions.length,
       notes,
     };
   }

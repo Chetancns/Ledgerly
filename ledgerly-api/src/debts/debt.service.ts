@@ -187,14 +187,22 @@ export class DebtService {
 
     await this.repaymentRepo.save(repayment);
 
-    // Update debt paidAmount and adjustmentTotal
-    debt.paidAmount = (parseFloat(debt.paidAmount) + parseFloat(dto.amount)).toFixed(2);
+    // Update debt paidAmount and adjustmentTotal using string-based arithmetic for precision
+    const currentPaidAmount = parseFloat(debt.paidAmount);
+    const newPayment = parseFloat(dto.amount);
+    debt.paidAmount = (currentPaidAmount + newPayment).toFixed(2);
+    
     if (dto.adjustmentAmount) {
-      debt.adjustmentTotal = (parseFloat(debt.adjustmentTotal) + parseFloat(dto.adjustmentAmount)).toFixed(2);
+      const currentAdjustment = parseFloat(debt.adjustmentTotal);
+      const newAdjustment = parseFloat(dto.adjustmentAmount);
+      debt.adjustmentTotal = (currentAdjustment + newAdjustment).toFixed(2);
     }
 
     // Calculate remaining: principal - paidAmount + adjustmentTotal
-    const remaining = parseFloat(debt.principal.toString()) - parseFloat(debt.paidAmount) + parseFloat(debt.adjustmentTotal);
+    const principal = Number(debt.principal);
+    const paidAmount = parseFloat(debt.paidAmount);
+    const adjustmentTotal = parseFloat(debt.adjustmentTotal);
+    const remaining = principal - paidAmount + adjustmentTotal;
     
     // Update status
     if (remaining <= 0) {
@@ -205,6 +213,7 @@ export class DebtService {
       debt.status = 'open';
     }
 
+    // For personal debts, currentBalance represents the remaining amount
     debt.currentBalance = Math.max(0, remaining).toFixed(2);
     await this.debtRepo.save(debt);
 
@@ -238,12 +247,18 @@ export class DebtService {
 
       if (d.role === 'lent' || d.role === 'borrowed') {
         // For personal debts: remaining = principal - paidAmount + adjustmentTotal
-        remaining = parseFloat(d.principal.toString()) - parseFloat(d.paidAmount) + parseFloat(d.adjustmentTotal);
-        progress = d.principal > 0 ? (parseFloat(d.paidAmount) / d.principal) * 100 : 0;
+        // currentBalance field stores the calculated remaining for display purposes
+        const principal = Number(d.principal);
+        const paidAmount = parseFloat(d.paidAmount);
+        const adjustmentTotal = parseFloat(d.adjustmentTotal);
+        remaining = principal - paidAmount + adjustmentTotal;
+        progress = principal > 0 ? (paidAmount / principal) * 100 : 0;
       } else {
-        // For institutional debts: use existing logic
+        // For institutional debts: currentBalance is actively maintained through catch-up
+        // and represents the actual outstanding balance
         remaining = parseFloat(d.currentBalance);
-        progress = d.principal > 0 ? ((d.principal - remaining) / d.principal) * 100 : 0;
+        const principal = Number(d.principal);
+        progress = principal > 0 ? ((principal - remaining) / principal) * 100 : 0;
       }
 
       return {
