@@ -73,6 +73,15 @@ export default function SettlementsPage() {
           return txAmount > reimbursed;
         });
         setPendingTransactions(pending);
+      } else {
+        // Load ALL pending transactions for the summary sections
+        const txRes = await listReimbursables({});
+        const pending = (txRes.data || []).filter((tx: Transaction) => {
+          const txAmount = Number(tx.amount);
+          const reimbursed = Number(tx.reimbursedAmount || 0);
+          return txAmount > reimbursed;
+        });
+        setPendingTransactions(pending);
       }
     } catch (err) {
       console.error('Failed to load data', err);
@@ -154,6 +163,45 @@ export default function SettlementsPage() {
     });
     
     return grouped;
+  };
+
+  // Helper: Transactions where you paid (they owe you)
+  const theyOweYou = () => {
+    return pendingTransactions.filter(tx => 
+      !tx.paidBy || tx.paidBy === 'you'
+    );
+  };
+
+  // Helper: Transactions where they paid (you owe them)
+  const youOweThem = () => {
+    return pendingTransactions.filter(tx => 
+      tx.paidBy && tx.paidBy !== 'you'
+    );
+  };
+
+  // Calculate net balance per counterparty
+  const getNetBalances = () => {
+    const balances = new Map<string, { theyOwe: number; youOwe: number }>();
+    
+    pendingTransactions.forEach(tx => {
+      const name = tx.counterpartyName || "Unknown";
+      if (!balances.has(name)) {
+        balances.set(name, { theyOwe: 0, youOwe: 0 });
+      }
+      
+      const txAmount = Number(tx.amount);
+      const reimbursed = Number(tx.reimbursedAmount || 0);
+      const remaining = txAmount - reimbursed;
+      
+      const balance = balances.get(name)!;
+      if (!tx.paidBy || tx.paidBy === 'you') {
+        balance.theyOwe += remaining;
+      } else {
+        balance.youOwe += remaining;
+      }
+    });
+    
+    return balances;
   };
 
   return (
@@ -339,6 +387,65 @@ export default function SettlementsPage() {
                 </button>
               </form>
             )}
+          </div>
+        )}
+
+        {/* Pending Balances Summary - Only show when not creating settlement */}
+        {!showForm && !loading && pendingTransactions.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* They Owe You */}
+            <div className="p-6 rounded-xl border" style={{ background: "var(--bg-card)", borderColor: "var(--color-success)" }}>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: "var(--color-success)" }}>
+                💰 They Owe You
+              </h3>
+              <div className="space-y-3">
+                {Array.from(getNetBalances().entries())
+                  .filter(([_, bal]) => bal.theyOwe > 0)
+                  .sort((a, b) => b[1].theyOwe - a[1].theyOwe)
+                  .map(([name, balance]) => (
+                    <div key={name} className="flex justify-between items-center p-3 rounded-lg" style={{ background: "var(--bg-card-hover)" }}>
+                      <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+                        {name}
+                      </span>
+                      <span className="font-semibold" style={{ color: "var(--color-success)" }}>
+                        {format(balance.theyOwe)}
+                      </span>
+                    </div>
+                  ))}
+                {Array.from(getNetBalances().entries()).filter(([_, bal]) => bal.theyOwe > 0).length === 0 && (
+                  <p className="text-center py-4" style={{ color: "var(--text-muted)" }}>
+                    No one owes you money
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* You Owe Them */}
+            <div className="p-6 rounded-xl border" style={{ background: "var(--bg-card)", borderColor: "var(--color-error)" }}>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: "var(--color-error)" }}>
+                💸 You Owe Them
+              </h3>
+              <div className="space-y-3">
+                {Array.from(getNetBalances().entries())
+                  .filter(([_, bal]) => bal.youOwe > 0)
+                  .sort((a, b) => b[1].youOwe - a[1].youOwe)
+                  .map(([name, balance]) => (
+                    <div key={name} className="flex justify-between items-center p-3 rounded-lg" style={{ background: "var(--bg-card-hover)" }}>
+                      <span className="font-medium" style={{ color: "var(--text-primary)" }}>
+                        {name}
+                      </span>
+                      <span className="font-semibold" style={{ color: "var(--color-error)" }}>
+                        {format(balance.youOwe)}
+                      </span>
+                    </div>
+                  ))}
+                {Array.from(getNetBalances().entries()).filter(([_, bal]) => bal.youOwe > 0).length === 0 && (
+                  <p className="text-center py-4" style={{ color: "var(--text-muted)" }}>
+                    You don't owe anyone
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
