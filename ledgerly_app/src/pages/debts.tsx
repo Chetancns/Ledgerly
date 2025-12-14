@@ -1,6 +1,6 @@
 // pages/debts.tsx
-import DebtForm from "@/components/DebtForm";
-import DebtList from "@/components/DebtList";
+import EnhancedDebtForm from "@/components/EnhancedDebtForm";
+import EnhancedDebtList from "@/components/EnhancedDebtList";
 import Layout from "@/components/Layout";
 import { useState } from "react";
 
@@ -15,13 +15,13 @@ export default function DebtsPage() {
         >
           <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Debt Management</h1>
 
-          <DebtForm onCreated={() => setRefresh(refresh + 1)} />
+          <EnhancedDebtForm onCreated={() => setRefresh(refresh + 1)} />
 
           <div 
             className="mt-8 rounded-2xl shadow-2xl p-6"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
           >
-            <DebtList key={refresh} />
+            <EnhancedDebtList key={refresh} />
           </div>
         </div>
     </Layout>

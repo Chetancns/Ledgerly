@@ -1,0 +1,395 @@
+// components/EnhancedDebtList.tsx
+import { useEffect, useState } from "react";
+import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
+import { Debt, DebtUpdate, Repayment } from "@/models/debt";
+import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, getRepayments } from "@/services/debts";
+import ConfirmModal from "@/components/ConfirmModal";
+import RepaymentModal from "@/components/RepaymentModal";
+import toast from "react-hot-toast";
+
+export default function EnhancedDebtList() {
+  const { format } = useCurrencyFormatter();
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
+  const [updates, setUpdates] = useState<DebtUpdate[]>([]);
+  const [repayments, setRepayments] = useState<Repayment[]>([]);
+  const [showPopup, setShowPopup] = useState(false);
+  const [showRepaymentModal, setShowRepaymentModal] = useState(false);
+  const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [filterRole, setFilterRole] = useState<"all" | "lent" | "borrowed" | "institutional">("all");
+
+  const loadDebts = async () => {
+    const res = await getUserDebts();
+    setDebts(res);
+  };
+
+  const handleCatchUp = async () => {
+    try {
+      await toast.promise(catchUpDebts(), {
+        loading: "Processing catch-up...",
+        success: "✅ Catch-up completed!",
+        error: "Catch-up failed",
+      });
+      loadDebts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSelectDebt = async (debt: Debt) => {
+    setSelectedDebt(debt);
+    setActiveDebt(debt);
+
+    if (debt.role === "institutional") {
+      const res = await getDebtUpdates(debt.id);
+      setUpdates(Array.isArray(res) ? res : res ?? []);
+      setRepayments([]);
+    } else {
+      const res = await getRepayments(debt.id);
+      setRepayments(Array.isArray(res) ? res : res ?? []);
+      setUpdates([]);
+    }
+
+    setShowPopup(true);
+  };
+
+  const handlePayDebtEarly = async (debt: Debt) => {
+    try {
+      await toast.promise(payDebtEarly(debt.id), {
+        loading: "Processing early payment...",
+        success: `✅ ${debt.name} paid early!`,
+        error: "Early payment failed",
+      });
+      loadDebts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddRepayment = (debt: Debt) => {
+    setActiveDebt(debt);
+    setShowRepaymentModal(true);
+  };
+
+  useEffect(() => {
+    loadDebts();
+  }, []);
+
+  const filteredDebts = debts.filter((debt) => {
+    if (filterRole === "all") return true;
+    return debt.role === filterRole;
+  });
+
+  const lentDebts = debts.filter((d) => d.role === "lent");
+  const borrowedDebts = debts.filter((d) => d.role === "borrowed");
+  const institutionalDebts = debts.filter((d) => d.role === "institutional");
+
+  const renderDebtCard = (debt: Debt) => {
+    const remaining = debt.remaining ? Number(debt.remaining) : 0;
+    const progress = debt.progress ? Number(debt.progress) : 0;
+
+    const getStatusColor = () => {
+      if (debt.status === "settled") return "var(--color-success)";
+      if (debt.status === "overdue") return "var(--color-error)";
+      return "var(--accent-secondary)";
+    };
+
+    const isPersonal = debt.role === "lent" || debt.role === "borrowed";
+
+    return (
+      <div
+        key={debt.id}
+        className="backdrop-blur-lg rounded-lg shadow-lg p-5 flex flex-col transition hover:scale-[1.02]"
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+      >
+        {/* Title + Role Badge */}
+        <div className="mb-3 flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+              {debt.name}
+            </h3>
+            {isPersonal && debt.counterpartyName && (
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                {debt.role === "lent" ? "Lent to:" : "Borrowed from:"} {debt.counterpartyName}
+              </p>
+            )}
+          </div>
+          <span
+            className="px-3 py-1 rounded-full text-xs font-semibold"
+            style={{
+              background: debt.role === "lent" ? "var(--color-success)" : debt.role === "borrowed" ? "var(--color-error)" : "var(--accent-secondary)",
+              color: "#fff",
+            }}
+          >
+            {debt.role === "lent" ? "💰 Lent" : debt.role === "borrowed" ? "💸 Borrowed" : "🏦 Institutional"}
+          </span>
+        </div>
+
+        {/* Debt Info */}
+        <div className="space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+          <p>
+            <strong>Principal:</strong> {format(debt.principal)}
+          </p>
+          <p>
+            <strong>Remaining:</strong> {format(remaining)}
+          </p>
+          <p>
+            <strong>Status:</strong>{" "}
+            <span style={{ color: getStatusColor(), fontWeight: "bold" }}>
+              {debt.status}
+            </span>
+          </p>
+          {!isPersonal && debt.installmentAmount && (
+            <p>
+              <strong>Installment:</strong> {format(debt.installmentAmount)}
+            </p>
+          )}
+          {!isPersonal && debt.term && (
+            <p>
+              <strong>Term:</strong> {debt.term} payments
+            </p>
+          )}
+          {!isPersonal && debt.nextDueDate && (
+            <p>
+              <strong>Next Due:</strong> {new Date(debt.nextDueDate).toLocaleDateString()}
+            </p>
+          )}
+          {isPersonal && debt.dueDate && (
+            <p>
+              <strong>Due:</strong> {new Date(debt.dueDate).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-3">
+          <div className="flex justify-between text-xs mb-1" style={{ color: "var(--text-muted)" }}>
+            <span>Progress</span>
+            <span>{progress.toFixed(1)}%</span>
+          </div>
+          <div
+            className="w-full rounded-full h-2 overflow-hidden"
+            style={{ background: "var(--skeleton-base)" }}
+          >
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{ width: `${progress}%`, background: getStatusColor() }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-between items-center mt-4 gap-2">
+          <button
+            className="px-3 py-1 rounded transition text-sm"
+            onClick={() => handleSelectDebt(debt)}
+            style={{ background: "var(--accent-secondary)", color: "#fff" }}
+          >
+            {isPersonal ? "View Repayments" : "View Updates"}
+          </button>
+
+          {isPersonal ? (
+            <button
+              className="px-3 py-1 rounded transition text-sm"
+              onClick={() => handleAddRepayment(debt)}
+              style={{ background: "var(--color-success)", color: "#fff" }}
+            >
+              Add Repayment
+            </button>
+          ) : (
+            <button
+              className="px-3 py-1 rounded transition text-sm"
+              onClick={() => handlePayDebtEarly(debt)}
+              style={{ background: "var(--color-warning)", color: "#fff" }}
+            >
+              Pay Early
+            </button>
+          )}
+
+          <button
+            onClick={() => setDeleteConfirm(debt.id)}
+            className="transition-transform hover:scale-110"
+            title="Delete"
+            style={{ color: "var(--color-error)" }}
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Filters */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+          Your Debts
+        </h2>
+
+        <div className="flex gap-2 flex-wrap">
+          {["all", "lent", "borrowed", "institutional"].map((role) => (
+            <button
+              key={role}
+              onClick={() => setFilterRole(role as any)}
+              className={`px-4 py-2 rounded-lg transition-all text-sm font-medium ${
+                filterRole === role
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              {role === "all" && "All"}
+              {role === "lent" && `💰 Lent (${lentDebts.length})`}
+              {role === "borrowed" && `💸 Borrowed (${borrowedDebts.length})`}
+              {role === "institutional" && `🏦 Institutional (${institutionalDebts.length})`}
+            </button>
+          ))}
+
+          {institutionalDebts.length > 0 && (
+            <button
+              onClick={handleCatchUp}
+              className="px-4 py-2 rounded transition"
+              style={{ background: "var(--color-success)", color: "#fff" }}
+            >
+              Catch Up All
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Debt Cards */}
+      {filteredDebts.length === 0 ? (
+        <div
+          className="text-center py-12 rounded-lg"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+        >
+          <p style={{ color: "var(--text-muted)" }}>
+            {filterRole === "all"
+              ? "No debts yet. Add one above!"
+              : `No ${filterRole} debts found.`}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredDebts.map((debt) => renderDebtCard(debt))}
+        </div>
+      )}
+
+      {/* Details Popup (Updates or Repayments) */}
+      {showPopup && selectedDebt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div
+            className="rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          >
+            <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+              {selectedDebt.name} - {selectedDebt.role === "institutional" ? "Updates" : "Repayments"}
+            </h3>
+
+            {/* Repayments (for personal debts) */}
+            {repayments.length > 0 && (
+              <ul className="space-y-4">
+                {repayments.map((r) => (
+                  <li key={r.id} className="p-4 rounded-lg shadow" style={{ background: "var(--bg-card-hover)" }}>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      <strong>Amount:</strong> {format(r.amount)}
+                      <br />
+                      {Number(r.adjustmentAmount) > 0 && (
+                        <>
+                          <strong>Adjustment:</strong> {format(r.adjustmentAmount)}
+                          <br />
+                        </>
+                      )}
+                      <strong>Date:</strong> {new Date(r.date).toLocaleDateString()}
+                      <br />
+                      {r.notes && (
+                        <>
+                          <strong>Notes:</strong> {r.notes}
+                        </>
+                      )}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Updates (for institutional debts) */}
+            {updates.length > 0 && (
+              <ul className="space-y-4">
+                {updates.map((u) => (
+                  <li key={u.id} className="p-4 rounded-lg shadow" style={{ background: "var(--bg-card-hover)" }}>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      <strong>Status:</strong> {u.status}
+                      <br />
+                      <strong>Update Date:</strong> {u.updateDate}
+                      <br />
+                      {u.transaction && (
+                        <>
+                          <strong>Amount:</strong> {format(u.transaction.amount)}
+                          <br />
+                          <strong>Description:</strong> {u.transaction.description}
+                        </>
+                      )}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {repayments.length === 0 && updates.length === 0 && (
+              <p className="text-center py-8" style={{ color: "var(--text-muted)" }}>
+                No {selectedDebt.role === "institutional" ? "updates" : "repayments"} yet.
+              </p>
+            )}
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowPopup(false)}
+                className="px-4 py-2 rounded transition"
+                style={{ background: "var(--accent-secondary)", color: "#fff" }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Repayment Modal */}
+      <RepaymentModal
+        open={showRepaymentModal}
+        debt={activeDebt}
+        onClose={() => setShowRepaymentModal(false)}
+        onSuccess={() => {
+          loadDebts();
+          setShowRepaymentModal(false);
+        }}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title="Delete Debt"
+        description="Delete this debt? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmColor="red-500"
+        loading={false}
+        onConfirm={async () => {
+          if (!deleteConfirm) return;
+          try {
+            await deleteDebt(deleteConfirm);
+            toast.success("Debt deleted.");
+            await loadDebts();
+          } catch (err) {
+            console.error("Debt delete failed", err);
+            toast.error("Delete failed. Please try again.");
+          } finally {
+            setDeleteConfirm(null);
+          }
+        }}
+        onClose={() => setDeleteConfirm(null)}
+      />
+    </div>
+  );
+}

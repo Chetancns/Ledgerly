@@ -44,6 +44,12 @@ export default function TransactionForm({
   // 🔹 new state for import loading / progress
   const [importLoading, setImportLoading] = useState(false);
 
+  // 🔹 new state for reimbursement
+  const [isReimbursable, setIsReimbursable] = useState(transaction?.isReimbursable || false);
+  const [counterpartyName, setCounterpartyName] = useState(transaction?.counterpartyName || "");
+  const [settlementGroupId, setSettlementGroupId] = useState(transaction?.settlementGroupId || "");
+  const [notes, setNotes] = useState(transaction?.notes || "");
+
   useEffect(() => {
     const fetchData = async () => {
       const [accRes, catRes] = await Promise.all([getUserAccount(), getUserCategory()]);
@@ -72,6 +78,12 @@ export default function TransactionForm({
     } else {
       setKind("normal");
     }
+
+    // 🔹 Load reimbursement data
+    setIsReimbursable(transaction.isReimbursable || false);
+    setCounterpartyName(transaction.counterpartyName || "");
+    setSettlementGroupId(transaction.settlementGroupId || "");
+    setNotes(transaction.notes || "");
   }
   }, [transaction]);
 
@@ -98,6 +110,10 @@ export default function TransactionForm({
   });
   setKind("normal");
   setToAccountId("");
+  setIsReimbursable(false);
+  setCounterpartyName("");
+  setSettlementGroupId("");
+  setNotes("");
 };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -120,6 +136,10 @@ export default function TransactionForm({
           ...form,
           transactionDate: toISOStringWithoutOffset(form.transactionDate),
           ...(kind === "transfer" || kind === "savings" ? { toAccountId, type: kind } : {}),
+          isReimbursable,
+          counterpartyName: isReimbursable ? counterpartyName : undefined,
+          settlementGroupId: isReimbursable ? settlementGroupId : undefined,
+          notes: notes || undefined,
         };
 
         return updateTransaction(transaction.id, payload);
@@ -146,6 +166,10 @@ export default function TransactionForm({
       return createTransaction({
         ...form,
         transactionDate: toISOStringWithoutOffset(form.transactionDate),
+        isReimbursable,
+        counterpartyName: isReimbursable ? counterpartyName : undefined,
+        settlementGroupId: isReimbursable ? settlementGroupId : undefined,
+        notes: notes || undefined,
       });
     })();
 
@@ -169,15 +193,7 @@ export default function TransactionForm({
     }
 
     // Reset form after success
-    setForm({
-      accountId: "",
-      categoryId: "",
-      amount: "",
-      description: "",
-      transactionDate: new Date().toISOString().split("T")[0],
-    });
-    setKind("normal");
-    setToAccountId("");
+    resetForm();
   } catch (error) {
     console.error("Transaction error:", error);
   }
@@ -325,6 +341,65 @@ export default function TransactionForm({
               />
             </div>
           )}
+
+          {/* Reimbursement Section */}
+          <div className="md:col-span-2 border-t border-white/10 pt-4 mt-2">
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="checkbox"
+                id="isReimbursable"
+                checked={isReimbursable}
+                onChange={(e) => setIsReimbursable(e.target.checked)}
+                className="w-5 h-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="isReimbursable" className="text-sm font-medium text-white/90 cursor-pointer">
+                💰 Mark as Reimbursable (will be paid back later)
+              </label>
+            </div>
+
+            {isReimbursable && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                <div>
+                  <label htmlFor="counterpartyName" className="block text-sm font-medium text-white/80 mb-2">
+                    Who will reimburse?
+                  </label>
+                  <NeumorphicInput
+                    type="text"
+                    placeholder="e.g., John, Sarah"
+                    value={counterpartyName}
+                    onChange={(val) => setCounterpartyName(val)}
+                    theme={theme}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="settlementGroupId" className="block text-sm font-medium text-white/80 mb-2">
+                    Settlement Group (optional)
+                  </label>
+                  <NeumorphicInput
+                    type="text"
+                    placeholder="e.g., weekend-trip, dinner-dec"
+                    value={settlementGroupId}
+                    onChange={(val) => setSettlementGroupId(val)}
+                    theme={theme}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label htmlFor="notes" className="block text-sm font-medium text-white/80 mb-2">
+                    Notes (optional)
+                  </label>
+                  <NeumorphicInput
+                    type="text"
+                    placeholder="Additional context about reimbursement"
+                    value={notes}
+                    onChange={(val) => setNotes(val)}
+                    theme={theme}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Transaction Type */}
           <div className="md:col-span-2">
