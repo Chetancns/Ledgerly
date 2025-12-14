@@ -1,6 +1,6 @@
 import { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import { Transaction } from "@/models/Transaction"; 
-import { createTransaction, onDelete, transfer, updateTransaction } from "@/services/transactions"; 
+import { createTransaction, onDelete, transfer, updateTransaction, getTransactionCounterparties, getTransactionSettlementGroups } from "@/services/transactions"; 
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
 import { Category } from "@/models/category";
@@ -50,11 +50,27 @@ export default function TransactionForm({
   const [settlementGroupId, setSettlementGroupId] = useState(transaction?.settlementGroupId || "");
   const [notes, setNotes] = useState(transaction?.notes || "");
 
+  // 🔹 Dropdown options for reimbursement
+  const [counterpartyOptions, setCounterpartyOptions] = useState<string[]>([]);
+  const [groupOptions, setGroupOptions] = useState<string[]>([]);
+
   useEffect(() => {
     const fetchData = async () => {
       const [accRes, catRes] = await Promise.all([getUserAccount(), getUserCategory()]);
       setAccounts(accRes);
       setCategories(catRes);
+      
+      // Load dropdown options for reimbursement
+      try {
+        const [counterparties, groups] = await Promise.all([
+          getTransactionCounterparties(),
+          getTransactionSettlementGroups()
+        ]);
+        setCounterpartyOptions(counterparties);
+        setGroupOptions(groups);
+      } catch (err) {
+        console.error('Failed to load dropdown options', err);
+      }
     };
     fetchData();
   }, []);
@@ -363,26 +379,46 @@ export default function TransactionForm({
                   <label htmlFor="counterpartyName" className="block text-sm font-medium text-white/80 mb-2">
                     Who will reimburse?
                   </label>
-                  <NeumorphicInput
+                  <input
                     type="text"
+                    id="counterpartyName"
+                    list="counterpartyOptions"
                     placeholder="e.g., John, Sarah"
                     value={counterpartyName}
-                    onChange={(val) => setCounterpartyName(val)}
-                    theme={theme}
+                    onChange={(e) => setCounterpartyName(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <datalist id="counterpartyOptions">
+                    {counterpartyOptions.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                  <div className="text-xs text-white/60 mt-1">
+                    Type or select from existing names
+                  </div>
                 </div>
 
                 <div>
                   <label htmlFor="settlementGroupId" className="block text-sm font-medium text-white/80 mb-2">
                     Settlement Group (optional)
                   </label>
-                  <NeumorphicInput
+                  <input
                     type="text"
+                    id="settlementGroupId"
+                    list="groupOptions"
                     placeholder="e.g., weekend-trip, dinner-dec"
                     value={settlementGroupId}
-                    onChange={(val) => setSettlementGroupId(val)}
-                    theme={theme}
+                    onChange={(e) => setSettlementGroupId(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <datalist id="groupOptions">
+                    {groupOptions.map((group) => (
+                      <option key={group} value={group} />
+                    ))}
+                  </datalist>
+                  <div className="text-xs text-white/60 mt-1">
+                    Type or select from existing groups
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
