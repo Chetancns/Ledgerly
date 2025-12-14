@@ -8,7 +8,6 @@ import toast from "react-hot-toast";
 
 const FREQUENCIES = ["weekly", "biweekly", "monthly"] as const;
 type Frequency = typeof FREQUENCIES[number];
-const isFrequency = (v: any): v is Frequency => FREQUENCIES.includes(v);
 
 export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void }) {
   const today = new Date().toISOString().split("T")[0];
