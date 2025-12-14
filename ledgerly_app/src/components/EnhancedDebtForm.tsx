@@ -30,6 +30,7 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
     counterpartyName: "",
     dueDate: "",
     notes: "",
+    settlementGroupId: "",
   });
 
   useEffect(() => {
@@ -97,6 +98,7 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
       payload.counterpartyName = form.counterpartyName;
       payload.dueDate = form.dueDate || undefined;
       payload.notes = form.notes || undefined;
+      payload.settlementGroupId = form.settlementGroupId || undefined;
       payload.accountId = form.accountId || undefined;
     } else {
       payload.accountId = form.accountId;
@@ -130,6 +132,7 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
         counterpartyName: "",
         dueDate: "",
         notes: "",
+        settlementGroupId: "",
       });
       setRole("institutional");
     } catch (err) {
@@ -215,23 +218,46 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
 
         {/* Counterparty Name (for personal debts) */}
         {(role === "lent" || role === "borrowed") && (
-          <div className="md:col-span-2">
-            <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
-              {role === "lent" ? "Person who borrowed" : "Person I borrowed from"} *
-            </label>
-            <input
-              name="counterpartyName"
-              value={form.counterpartyName}
-              onChange={handleChange}
-              placeholder="Enter name"
-              className="w-full px-3 py-2 rounded"
-              style={{
-                background: "var(--input-bg)",
-                color: "var(--input-text)",
-                border: "1px solid var(--input-border)",
-              }}
-            />
-          </div>
+          <>
+            <div className="md:col-span-2">
+              <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                {role === "lent" ? "Person who borrowed" : "Person I borrowed from"} *
+              </label>
+              <input
+                name="counterpartyName"
+                value={form.counterpartyName}
+                onChange={handleChange}
+                placeholder="Enter name"
+                className="w-full px-3 py-2 rounded"
+                style={{
+                  background: "var(--input-bg)",
+                  color: "var(--input-text)",
+                  border: "1px solid var(--input-border)",
+                }}
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                Settlement Group (optional)
+              </label>
+              <input
+                name="settlementGroupId"
+                value={form.settlementGroupId}
+                onChange={handleChange}
+                placeholder="e.g., weekend-trip, dec-expenses"
+                className="w-full px-3 py-2 rounded"
+                style={{
+                  background: "var(--input-bg)",
+                  color: "var(--input-text)",
+                  border: "1px solid var(--input-border)",
+                }}
+              />
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                Group multiple {role === "lent" ? "lendings" : "borrowings"} for batch settlement
+              </p>
+            </div>
+          </>
         )}
 
         {/* Principal/Amount */}

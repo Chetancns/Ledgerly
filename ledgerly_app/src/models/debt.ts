@@ -28,6 +28,7 @@ export interface Debt {
   dueDate?: string;
   status: DebtStatus;
   notes?: string;
+  settlementGroupId?: string;
   
   // Institutional debt fields (optional)
   installmentAmount?: number;

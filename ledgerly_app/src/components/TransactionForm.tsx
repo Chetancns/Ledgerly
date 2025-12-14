@@ -1,6 +1,6 @@
 import { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import { Transaction } from "@/models/Transaction"; 
-import { createTransaction, onDelete, transfer, updateTransaction, getTransactionCounterparties, getTransactionSettlementGroups } from "@/services/transactions"; 
+import { createTransaction, onDelete, transfer, updateTransaction } from "@/services/transactions"; 
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
 import { Category } from "@/models/category";
@@ -44,34 +44,13 @@ export default function TransactionForm({
   // 🔹 new state for import loading / progress
   const [importLoading, setImportLoading] = useState(false);
 
-  // 🔹 new state for reimbursement
-  const [isReimbursable, setIsReimbursable] = useState(transaction?.isReimbursable || false);
-  const [counterpartyName, setCounterpartyName] = useState(transaction?.counterpartyName || "");
-  const [settlementGroupId, setSettlementGroupId] = useState(transaction?.settlementGroupId || "");
   const [notes, setNotes] = useState(transaction?.notes || "");
-  const [paidBy, setPaidBy] = useState(transaction?.paidBy || "you");
-
-  // 🔹 Dropdown options for reimbursement
-  const [counterpartyOptions, setCounterpartyOptions] = useState<string[]>([]);
-  const [groupOptions, setGroupOptions] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       const [accRes, catRes] = await Promise.all([getUserAccount(), getUserCategory()]);
       setAccounts(accRes);
       setCategories(catRes);
-      
-      // Load dropdown options for reimbursement
-      try {
-        const [counterparties, groups] = await Promise.all([
-          getTransactionCounterparties(),
-          getTransactionSettlementGroups()
-        ]);
-        setCounterpartyOptions(counterparties);
-        setGroupOptions(groups);
-      } catch (err) {
-        console.error('Failed to load dropdown options', err);
-      }
     };
     fetchData();
   }, []);
@@ -128,9 +107,6 @@ export default function TransactionForm({
   });
   setKind("normal");
   setToAccountId("");
-  setIsReimbursable(false);
-  setCounterpartyName("");
-  setSettlementGroupId("");
   setNotes("");
 };
 
@@ -138,12 +114,6 @@ export default function TransactionForm({
   e.preventDefault();
   if (!form.accountId || !form.categoryId) {
     toast.error("Please select both account and category.");
-    return;
-  }
-
-  // Validate reimbursable fields
-  if (isReimbursable && !counterpartyName.trim()) {
-    toast.error("Please specify who you're splitting with.");
     return;
   }
 
@@ -160,11 +130,7 @@ export default function TransactionForm({
           ...form,
           transactionDate: toISOStringWithoutOffset(form.transactionDate),
           ...(kind === "transfer" || kind === "savings" ? { toAccountId, type: kind } : {}),
-          isReimbursable,
-          counterpartyName: isReimbursable ? counterpartyName : undefined,
-          settlementGroupId: isReimbursable ? settlementGroupId : undefined,
           notes: notes || undefined,
-          paidBy: isReimbursable ? paidBy : undefined,
         };
 
         return updateTransaction(transaction.id, payload);
@@ -191,11 +157,7 @@ export default function TransactionForm({
       return createTransaction({
         ...form,
         transactionDate: toISOStringWithoutOffset(form.transactionDate),
-        isReimbursable,
-        counterpartyName: isReimbursable ? counterpartyName : undefined,
-        settlementGroupId: isReimbursable ? settlementGroupId : undefined,
         notes: notes || undefined,
-        paidBy: isReimbursable ? paidBy : undefined,
       });
     })();
 
@@ -367,116 +329,6 @@ export default function TransactionForm({
               />
             </div>
           )}
-
-          {/* Reimbursement Section */}
-          <div className="md:col-span-2 border-t border-white/10 pt-4 mt-2">
-            <div className="flex items-center gap-3 mb-3">
-              <input
-                type="checkbox"
-                id="isReimbursable"
-                checked={isReimbursable}
-                onChange={(e) => setIsReimbursable(e.target.checked)}
-                className="w-5 h-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              />
-              <label htmlFor="isReimbursable" className="text-sm font-medium text-white/90 cursor-pointer">
-                💰 Mark as Reimbursable (will be paid back later)
-              </label>
-            </div>
-
-            {isReimbursable && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 p-4 bg-white/5 rounded-xl border border-white/10">
-                <div>
-                  <label htmlFor="paidBy" className="block text-sm font-medium text-white/80 mb-2">
-                    Who Paid? <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="paidBy"
-                    list="paidByOptions"
-                    placeholder="Type name or select..."
-                    value={paidBy}
-                    onChange={(e) => setPaidBy(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <datalist id="paidByOptions">
-                    <option value="you">You (money from your account)</option>
-                    {counterpartyOptions.map((name) => (
-                      <option key={name} value={name} />
-                    ))}
-                  </datalist>
-                  <div className="text-xs text-white/60 mt-1">
-                    {paidBy === 'you' ? '💳 Deducted from your account' : `👤 ${paidBy} paid, no account deduction`}
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="counterpartyName" className="block text-sm font-medium text-white/80 mb-2">
-                    Who are you splitting with? <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="counterpartyName"
-                    list="counterpartyOptions"
-                    placeholder="e.g., John, Sarah"
-                    value={counterpartyName}
-                    onChange={(e) => {
-                      setCounterpartyName(e.target.value);
-                      // Auto-sync paidBy when counterparty changes and paidBy is not "you"
-                      if (paidBy !== 'you' && e.target.value) {
-                        setPaidBy(e.target.value);
-                      }
-                    }}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <datalist id="counterpartyOptions">
-                    {counterpartyOptions.map((name) => (
-                      <option key={name} value={name} />
-                    ))}
-                  </datalist>
-                  <div className="text-xs text-white/60 mt-1">
-                    {paidBy === 'you' ? 'This person will reimburse you' : 'This is who paid for the expense'}
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="settlementGroupId" className="block text-sm font-medium text-white/80 mb-2">
-                    Settlement Group (optional)
-                  </label>
-                  <input
-                    type="text"
-                    id="settlementGroupId"
-                    list="groupOptions"
-                    placeholder="e.g., weekend-trip, dinner-dec"
-                    value={settlementGroupId}
-                    onChange={(e) => setSettlementGroupId(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <datalist id="groupOptions">
-                    {groupOptions.map((group) => (
-                      <option key={group} value={group} />
-                    ))}
-                  </datalist>
-                  <div className="text-xs text-white/60 mt-1">
-                    Type or select from existing groups
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="notes" className="block text-sm font-medium text-white/80 mb-2">
-                    Notes (optional)
-                  </label>
-                  <input
-                    type="text"
-                    id="notes"
-                    placeholder="Additional context about reimbursement"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Transaction Type */}
           <div className="md:col-span-2">
