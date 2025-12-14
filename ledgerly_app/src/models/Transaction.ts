@@ -16,4 +16,5 @@ export interface Transaction {
     settlementGroupId?: string | null;
     reimbursedAmount?: string;
     notes?: string;
+    paidBy?: string;
 }

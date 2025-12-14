@@ -38,6 +38,11 @@ export class CreateTransactionDto {
   @IsString()
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   notes?: string;
+  
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value ? sanitizeInput(value) : value)
+  paidBy?: string;
 }
 
 export class TransferDto {

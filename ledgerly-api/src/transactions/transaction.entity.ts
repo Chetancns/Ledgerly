@@ -53,6 +53,8 @@ export class Transaction {
   @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 }) reimbursedAmount: string;
   
   @Column({ type: 'text', nullable: true }) notes?: string;
+  
+  @Column({ type: 'varchar', length: 200, nullable: true }) paidBy?: string;
 
   @CreateDateColumn() createdAt: Date;
   constructor(partial: Partial<Transaction>) {

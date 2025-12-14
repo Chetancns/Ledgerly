@@ -49,6 +49,7 @@ export default function TransactionForm({
   const [counterpartyName, setCounterpartyName] = useState(transaction?.counterpartyName || "");
   const [settlementGroupId, setSettlementGroupId] = useState(transaction?.settlementGroupId || "");
   const [notes, setNotes] = useState(transaction?.notes || "");
+  const [paidBy, setPaidBy] = useState(transaction?.paidBy || "you");
 
   // 🔹 Dropdown options for reimbursement
   const [counterpartyOptions, setCounterpartyOptions] = useState<string[]>([]);
@@ -100,6 +101,7 @@ export default function TransactionForm({
     setCounterpartyName(transaction.counterpartyName || "");
     setSettlementGroupId(transaction.settlementGroupId || "");
     setNotes(transaction.notes || "");
+    setPaidBy(transaction.paidBy || "you");
   }
   }, [transaction]);
 
@@ -156,6 +158,7 @@ export default function TransactionForm({
           counterpartyName: isReimbursable ? counterpartyName : undefined,
           settlementGroupId: isReimbursable ? settlementGroupId : undefined,
           notes: notes || undefined,
+          paidBy: isReimbursable ? paidBy : undefined,
         };
 
         return updateTransaction(transaction.id, payload);
@@ -186,6 +189,7 @@ export default function TransactionForm({
         counterpartyName: isReimbursable ? counterpartyName : undefined,
         settlementGroupId: isReimbursable ? settlementGroupId : undefined,
         notes: notes || undefined,
+        paidBy: isReimbursable ? paidBy : undefined,
       });
     })();
 
@@ -376,8 +380,31 @@ export default function TransactionForm({
             {isReimbursable && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 p-4 bg-white/5 rounded-xl border border-white/10">
                 <div>
+                  <label htmlFor="paidBy" className="block text-sm font-medium text-white/80 mb-2">
+                    Who Paid? <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    id="paidBy"
+                    value={paidBy}
+                    onChange={(e) => setPaidBy(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="you">You (money from your account)</option>
+                    {counterpartyOptions.map((name) => (
+                      <option key={name} value={name}>{name} (they paid for you)</option>
+                    ))}
+                    {counterpartyName && !counterpartyOptions.includes(counterpartyName) && (
+                      <option value={counterpartyName}>{counterpartyName} (they paid for you)</option>
+                    )}
+                  </select>
+                  <div className="text-xs text-white/60 mt-1">
+                    {paidBy === 'you' ? '💳 Deducted from your account' : '👤 No account deduction'}
+                  </div>
+                </div>
+
+                <div>
                   <label htmlFor="counterpartyName" className="block text-sm font-medium text-white/80 mb-2">
-                    Who will reimburse?
+                    {paidBy === 'you' ? 'Who will reimburse?' : 'Who do you owe?'}
                   </label>
                   <input
                     type="text"
@@ -421,16 +448,17 @@ export default function TransactionForm({
                   </div>
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-white/80 mb-2">
                     Notes (optional)
                   </label>
-                  <NeumorphicInput
+                  <input
                     type="text"
+                    id="notes"
                     placeholder="Additional context about reimbursement"
                     value={notes}
-                    onChange={(val) => setNotes(val)}
-                    theme={theme}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
