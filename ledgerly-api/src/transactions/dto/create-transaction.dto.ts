@@ -4,7 +4,7 @@ import { sanitizeInput } from '../../utils/sanitize.util';
 
 export class CreateTransactionDto {
   @IsOptional() @IsUUID() userId: string; // from auth in real apps; keep here for simplicity or inject from req.user
-  @IsOptional() @IsUUID() accountId?: string;
+  @IsOptional() @IsUUID() accountId?: string; // Made optional - not required when debt tracking without immediate payment
   @IsOptional() @IsUUID() categoryId?: string;
   @IsNotEmpty()
   @Transform(({ value }) => typeof value === 'string'

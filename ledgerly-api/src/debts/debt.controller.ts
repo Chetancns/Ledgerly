@@ -1,5 +1,5 @@
 // debts/debt.controller.ts
-import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { DebtService } from './debt.service';
 import { GetUser } from '../common/decorators/user.decorator'
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -40,6 +40,16 @@ export class DebtController {
     return this.debtService.updateDebt(userId, id, body);
   }
 
+  /** 🗑️ Delete debt */
+  @Delete(':id')
+  async deleteDebt(
+    @GetUser() user: { userId: string },
+    @Param('id') id: string
+  ) {
+    const userId = user.userId;
+    return this.debtService.deleteDebt(userId, id);
+  }
+
   /** 💰 Add repayment to a debt */
   @Post(':id/repayments')
   async addRepayment(
@@ -78,5 +88,22 @@ export class DebtController {
   @Get(':id/pay-early')
   async payearly(@Param('id') id: string) {
     return this.debtService.payEarly(id);
+  }
+
+  /** 📊 Get settlement groups */
+  @Get('settlement-groups/list')
+  async getSettlementGroups(@GetUser() user: { userId: string }) {
+    const userId = user.userId;
+    return this.debtService.getSettlementGroups(userId);
+  }
+
+  /** 📋 Get debts by settlement group */
+  @Get('settlement-groups/:groupId')
+  async getDebtsByGroup(
+    @GetUser() user: { userId: string },
+    @Param('groupId') groupId: string
+  ) {
+    const userId = user.userId;
+    return this.debtService.getDebtsBySettlementGroup(userId, groupId);
   }
 }

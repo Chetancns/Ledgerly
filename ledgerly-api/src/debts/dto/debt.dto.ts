@@ -39,6 +39,15 @@ export class CreateDebtDto {
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   settlementGroupId?: string;
 
+  // NEW: Option to create transaction immediately
+  @IsOptional()
+  @IsString()
+  createTransaction?: 'yes' | 'no';
+  
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
   // Fields for institutional debts (loans, credit cards)
   @IsOptional()
   @IsNumberString()

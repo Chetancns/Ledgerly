@@ -149,6 +149,7 @@ export class DebtService {
       paidAmount: '0',
       adjustmentTotal: '0',
       status: 'open',
+      settlementGroupId: body.settlementGroupId || null,
     };
 
     // For institutional debts, include installment fields
@@ -163,17 +164,22 @@ export class DebtService {
     const debt = this.debtRepo.create(debtData);
     const savedDebt = await this.debtRepo.save(debt);
 
-    // Create a transaction for lent/borrowed debts if account is provided
-    if ((body.role === 'lent' || body.role === 'borrowed') && body.accountId) {
+    // Create a transaction if explicitly requested OR if account is provided for lent/borrowed
+    const shouldCreateTransaction = body.createTransaction === 'yes' || 
+      ((body.role === 'lent' || body.role === 'borrowed') && body.accountId);
+
+    if ((body.role === 'lent' || body.role === 'borrowed') && shouldCreateTransaction) {
       const transactionType = body.role === 'lent' ? 'expense' : 'income';
       const description = body.role === 'lent' 
         ? `Lent to ${body.counterpartyName || 'someone'}: ${body.name}`
         : `Borrowed from ${body.counterpartyName || 'someone'}: ${body.name}`;
 
+      const categoryId = body.categoryId || await this.GetCategoryId(userId);
+
       await this.transactionService.create({
         userId,
-        accountId: body.accountId,
-        categoryId: await this.GetCategoryId(userId),
+        accountId: body.accountId || undefined,
+        categoryId,
         amount: body.principal,
         type: transactionType,
         transactionDate: new Date().toISOString(),
@@ -351,5 +357,96 @@ export class DebtService {
     }
 
     throw new Error("❌ Cannot use early payment on or after due date, use normal process.");
+  }
+
+  /**
+   * Delete a debt - with proper reversal of transactions
+   * NOTE: This should only be used for correcting errors, not for settling debts
+   */
+  async deleteDebt(userId: string, debtId: string) {
+    const debt = await this.debtRepo.findOne({ 
+      where: { id: debtId, userId },
+      relations: ['updates']
+    });
+    
+    if (!debt) {
+      throw new NotFoundException('Debt not found');
+    }
+
+    // Get all repayments for this debt
+    const repayments = await this.repaymentRepo.find({ where: { debtId } });
+
+    // Delete all repayments first
+    if (repayments.length > 0) {
+      await this.repaymentRepo.remove(repayments);
+    }
+
+    // Delete all debt updates (for institutional debts)
+    if (debt.updates && debt.updates.length > 0) {
+      await this.updateRepo.remove(debt.updates);
+    }
+
+    // Note: Transactions created by debt/repayment are NOT automatically deleted
+    // This is intentional to preserve financial history and account balances
+    // Users should manually adjust transactions if needed
+
+    // Delete the debt
+    await this.debtRepo.remove(debt);
+
+    return { message: 'Debt deleted successfully. Note: Associated transactions were not deleted.' };
+  }
+
+  /**
+   * Get settlement groups for a user
+   */
+  async getSettlementGroups(userId: string) {
+    const debts = await this.debtRepo.find({
+      where: { userId },
+      select: ['settlementGroupId'],
+    });
+
+    const uniqueGroups = [...new Set(
+      debts
+        .map(d => d.settlementGroupId)
+        .filter(g => g && g.trim().length > 0)
+    )];
+
+    return uniqueGroups.map(group => ({
+      id: group,
+      name: group,
+    }));
+  }
+
+  /**
+   * Get debts by settlement group
+   */
+  async getDebtsBySettlementGroup(userId: string, settlementGroupId: string) {
+    const debts = await this.debtRepo.find({
+      where: { userId, settlementGroupId },
+      relations: ['updates'],
+    });
+
+    return debts.map((d) => {
+      let remaining = 0;
+      let progress = 0;
+
+      if (d.role === 'lent' || d.role === 'borrowed') {
+        const principal = Number(d.principal);
+        const paidAmount = parseFloat(d.paidAmount);
+        const adjustmentTotal = parseFloat(d.adjustmentTotal);
+        remaining = principal - paidAmount + adjustmentTotal;
+        progress = principal > 0 ? (paidAmount / principal) * 100 : 0;
+      } else {
+        remaining = parseFloat(d.currentBalance);
+        const principal = Number(d.principal);
+        progress = principal > 0 ? ((principal - remaining) / principal) * 100 : 0;
+      }
+
+      return {
+        ...d,
+        remaining: Math.max(0, remaining).toFixed(2),
+        progress: Math.min(100, Math.max(0, progress)).toFixed(2),
+      };
+    });
   }
 }
