@@ -1,13 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ModernButton from "./NeumorphicButton";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { addRepayment } from "@/services/debts";
+import { getUserAccount } from "@/services/accounts";
+import { Account } from "@/models/account";
 import { Debt } from "@/models/debt";
 import toast from "react-hot-toast";
 import NeumorphicInput from "./NeumorphicInput";
+import NeumorphicSelect from "./NeumorphicSelect";
 
 interface RepaymentModalProps {
   open: boolean;
@@ -26,8 +29,25 @@ export default function RepaymentModal({
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
+  const [accountId, setAccountId] = useState("");
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   const [theme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    if (open) {
+      loadAccounts();
+    }
+  }, [open]);
+
+  const loadAccounts = async () => {
+    try {
+      const res = await getUserAccount();
+      setAccounts(res);
+    } catch (err) {
+      console.error("Failed to load accounts", err);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!debt) return;
@@ -45,6 +65,7 @@ export default function RepaymentModal({
           adjustmentAmount: adjustmentAmount || undefined,
           date,
           notes,
+          accountId: accountId || undefined,
         }),
         {
           loading: "Recording repayment...",
@@ -59,6 +80,7 @@ export default function RepaymentModal({
       setAmount("");
       setAdjustmentAmount("");
       setNotes("");
+      setAccountId("");
     } catch (err) {
       console.error("Repayment error:", err);
     } finally {
@@ -138,6 +160,29 @@ export default function RepaymentModal({
                 />
                 <div className="text-xs text-white/60 mt-1">
                   Principal payment amount
+                </div>
+              </div>
+
+              {/* Account Selector */}
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Account (optional)
+                </label>
+                <NeumorphicSelect
+                  options={[
+                    { value: "", label: "No transaction" },
+                    ...accounts.map(acc => ({
+                      value: acc.id,
+                      label: `${acc.name} (${acc.type})`
+                    }))
+                  ]}
+                  value={accountId}
+                  onChange={(val) => setAccountId(val)}
+                  placeholder="Select account"
+                  theme={theme}
+                />
+                <div className="text-xs text-white/60 mt-1">
+                  Select an account to automatically create a transaction
                 </div>
               </div>
 

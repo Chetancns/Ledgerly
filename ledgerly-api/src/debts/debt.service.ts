@@ -161,7 +161,27 @@ export class DebtService {
     }
 
     const debt = this.debtRepo.create(debtData);
-    return this.debtRepo.save(debt);
+    const savedDebt = await this.debtRepo.save(debt);
+
+    // Create a transaction for lent/borrowed debts if account is provided
+    if ((body.role === 'lent' || body.role === 'borrowed') && body.accountId) {
+      const transactionType = body.role === 'lent' ? 'expense' : 'income';
+      const description = body.role === 'lent' 
+        ? `Lent to ${body.counterpartyName || 'someone'}: ${body.name}`
+        : `Borrowed from ${body.counterpartyName || 'someone'}: ${body.name}`;
+
+      await this.transactionService.create({
+        userId,
+        accountId: body.accountId,
+        categoryId: await this.GetCategoryId(userId),
+        amount: body.principal,
+        type: transactionType,
+        transactionDate: new Date().toISOString(),
+        description,
+      });
+    }
+
+    return savedDebt;
   }
 
   /**
@@ -216,6 +236,24 @@ export class DebtService {
     // For personal debts, currentBalance represents the remaining amount
     debt.currentBalance = Math.max(0, remaining).toFixed(2);
     await this.debtRepo.save(debt);
+
+    // Create a transaction if account is provided
+    if (dto.accountId) {
+      const transactionType = debt.role === 'lent' ? 'income' : 'expense';
+      const description = debt.role === 'lent'
+        ? `Repayment from ${debt.counterpartyName || 'someone'}: ${debt.name}`
+        : `Repayment to ${debt.counterpartyName || 'someone'}: ${debt.name}`;
+
+      await this.transactionService.create({
+        userId,
+        accountId: dto.accountId,
+        categoryId: await this.GetCategoryId(userId),
+        amount: dto.amount,
+        type: transactionType,
+        transactionDate: dto.date,
+        description,
+      });
+    }
 
     return debt;
   }

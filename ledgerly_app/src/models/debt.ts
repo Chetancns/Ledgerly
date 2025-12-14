@@ -63,6 +63,7 @@ export interface Repayment {
   adjustmentAmount: string;
   date: string;
   notes?: string;
+  accountId?: string;
   createdAt: string;
 }
 

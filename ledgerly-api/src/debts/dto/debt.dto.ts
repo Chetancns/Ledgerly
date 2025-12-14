@@ -68,6 +68,10 @@ export class AddRepaymentDto {
   @IsString()
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
 }
 
 export class UpdateDebtDto {

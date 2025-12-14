@@ -48,6 +48,7 @@ export async function addRepayment(
     adjustmentAmount?: string;
     date: string;
     notes?: string;
+    accountId?: string;
   }
 ): Promise<Debt> {
   const res = await api.post(`/debts/${debtId}/repayments`, data);
