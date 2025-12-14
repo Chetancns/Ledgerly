@@ -66,6 +66,9 @@ export class Debt {
   
   @Column({ type: 'text', nullable: true })
   notes?: string;
+  
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  settlementGroupId?: string;
 
   @CreateDateColumn()
   createdAt: Date;

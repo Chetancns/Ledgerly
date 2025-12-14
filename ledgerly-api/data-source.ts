@@ -11,7 +11,6 @@ import { AiInsight } from './src/reports/ai-insight.entity';
 import { DebtUpdate } from 'src/debts/debt-update.entity';
 import { Debt } from 'src/debts/debt.entity';
 import { Repayment } from 'src/debts/repayment.entity';
-import { Settlement } from 'src/settlements/settlement.entity';
 
 export default new DataSource({
   type: 'postgres',
@@ -32,7 +31,6 @@ export default new DataSource({
     DebtUpdate,
     Debt,
     Repayment,
-    Settlement,
   ],
   migrations: ['dist/migrations/*.js'],
   ssl: process.env.DB_SSL === 'true',

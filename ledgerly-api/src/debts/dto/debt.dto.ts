@@ -33,6 +33,11 @@ export class CreateDebtDto {
   @IsString()
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   notes?: string;
+  
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value ? sanitizeInput(value) : value)
+  settlementGroupId?: string;
 
   // Fields for institutional debts (loans, credit cards)
   @IsOptional()

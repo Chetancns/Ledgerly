@@ -24,8 +24,6 @@ import { Debt } from './debts/debt.entity';
 import { DebtUpdate } from './debts/debt-update.entity';
 import { DebtModule } from './debts/debt.module';
 import { Repayment } from './debts/repayment.entity';
-import { Settlement } from './settlements/settlement.entity';
-import { SettlementModule } from './settlements/settlement.module';
 import { AiInsight } from './reports/ai-insight.entity';
 @Module({
   imports: [
@@ -50,7 +48,6 @@ import { AiInsight } from './reports/ai-insight.entity';
           Debt,
           DebtUpdate,
           Repayment,
-          Settlement,
           AiInsight,
         ],
         synchronize: false, // true for dev only; use migrations instead
@@ -67,7 +64,6 @@ import { AiInsight } from './reports/ai-insight.entity';
      ReportsModule,
      DebtModule,
      RecurringModule,
-     SettlementModule,
   ],
   controllers: [AppController],
   providers: [AppService],

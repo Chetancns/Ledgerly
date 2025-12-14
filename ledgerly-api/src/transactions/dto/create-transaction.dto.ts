@@ -20,29 +20,10 @@ export class CreateTransactionDto {
   description?: string;
   @IsOptional() @IsUUID() toAccountId?: string | null; // for transfers, the destination account
   
-  // Reimbursement fields
-  @IsOptional() 
-  @IsString()
-  @Transform(({ value }) => value ? sanitizeInput(value) : value)
-  counterpartyName?: string;
-  
-  @IsOptional() 
-  @IsBoolean()
-  isReimbursable?: boolean;
-  
-  @IsOptional() 
-  @IsString()
-  settlementGroupId?: string;
-  
   @IsOptional()
   @IsString()
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   notes?: string;
-  
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value ? sanitizeInput(value) : value)
-  paidBy?: string;
 }
 
 export class TransferDto {
@@ -69,22 +50,3 @@ export class TransferDto {
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   description: string;
 }
-
-export class SettlementDto {
-  @IsString()
-  @IsNotEmpty()
-  settlementGroupId: string;
-  
-  @IsNotEmpty()
-  @IsNumberString()
-  amount: string;
-  
-  @IsDateString()
-  date: string;
-  
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value ? sanitizeInput(value) : value)
-  notes?: string;
-}
-
