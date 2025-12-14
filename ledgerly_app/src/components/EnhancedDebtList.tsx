@@ -17,11 +17,20 @@ export default function EnhancedDebtList() {
   const [showRepaymentModal, setShowRepaymentModal] = useState(false);
   const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [filterRole, setFilterRole] = useState<"all" | "lent" | "borrowed" | "institutional">("all");
+  const [filterRole, setFilterRole] = useState<"all" | "lent" | "borrowed" | "institutional" | "settlement-groups">("all");
+  const [settlementGroups, setSettlementGroups] = useState<string[]>([]);
+  const [selectedSettlementGroup, setSelectedSettlementGroup] = useState<string | null>(null);
 
   const loadDebts = async () => {
     const res = await getUserDebts();
     setDebts(res);
+    
+    // Extract unique settlement groups
+    const groups = res
+      .filter((d) => d.settlementGroupId)
+      .map((d) => d.settlementGroupId!)
+      .filter((v, i, a) => a.indexOf(v) === i);
+    setSettlementGroups(groups);
   };
 
   const handleCatchUp = async () => {
@@ -32,6 +41,20 @@ export default function EnhancedDebtList() {
         error: "Catch-up failed",
       });
       loadDebts();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (debtId: string) => {
+    try {
+      await toast.promise(deleteDebt(debtId), {
+        loading: "Deleting debt...",
+        success: "✅ Debt deleted successfully!",
+        error: "Failed to delete debt",
+      });
+      loadDebts();
+      setDeleteConfirm(null);
     } catch (err) {
       console.error(err);
     }
@@ -78,6 +101,10 @@ export default function EnhancedDebtList() {
 
   const filteredDebts = debts.filter((debt) => {
     if (filterRole === "all") return true;
+    if (filterRole === "settlement-groups") {
+      if (!selectedSettlementGroup) return debt.settlementGroupId;
+      return debt.settlementGroupId === selectedSettlementGroup;
+    }
     return debt.role === filterRole;
   });
 
@@ -112,6 +139,11 @@ export default function EnhancedDebtList() {
             {isPersonal && debt.counterpartyName && (
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 {debt.role === "lent" ? "Lent to:" : "Borrowed from:"} {debt.counterpartyName}
+              </p>
+            )}
+            {debt.settlementGroupId && (
+              <p className="text-xs mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded" style={{ color: "var(--text-muted)", background: "var(--skeleton-base)" }}>
+                📁 {debt.settlementGroupId}
               </p>
             )}
           </div>
@@ -229,10 +261,13 @@ export default function EnhancedDebtList() {
         </h2>
 
         <div className="flex gap-2 flex-wrap">
-          {["all", "lent", "borrowed", "institutional"].map((role) => (
+          {["all", "lent", "borrowed", "institutional", "settlement-groups"].map((role) => (
             <button
               key={role}
-              onClick={() => setFilterRole(role as any)}
+              onClick={() => {
+                setFilterRole(role as any);
+                if (role !== "settlement-groups") setSelectedSettlementGroup(null);
+              }}
               className={`px-4 py-2 rounded-lg transition-all text-sm font-medium ${
                 filterRole === role
                   ? "bg-blue-500 text-white"
@@ -243,6 +278,7 @@ export default function EnhancedDebtList() {
               {role === "lent" && `💰 Lent (${lentDebts.length})`}
               {role === "borrowed" && `💸 Borrowed (${borrowedDebts.length})`}
               {role === "institutional" && `🏦 Institutional (${institutionalDebts.length})`}
+              {role === "settlement-groups" && `📁 Groups (${settlementGroups.length})`}
             </button>
           ))}
 
@@ -257,6 +293,36 @@ export default function EnhancedDebtList() {
           )}
         </div>
       </div>
+
+      {/* Settlement Group Selector */}
+      {filterRole === "settlement-groups" && settlementGroups.length > 0 && (
+        <div className="backdrop-blur-lg rounded-lg shadow-lg p-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+          <label className="block text-sm mb-2 font-medium" style={{ color: "var(--text-secondary)" }}>
+            Filter by Settlement Group:
+          </label>
+          <select
+            value={selectedSettlementGroup || ""}
+            onChange={(e) => setSelectedSettlementGroup(e.target.value || null)}
+            className="w-full md:w-64 px-3 py-2 rounded"
+            style={{
+              background: "var(--input-bg)",
+              color: "var(--input-text)",
+              border: "1px solid var(--input-border)",
+            }}
+          >
+            <option value="">All Groups</option>
+            {settlementGroups.map((group) => {
+              const groupDebts = debts.filter((d) => d.settlementGroupId === group);
+              const totalAmount = groupDebts.reduce((sum, d) => sum + Number(d.remaining || 0), 0);
+              return (
+                <option key={group} value={group}>
+                  {group} ({groupDebts.length} debts, {format(totalAmount)} remaining)
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
 
       {/* Debt Cards */}
       {filteredDebts.length === 0 ? (

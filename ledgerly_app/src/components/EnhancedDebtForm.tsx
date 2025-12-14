@@ -2,7 +2,9 @@
 import { useState, useEffect, FormEvent } from "react";
 import { createDebt } from "@/services/debts";
 import { getUserAccount } from "@/services/accounts";
+import { getCategories } from "@/services/category";
 import { Account } from "@/models/account";
+import { Category } from "@/models/category";
 import { DebtRole } from "@/models/debt";
 import toast from "react-hot-toast";
 
@@ -13,7 +15,9 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
   const today = new Date().toISOString().split("T")[0];
 
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [role, setRole] = useState<DebtRole>("institutional");
 
   const [form, setForm] = useState({
@@ -31,6 +35,8 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
     dueDate: "",
     notes: "",
     settlementGroupId: "",
+    createTransaction: "no" as "yes" | "no",
+    categoryId: "",
   });
 
   useEffect(() => {
@@ -44,7 +50,18 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
         setLoadingAccounts(false);
       }
     };
+    const fetchCat = async () => {
+      try {
+        const res = await getCategories();
+        setCategories(res);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
     fetchAcc();
+    fetchCat();
   }, []);
 
   useEffect(() => {
@@ -100,6 +117,10 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
       payload.notes = form.notes || undefined;
       payload.settlementGroupId = form.settlementGroupId || undefined;
       payload.accountId = form.accountId || undefined;
+      payload.createTransaction = form.createTransaction;
+      if (form.createTransaction === "yes" && form.categoryId) {
+        payload.categoryId = form.categoryId;
+      }
     } else {
       payload.accountId = form.accountId;
       payload.frequency = form.frequency;
@@ -133,6 +154,8 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
         dueDate: "",
         notes: "",
         settlementGroupId: "",
+        createTransaction: "no",
+        categoryId: "",
       });
       setRole("institutional");
     } catch (err) {
@@ -355,6 +378,70 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
             )}
           </select>
         </div>
+
+        {/* Transaction Creation Option (for personal debts) */}
+        {(role === "lent" || role === "borrowed") && (
+          <>
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.createTransaction === "yes"}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      createTransaction: e.target.checked ? "yes" : "no",
+                    }))
+                  }
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                  Create Transaction Now?
+                </span>
+              </label>
+              <p className="text-xs mt-1 ml-6" style={{ color: "var(--text-muted)" }}>
+                {role === "lent"
+                  ? "Check if you've already paid (creates expense transaction)"
+                  : "Check to track the expense now (even if payment is later)"}
+              </p>
+            </div>
+
+            {form.createTransaction === "yes" && (
+              <div className="md:col-span-2">
+                <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                  Category *
+                </label>
+                <select
+                  name="categoryId"
+                  value={form.categoryId}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 rounded"
+                  style={{
+                    background: "var(--input-bg)",
+                    color: "var(--input-text)",
+                    border: "1px solid var(--input-border)",
+                  }}
+                >
+                  <option value="">Select Category</option>
+                  {loadingCategories ? (
+                    <option>Loading...</option>
+                  ) : (
+                    categories
+                      .filter((c) => c.type === "expense")
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))
+                  )}
+                </select>
+                <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                  Select the expense category for this purchase
+                </p>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Notes (for personal debts) */}
         {(role === "lent" || role === "borrowed") && (

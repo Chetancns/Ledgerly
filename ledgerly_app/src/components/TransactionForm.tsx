@@ -75,12 +75,7 @@ export default function TransactionForm({
       setKind("normal");
     }
 
-    // 🔹 Load reimbursement data
-    setIsReimbursable(transaction.isReimbursable || false);
-    setCounterpartyName(transaction.counterpartyName || "");
-    setSettlementGroupId(transaction.settlementGroupId || "");
     setNotes(transaction.notes || "");
-    setPaidBy(transaction.paidBy || "you");
   }
   }, [transaction]);
 
