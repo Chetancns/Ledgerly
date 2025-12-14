@@ -73,3 +73,13 @@ export async function getInstitutionalDebts(): Promise<Debt[]> {
   return getUserDebts({ role: 'institutional' });
 }
 
+// Settlement group functions
+export async function getSettlementGroups(): Promise<{ id: string; name: string }[]> {
+  const res = await api.get('/debts/settlement-groups/list');
+  return res.data;
+}
+
+export async function getDebtsBySettlementGroup(groupId: string): Promise<Debt[]> {
+  const res = await api.get(`/debts/settlement-groups/${groupId}`);
+  return res.data;
+}
