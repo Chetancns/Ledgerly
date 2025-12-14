@@ -141,6 +141,12 @@ export default function TransactionForm({
     return;
   }
 
+  // Validate reimbursable fields
+  if (isReimbursable && !counterpartyName.trim()) {
+    toast.error("Please specify who you're splitting with.");
+    return;
+  }
+
   try {
     const transactionPromise = (() => {
       if (transaction) {
@@ -383,28 +389,29 @@ export default function TransactionForm({
                   <label htmlFor="paidBy" className="block text-sm font-medium text-white/80 mb-2">
                     Who Paid? <span className="text-red-400">*</span>
                   </label>
-                  <select
+                  <input
+                    type="text"
                     id="paidBy"
+                    list="paidByOptions"
+                    placeholder="Type name or select..."
                     value={paidBy}
                     onChange={(e) => setPaidBy(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <datalist id="paidByOptions">
                     <option value="you">You (money from your account)</option>
                     {counterpartyOptions.map((name) => (
-                      <option key={name} value={name}>{name} (they paid for you)</option>
+                      <option key={name} value={name} />
                     ))}
-                    {counterpartyName && !counterpartyOptions.includes(counterpartyName) && (
-                      <option value={counterpartyName}>{counterpartyName} (they paid for you)</option>
-                    )}
-                  </select>
+                  </datalist>
                   <div className="text-xs text-white/60 mt-1">
-                    {paidBy === 'you' ? '💳 Deducted from your account' : '👤 No account deduction'}
+                    {paidBy === 'you' ? '💳 Deducted from your account' : `👤 ${paidBy} paid, no account deduction`}
                   </div>
                 </div>
 
                 <div>
                   <label htmlFor="counterpartyName" className="block text-sm font-medium text-white/80 mb-2">
-                    {paidBy === 'you' ? 'Who will reimburse?' : 'Who do you owe?'}
+                    Who are you splitting with? <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -412,7 +419,13 @@ export default function TransactionForm({
                     list="counterpartyOptions"
                     placeholder="e.g., John, Sarah"
                     value={counterpartyName}
-                    onChange={(e) => setCounterpartyName(e.target.value)}
+                    onChange={(e) => {
+                      setCounterpartyName(e.target.value);
+                      // Auto-sync paidBy when counterparty changes and paidBy is not "you"
+                      if (paidBy !== 'you' && e.target.value) {
+                        setPaidBy(e.target.value);
+                      }
+                    }}
                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <datalist id="counterpartyOptions">
@@ -421,7 +434,7 @@ export default function TransactionForm({
                     ))}
                   </datalist>
                   <div className="text-xs text-white/60 mt-1">
-                    Type or select from existing names
+                    {paidBy === 'you' ? 'This person will reimburse you' : 'This is who paid for the expense'}
                   </div>
                 </div>
 
