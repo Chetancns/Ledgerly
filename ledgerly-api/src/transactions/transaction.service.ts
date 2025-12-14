@@ -293,4 +293,32 @@ export class TransactionsService {
     return this.txRepo.save(tx);
   }
 
+  /**
+   * Get unique counterparties from transactions
+   */
+  async getCounterparties(userId: string) {
+    const transactions = await this.txRepo
+      .createQueryBuilder('transaction')
+      .select('DISTINCT transaction.counterpartyName', 'counterpartyName')
+      .where('transaction.userId = :userId', { userId })
+      .andWhere('transaction.counterpartyName IS NOT NULL')
+      .getRawMany();
+
+    return transactions.map(t => t.counterpartyName).filter(Boolean).sort();
+  }
+
+  /**
+   * Get unique settlement groups from transactions
+   */
+  async getSettlementGroups(userId: string) {
+    const transactions = await this.txRepo
+      .createQueryBuilder('transaction')
+      .select('DISTINCT transaction.settlementGroupId', 'settlementGroupId')
+      .where('transaction.userId = :userId', { userId })
+      .andWhere('transaction.settlementGroupId IS NOT NULL')
+      .getRawMany();
+
+    return transactions.map(t => t.settlementGroupId).filter(Boolean).sort();
+  }
+
 }

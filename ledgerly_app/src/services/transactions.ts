@@ -118,3 +118,14 @@ export const listReimbursables = (filters?: {
   counterpartyName?: string;
 }) => getFilterTransactions({ isReimbursable: true, ...filters });
 
+// Get dropdown options for reimbursement fields
+export const getTransactionCounterparties = async (): Promise<string[]> => {
+  const res = await api.get('/transactions/counterparties');
+  return res.data;
+};
+
+export const getTransactionSettlementGroups = async (): Promise<string[]> => {
+  const res = await api.get('/transactions/settlement-groups');
+  return res.data;
+};
+

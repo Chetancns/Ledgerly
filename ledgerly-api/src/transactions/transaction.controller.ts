@@ -113,4 +113,16 @@ update(
     //console.log("delete",id,user);
     return this.service.delete(user.userId, id);
   }
+
+  /** Get unique counterparties */
+  @Get('counterparties')
+  getCounterparties(@GetUser() user: { userId: string }) {
+    return this.service.getCounterparties(user.userId);
+  }
+
+  /** Get unique settlement groups */
+  @Get('settlement-groups')
+  getSettlementGroups(@GetUser() user: { userId: string }) {
+    return this.service.getSettlementGroups(user.userId);
+  }
 }
