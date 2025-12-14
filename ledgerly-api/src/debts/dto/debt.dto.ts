@@ -111,3 +111,29 @@ export class UpdateDebtDto {
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   notes?: string;
 }
+
+export class BatchRepaymentDto {
+  @IsNotEmpty()
+  @IsString({ each: true })
+  debtIds: string[];
+
+  @IsNotEmpty()
+  @IsNumberString()
+  amount: string;
+
+  @IsOptional()
+  @IsNumberString()
+  adjustmentAmount?: string;
+
+  @IsDateString()
+  date: string;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value ? sanitizeInput(value) : value)
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
+}

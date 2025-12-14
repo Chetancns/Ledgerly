@@ -9,7 +9,7 @@ import { Repayment } from './repayment.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from 'src/categories/category.entity';
 import { TransactionsService } from 'src/transactions/transaction.service';
-import { CreateDebtDto, AddRepaymentDto, UpdateDebtDto } from './dto/debt.dto';
+import { CreateDebtDto, AddRepaymentDto, UpdateDebtDto, BatchRepaymentDto } from './dto/debt.dto';
 
 @Injectable()
 export class DebtService {
@@ -169,12 +169,23 @@ export class DebtService {
       ((body.role === 'lent' || body.role === 'borrowed') && body.accountId);
 
     if ((body.role === 'lent' || body.role === 'borrowed') && shouldCreateTransaction) {
-      const transactionType = body.role === 'lent' ? 'expense' : 'income';
+      // Get category to determine transaction type
+      const categoryId = body.categoryId || await this.GetCategoryId(userId);
+      const category = await this.cxRepo.findOne({ where: { id: categoryId } });
+      
+      // For lent debts: always expense (money going out)
+      // For borrowed debts: use category type (expense for items, income for cash)
+      let transactionType: 'expense' | 'income';
+      if (body.role === 'lent') {
+        transactionType = 'expense';
+      } else {
+        // For borrowed, use category type
+        transactionType = category?.type === 'income' ? 'income' : 'expense';
+      }
+      
       const description = body.role === 'lent' 
         ? `Lent to ${body.counterpartyName || 'someone'}: ${body.name}`
         : `Borrowed from ${body.counterpartyName || 'someone'}: ${body.name}`;
-
-      const categoryId = body.categoryId || await this.GetCategoryId(userId);
 
       await this.transactionService.create({
         userId,
@@ -209,6 +220,7 @@ export class DebtService {
       adjustmentAmount: dto.adjustmentAmount || '0',
       date: dto.date,
       notes: dto.notes,
+      transactionId: null, // Will be set if transaction is created
     });
 
     await this.repaymentRepo.save(repayment);
@@ -250,7 +262,7 @@ export class DebtService {
         ? `Repayment from ${debt.counterpartyName || 'someone'}: ${debt.name}`
         : `Repayment to ${debt.counterpartyName || 'someone'}: ${debt.name}`;
 
-      await this.transactionService.create({
+      const transaction = await this.transactionService.create({
         userId,
         accountId: dto.accountId,
         categoryId: await this.GetCategoryId(userId),
@@ -259,6 +271,10 @@ export class DebtService {
         transactionDate: dto.date,
         description,
       });
+
+      // Store transaction ID in repayment
+      repayment.transactionId = transaction.id;
+      await this.repaymentRepo.save(repayment);
     }
 
     return debt;
@@ -448,5 +464,186 @@ export class DebtService {
         progress: Math.min(100, Math.max(0, progress)).toFixed(2),
       };
     });
+  }
+
+  /**
+   * Batch repayment - settle multiple debts at once
+   */
+  async batchRepayment(userId: string, dto: BatchRepaymentDto) {
+    // Fetch all debts
+    const debts = await this.debtRepo.find({
+      where: { userId },
+    });
+
+    // Filter to only the requested debts
+    const selectedDebts = debts.filter(d => dto.debtIds.includes(d.id));
+
+    if (selectedDebts.length === 0) {
+      throw new NotFoundException('No valid debts found');
+    }
+
+    // Calculate total remaining across all selected debts
+    let totalRemaining = 0;
+    const debtDetails = selectedDebts.map(d => {
+      const principal = Number(d.principal);
+      const paidAmount = parseFloat(d.paidAmount);
+      const adjustmentTotal = parseFloat(d.adjustmentTotal);
+      const remaining = principal - paidAmount + adjustmentTotal;
+      totalRemaining += remaining;
+      return {
+        debt: d,
+        remaining: Math.max(0, remaining),
+      };
+    });
+
+    const paymentAmount = parseFloat(dto.amount);
+    const adjustmentAmount = dto.adjustmentAmount ? parseFloat(dto.adjustmentAmount) : 0;
+
+    // Distribute payment proportionally across debts
+    let transactionCreated: Transaction | null = null;
+    const settledDebts = [];
+
+    for (const { debt, remaining } of debtDetails) {
+      if (remaining <= 0) continue; // Skip already settled debts
+
+      // Calculate this debt's share of the payment
+      const proportion = totalRemaining > 0 ? remaining / totalRemaining : 0;
+      const thisPayment = (paymentAmount * proportion).toFixed(2);
+      const thisAdjustment = (adjustmentAmount * proportion).toFixed(2);
+
+      // Create repayment record
+      const repayment = this.repaymentRepo.create({
+        debtId: debt.id,
+        amount: thisPayment,
+        adjustmentAmount: thisAdjustment,
+        date: dto.date,
+        notes: dto.notes || `Batch settlement (${selectedDebts.length} debts)`,
+        transactionId: null, // Will be set if we create a transaction
+      });
+
+      // Update debt amounts
+      debt.paidAmount = (parseFloat(debt.paidAmount) + parseFloat(thisPayment)).toFixed(2);
+      debt.adjustmentTotal = (parseFloat(debt.adjustmentTotal) + parseFloat(thisAdjustment)).toFixed(2);
+
+      // Recalculate remaining
+      const principal = Number(debt.principal);
+      const paidAmount = parseFloat(debt.paidAmount);
+      const adjTotal = parseFloat(debt.adjustmentTotal);
+      const newRemaining = principal - paidAmount + adjTotal;
+
+      // Update status
+      if (newRemaining <= 0) {
+        debt.status = 'settled';
+      } else if (debt.dueDate && dayjs(debt.dueDate).isBefore(dayjs(), 'day')) {
+        debt.status = 'overdue';
+      } else {
+        debt.status = 'open';
+      }
+
+      debt.currentBalance = Math.max(0, newRemaining).toFixed(2);
+
+      await this.repaymentRepo.save(repayment);
+      await this.debtRepo.save(debt);
+
+      // Only the first debt in batch creates the transaction (single transaction for all)
+      if (!transactionCreated && dto.accountId && selectedDebts[0].id === debt.id) {
+        // Determine transaction type based on first debt's role
+        const transactionType = debt.role === 'lent' ? 'income' : 'expense';
+        const description = `Batch settlement: ${selectedDebts.length} debts (${selectedDebts.map(d => d.name).join(', ')})`;
+
+        transactionCreated = await this.transactionService.create({
+          userId,
+          accountId: dto.accountId,
+          categoryId: await this.GetCategoryId(userId),
+          amount: dto.amount, // Total amount, not distributed
+          type: transactionType,
+          transactionDate: dto.date,
+          description,
+        });
+
+        // Store transaction ID in first repayment
+        repayment.transactionId = transactionCreated.id;
+        await this.repaymentRepo.save(repayment);
+      }
+
+      settledDebts.push({
+        debtId: debt.id,
+        debtName: debt.name,
+        paymentApplied: thisPayment,
+        adjustmentApplied: thisAdjustment,
+        newStatus: debt.status,
+        newRemaining: debt.currentBalance,
+      });
+    }
+
+    return {
+      message: `Successfully processed batch repayment for ${selectedDebts.length} debts`,
+      totalAmount: dto.amount,
+      adjustmentAmount: dto.adjustmentAmount || '0',
+      transactionCreated: !!transactionCreated,
+      transactionId: transactionCreated?.id,
+      debts: settledDebts,
+    };
+  }
+
+  /**
+   * Delete a repayment - with proper reversal of debt and transaction
+   */
+  async deleteRepayment(userId: string, debtId: string, repaymentId: string) {
+    const debt = await this.debtRepo.findOne({ where: { id: debtId, userId } });
+    if (!debt) {
+      throw new NotFoundException('Debt not found');
+    }
+
+    const repayment = await this.repaymentRepo.findOne({ where: { id: repaymentId, debtId } });
+    if (!repayment) {
+      throw new NotFoundException('Repayment not found');
+    }
+
+    // Reverse the debt calculations
+    const repaymentAmount = parseFloat(repayment.amount);
+    const adjustmentAmount = parseFloat(repayment.adjustmentAmount);
+
+    debt.paidAmount = (parseFloat(debt.paidAmount) - repaymentAmount).toFixed(2);
+    debt.adjustmentTotal = (parseFloat(debt.adjustmentTotal) - adjustmentAmount).toFixed(2);
+
+    // Recalculate remaining
+    const principal = Number(debt.principal);
+    const paidAmount = parseFloat(debt.paidAmount);
+    const adjustmentTotal = parseFloat(debt.adjustmentTotal);
+    const remaining = principal - paidAmount + adjustmentTotal;
+
+    // Update status
+    if (remaining <= 0) {
+      debt.status = 'settled';
+    } else if (debt.dueDate && dayjs(debt.dueDate).isBefore(dayjs(), 'day')) {
+      debt.status = 'overdue';
+    } else {
+      debt.status = 'open';
+    }
+
+    debt.currentBalance = Math.max(0, remaining).toFixed(2);
+    await this.debtRepo.save(debt);
+
+    // Delete associated transaction if one was created
+    if (repayment.transactionId) {
+      await this.txRepo.delete({ id: repayment.transactionId, userId });
+    }
+
+    // Delete the repayment
+    await this.repaymentRepo.remove(repayment);
+
+    return {
+      message: 'Repayment deleted successfully',
+      transactionDeleted: !!repayment.transactionId,
+      debt: {
+        id: debt.id,
+        name: debt.name,
+        paidAmount: debt.paidAmount,
+        adjustmentTotal: debt.adjustmentTotal,
+        currentBalance: debt.currentBalance,
+        status: debt.status,
+      },
+    };
   }
 }

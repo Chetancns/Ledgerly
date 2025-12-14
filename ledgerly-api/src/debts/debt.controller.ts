@@ -3,7 +3,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards 
 import { DebtService } from './debt.service';
 import { GetUser } from '../common/decorators/user.decorator'
 import { JwtAuthGuard } from '../auth/jwt.guard';
-import { CreateDebtDto, AddRepaymentDto, UpdateDebtDto } from './dto/debt.dto';
+import { CreateDebtDto, AddRepaymentDto, UpdateDebtDto, BatchRepaymentDto } from './dto/debt.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('debts')
@@ -65,6 +65,27 @@ export class DebtController {
   @Get(':id/repayments')
   async getRepayments(@Param('id') id: string) {
     return this.debtService.getRepayments(id);
+  }
+
+  /** 🗑️ Delete a repayment */
+  @Delete(':id/repayments/:repaymentId')
+  async deleteRepayment(
+    @GetUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('repaymentId') repaymentId: string
+  ) {
+    const userId = user.userId;
+    return this.debtService.deleteRepayment(userId, id, repaymentId);
+  }
+
+  /** 💰 Batch repayment - settle multiple debts at once */
+  @Post('batch-repayment')
+  async batchRepayment(
+    @GetUser() user: { userId: string },
+    @Body() body: BatchRepaymentDto
+  ) {
+    const userId = user.userId;
+    return this.debtService.batchRepayment(userId, body);
   }
 
   /** 🔄 Run catch-up for one debt */

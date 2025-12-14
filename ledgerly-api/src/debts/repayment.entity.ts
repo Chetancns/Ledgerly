@@ -26,6 +26,9 @@ export class Repayment {
   @Column({ type: 'text', nullable: true })
   notes?: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  transactionId?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }
