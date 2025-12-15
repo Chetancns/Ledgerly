@@ -83,3 +83,43 @@ export async function getDebtsBySettlementGroup(groupId: string): Promise<Debt[]
   const res = await api.get(`/debts/settlement-groups/${groupId}`);
   return res.data;
 }
+
+// Batch repayment function
+export async function batchRepayment(data: {
+  debtIds: string[];
+  amount: string;
+  adjustmentAmount?: string;
+  date: string;
+  notes?: string;
+  accountId?: string;
+}): Promise<{
+  message: string;
+  totalAmount: string;
+  adjustmentAmount: string;
+  transactionCreated: boolean;
+  transactionId?: string;
+  debts: Array<{
+    debtId: string;
+    debtName: string;
+    paymentApplied: string;
+    adjustmentApplied: string;
+    newStatus: string;
+    newRemaining: string;
+  }>;
+}> {
+  const res = await api.post('/debts/batch-repayment', data);
+  return res.data;
+}
+
+// Delete repayment function
+export async function deleteRepayment(
+  debtId: string,
+  repaymentId: string
+): Promise<{
+  message: string;
+  transactionDeleted: boolean;
+  debt: Debt;
+}> {
+  const res = await api.delete(`/debts/${debtId}/repayments/${repaymentId}`);
+  return res.data;
+}

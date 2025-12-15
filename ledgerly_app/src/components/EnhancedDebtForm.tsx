@@ -407,38 +407,67 @@ export default function EnhancedDebtForm({ onCreated }: { onCreated: () => void 
             </div>
 
             {form.createTransaction === "yes" && (
-              <div className="md:col-span-2">
-                <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
-                  Category *
-                </label>
-                <select
-                  name="categoryId"
-                  value={form.categoryId}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 rounded"
-                  style={{
-                    background: "var(--input-bg)",
-                    color: "var(--input-text)",
-                    border: "1px solid var(--input-border)",
-                  }}
-                >
-                  <option value="">Select Category</option>
-                  {loadingCategories ? (
-                    <option>Loading...</option>
-                  ) : (
-                    categories
-                      .filter((c) => c.type === "expense")
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))
-                  )}
-                </select>
-                <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-                  Select the expense category for this purchase
-                </p>
-              </div>
+              <>
+                <div className="md:col-span-2">
+                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                    Category *
+                  </label>
+                  <select
+                    name="categoryId"
+                    value={form.categoryId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 rounded"
+                    style={{
+                      background: "var(--input-bg)",
+                      color: "var(--input-text)",
+                      border: "1px solid var(--input-border)",
+                    }}
+                  >
+                    <option value="">Select Category</option>
+                    {loadingCategories ? (
+                      <option>Loading...</option>
+                    ) : (
+                      categories
+                        .filter((c) => c.type === "expense")
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))
+                    )}
+                  </select>
+                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                    Select the expense category for this purchase
+                  </p>
+                </div>
+
+                {/* Category Type Help Note */}
+                {role === "borrowed" && (
+                  <div 
+                    className="md:col-span-2 p-3 rounded-lg" 
+                    style={{ 
+                      background: "rgba(59, 130, 246, 0.1)", 
+                      border: "1px solid rgba(59, 130, 246, 0.3)" 
+                    }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-xl">💡</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>
+                          Transaction Type Note
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                          Transaction type will be based on the category you select:
+                        </p>
+                        <ul className="text-xs mt-1 space-y-1" style={{ color: "var(--text-secondary)" }}>
+                          <li>• <strong>Expense category</strong> (e.g., Electronics, Food) → Expense transaction</li>
+                          <li>• <strong>Income category</strong> (e.g., Cash Income) → Income transaction</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
