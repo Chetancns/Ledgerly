@@ -9,8 +9,6 @@ import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
 import { Debt } from "@/models/debt";
 import toast from "react-hot-toast";
-import NeumorphicInput from "./NeumorphicInput";
-import NeumorphicSelect from "./NeumorphicSelect";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 
 interface BatchSettlementModalProps {
@@ -27,24 +25,14 @@ export default function BatchSettlementModal({
   onSuccess,
 }: BatchSettlementModalProps) {
   const { format } = useCurrencyFormatter();
-  const [amount, setAmount] = useState("");
-  const [adjustmentAmount, setAdjustmentAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [notes, setNotes] = useState("");
-  const [accountId, setAccountId] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       loadAccounts();
-      // Auto-calculate total remaining amount
-      const total = debts.reduce((sum, debt) => {
-        return sum + (debt.remaining ? Number(debt.remaining) : 0);
-      }, 0);
-      setAmount(total.toFixed(2));
     }
-  }, [open, debts]);
+  }, [open]);
 
   const loadAccounts = async () => {
     try {
@@ -59,42 +47,44 @@ export default function BatchSettlementModal({
     return sum + (debt.remaining ? Number(debt.remaining) : 0);
   }, 0);
 
-  const handleSubmit = async () => {
-    if (!amount || Number(amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
+  // Determine transaction type based on first debt's role
+  const transactionType = debts.length > 0 && debts[0].role === "lent" ? "income" : "expense";
+  const transactionLabel = transactionType === "income" ? "income" : "expense";
 
+  const handleConfirm = async () => {
     if (debts.length === 0) {
       toast.error("No debts selected");
       return;
     }
 
+    if (accounts.length === 0) {
+      toast.error("No accounts found. Please create an account first.");
+      return;
+    }
+
     try {
       setLoading(true);
+      const currentDate = new Date().toISOString().split("T")[0];
+      
+      // Use first available account automatically
+      const accountId = accounts[0].id;
+
       const result = await toast.promise(
         batchRepayment({
           debtIds: debts.map(d => d.id),
-          amount,
-          adjustmentAmount: adjustmentAmount || undefined,
-          date,
-          notes,
-          accountId: accountId || undefined,
+          amount: totalRemaining.toFixed(2),
+          date: currentDate,
+          accountId,
         }),
         {
-          loading: "Processing batch settlement...",
-          success: (res) => `✅ ${debts.length} debts settled successfully!`,
-          error: "Failed to process batch settlement",
+          loading: "Settling debts...",
+          success: `✅ ${debts.length} debt${debts.length > 1 ? 's' : ''} settled successfully!`,
+          error: "Failed to settle debts",
         }
       );
 
       onSuccess();
       onClose();
-      // Reset form
-      setAmount("");
-      setAdjustmentAmount("");
-      setNotes("");
-      setAccountId("");
     } catch (err) {
       console.error("Batch settlement error:", err);
     } finally {
@@ -102,9 +92,11 @@ export default function BatchSettlementModal({
     }
   };
 
+  if (!open) return null;
+
   return (
     <AnimatePresence>
-      {open && debts.length > 0 && (
+      {open && (
         <motion.div
           key="batch-settlement-modal"
           initial={{ opacity: 0 }}
@@ -123,7 +115,6 @@ export default function BatchSettlementModal({
             style={{
               background: "var(--bg-card)",
               border: "1px solid var(--border-primary)",
-              maxHeight: "90vh",
             }}
           >
             {/* Header */}
@@ -132,7 +123,7 @@ export default function BatchSettlementModal({
               style={{ borderColor: "var(--border-primary)" }}
             >
               <h2 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                Batch Settlement
+                Settle Multiple Debts
               </h2>
               <button
                 onClick={onClose}
@@ -143,14 +134,14 @@ export default function BatchSettlementModal({
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-y-auto" style={{ maxHeight: "calc(90vh - 180px)" }}>
+            <div className="p-6">
               {/* Selected Debts Summary */}
               <div 
                 className="mb-6 p-4 rounded-lg"
                 style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-primary)" }}
               >
-                <p className="text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                  Selected Debts:
+                <p className="text-sm font-medium mb-3" style={{ color: "var(--text-secondary)" }}>
+                  You are about to settle:
                 </p>
                 <div className="space-y-2">
                   {debts.map((debt) => (
@@ -169,7 +160,7 @@ export default function BatchSettlementModal({
                   style={{ borderColor: "var(--border-primary)" }}
                 >
                   <span className="font-medium" style={{ color: "var(--text-primary)" }}>
-                    Total Amount:
+                    Total:
                   </span>
                   <span className="text-lg font-bold" style={{ color: "var(--text-accent)" }}>
                     {format(totalRemaining)}
@@ -177,70 +168,34 @@ export default function BatchSettlementModal({
                 </div>
               </div>
 
-              {/* Payment Form */}
-              <div className="space-y-4">
-                <NeumorphicInput
-                  label="Payment Amount *"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter amount"
-                  step="0.01"
-                  theme="dark"
-                />
-
-                <NeumorphicInput
-                  label="Adjustment Amount (optional)"
-                  type="number"
-                  value={adjustmentAmount}
-                  onChange={(e) => setAdjustmentAmount(e.target.value)}
-                  placeholder="Extra amount (tip, fees, etc.)"
-                  step="0.01"
-                  theme="dark"
-                  helpText="Any additional amount (tip, fees, etc.)"
-                />
-
-                <NeumorphicInput
-                  label="Date *"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  theme="dark"
-                />
-
-                <NeumorphicSelect
-                  label="Account (optional)"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  theme="dark"
-                  helpText="Select account to create a transaction"
-                >
-                  <option value="">No Account (Debt Only)</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.type})
-                    </option>
-                  ))}
-                </NeumorphicSelect>
-
-                <div>
-                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
-                    Notes (optional)
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Add any notes..."
-                    rows={3}
-                    className="w-full px-3 py-2 rounded-lg"
-                    style={{
-                      background: "var(--input-bg)",
-                      color: "var(--input-text)",
-                      border: "1px solid var(--input-border)",
-                    }}
-                  />
-                </div>
+              {/* What Will Happen */}
+              <div 
+                className="mb-6 p-4 rounded-lg"
+                style={{ background: "var(--bg-info)", border: "1px solid var(--border-info)" }}
+              >
+                <p className="text-sm font-medium mb-2" style={{ color: "var(--text-info)" }}>
+                  ℹ️ This will:
+                </p>
+                <ul className="text-sm space-y-1" style={{ color: "var(--text-info)" }}>
+                  <li>• Create {transactionType === "income" ? "an income" : "an expense"} transaction for {format(totalRemaining)}</li>
+                  <li>• Mark all {debts.length} debt{debts.length > 1 ? 's' : ''} as settled</li>
+                  <li>• Update your account balance</li>
+                  {accounts.length > 0 && (
+                    <li>• Use account: {accounts[0].name}</li>
+                  )}
+                </ul>
               </div>
+
+              {accounts.length === 0 && (
+                <div 
+                  className="mb-4 p-4 rounded-lg"
+                  style={{ background: "var(--bg-error)", border: "1px solid var(--border-error)" }}
+                >
+                  <p className="text-sm" style={{ color: "var(--text-error)" }}>
+                    ⚠️ No accounts found. Please create an account first.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -252,13 +207,13 @@ export default function BatchSettlementModal({
                 Cancel
               </ModernButton>
               <ModernButton
-                onClick={handleSubmit}
+                onClick={handleConfirm}
                 variant="primary"
                 theme="dark"
                 fullWidth
-                disabled={loading}
+                disabled={loading || accounts.length === 0}
               >
-                {loading ? "Processing..." : `Settle ${debts.length} Debt${debts.length > 1 ? 's' : ''}`}
+                {loading ? "Processing..." : "Confirm Settlement"}
               </ModernButton>
             </div>
           </motion.div>
