@@ -102,11 +102,9 @@ export default function BatchSettlementModal({
     }
   };
 
-  if (debts.length === 0) return null;
-
   return (
     <AnimatePresence>
-      {open && (
+      {open && debts.length > 0 && (
         <motion.div
           key="batch-settlement-modal"
           initial={{ opacity: 0 }}
