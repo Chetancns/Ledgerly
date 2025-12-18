@@ -5,6 +5,7 @@ import { Debt, DebtUpdate, Repayment } from "@/models/debt";
 import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, getRepayments } from "@/services/debts";
 import ConfirmModal from "@/components/ConfirmModal";
 import RepaymentModal from "@/components/RepaymentModal";
+import BatchSettlementModal from "@/components/BatchSettlementModal";
 import toast from "react-hot-toast";
 
 export default function EnhancedDebtList() {
@@ -20,6 +21,11 @@ export default function EnhancedDebtList() {
   const [filterRole, setFilterRole] = useState<"all" | "lent" | "borrowed" | "institutional" | "settlement-groups">("all");
   const [settlementGroups, setSettlementGroups] = useState<string[]>([]);
   const [selectedSettlementGroup, setSelectedSettlementGroup] = useState<string | null>(null);
+  
+  // Batch settlement state
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedDebtsForBatch, setSelectedDebtsForBatch] = useState<Set<string>>(new Set());
+  const [showBatchSettlementModal, setShowBatchSettlementModal] = useState(false);
 
   const loadDebts = async () => {
     const res = await getUserDebts();
@@ -112,6 +118,25 @@ export default function EnhancedDebtList() {
   const borrowedDebts = debts.filter((d) => d.role === "borrowed");
   const institutionalDebts = debts.filter((d) => d.role === "institutional");
 
+  const toggleDebtSelection = (debtId: string) => {
+    const newSet = new Set(selectedDebtsForBatch);
+    if (newSet.has(debtId)) {
+      newSet.delete(debtId);
+    } else {
+      newSet.add(debtId);
+    }
+    setSelectedDebtsForBatch(newSet);
+  };
+
+  const handleBatchSettlement = () => {
+    const selectedDebts = debts.filter(d => selectedDebtsForBatch.has(d.id));
+    if (selectedDebts.length === 0) {
+      toast.error("Please select at least one debt to settle");
+      return;
+    }
+    setShowBatchSettlementModal(true);
+  };
+
   const renderDebtCard = (debt: Debt) => {
     const remaining = debt.remaining ? Number(debt.remaining) : 0;
     const progress = debt.progress ? Number(debt.progress) : 0;
@@ -123,13 +148,34 @@ export default function EnhancedDebtList() {
     };
 
     const isPersonal = debt.role === "lent" || debt.role === "borrowed";
+    const isSelected = selectedDebtsForBatch.has(debt.id);
 
     return (
       <div
         key={debt.id}
         className="backdrop-blur-lg rounded-lg shadow-lg p-5 flex flex-col transition hover:scale-[1.02]"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+        style={{ 
+          background: "var(--bg-card)", 
+          border: `2px solid ${isSelected ? "var(--color-success)" : "var(--border-primary)"}` 
+        }}
       >
+        {/* Batch Mode Checkbox */}
+        {batchMode && filterRole === "settlement-groups" && (
+          <div className="mb-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => toggleDebtSelection(debt.id)}
+                className="w-5 h-5 rounded"
+              />
+              <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Select for batch settlement
+              </span>
+            </label>
+          </div>
+        )}
+        
         {/* Title + Role Badge */}
         <div className="mb-3 flex items-start justify-between">
           <div className="flex-1">
@@ -296,31 +342,82 @@ export default function EnhancedDebtList() {
 
       {/* Settlement Group Selector */}
       {filterRole === "settlement-groups" && settlementGroups.length > 0 && (
-        <div className="backdrop-blur-lg rounded-lg shadow-lg p-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-          <label className="block text-sm mb-2 font-medium" style={{ color: "var(--text-secondary)" }}>
-            Filter by Settlement Group:
-          </label>
-          <select
-            value={selectedSettlementGroup || ""}
-            onChange={(e) => setSelectedSettlementGroup(e.target.value || null)}
-            className="w-full md:w-64 px-3 py-2 rounded"
-            style={{
-              background: "var(--input-bg)",
-              color: "var(--input-text)",
-              border: "1px solid var(--input-border)",
-            }}
-          >
-            <option value="">All Groups</option>
-            {settlementGroups.map((group) => {
-              const groupDebts = debts.filter((d) => d.settlementGroupId === group);
-              const totalAmount = groupDebts.reduce((sum, d) => sum + Number(d.remaining || 0), 0);
-              return (
-                <option key={group} value={group}>
-                  {group} ({groupDebts.length} debts, {format(totalAmount)} remaining)
-                </option>
-              );
-            })}
-          </select>
+        <div className="backdrop-blur-lg rounded-lg shadow-lg p-4 space-y-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex-1">
+              <label className="block text-sm mb-2 font-medium" style={{ color: "var(--text-secondary)" }}>
+                Filter by Settlement Group:
+              </label>
+              <select
+                value={selectedSettlementGroup || ""}
+                onChange={(e) => setSelectedSettlementGroup(e.target.value || null)}
+                className="w-full md:w-64 px-3 py-2 rounded"
+                style={{
+                  background: "var(--input-bg)",
+                  color: "var(--input-text)",
+                  border: "1px solid var(--input-border)",
+                }}
+              >
+                <option value="">All Groups</option>
+                {settlementGroups.map((group) => {
+                  const groupDebts = debts.filter((d) => d.settlementGroupId === group);
+                  const totalAmount = groupDebts.reduce((sum, d) => sum + Number(d.remaining || 0), 0);
+                  return (
+                    <option key={group} value={group}>
+                      {group} ({groupDebts.length} debts, {format(totalAmount)} remaining)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setBatchMode(!batchMode);
+                  setSelectedDebtsForBatch(new Set());
+                }}
+                className={`px-4 py-2 rounded-lg transition-all font-medium ${
+                  batchMode
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                {batchMode ? "✓ Batch Mode" : "Enable Batch Settlement"}
+              </button>
+            </div>
+          </div>
+          
+          {batchMode && (
+            <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: "var(--bg-card-hover)" }}>
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  Selected: {selectedDebtsForBatch.size} debts
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Total: {format(debts.filter(d => selectedDebtsForBatch.has(d.id)).reduce((sum, d) => sum + Number(d.remaining || 0), 0))}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedDebtsForBatch(new Set())}
+                  className="px-3 py-1 rounded text-sm"
+                  style={{ background: "var(--color-error)", color: "#fff" }}
+                  disabled={selectedDebtsForBatch.size === 0}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleBatchSettlement}
+                  className="px-4 py-1 rounded text-sm font-medium"
+                  style={{ background: "var(--color-success)", color: "#fff" }}
+                  disabled={selectedDebtsForBatch.size === 0}
+                >
+                  Settle Up ({selectedDebtsForBatch.size})
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -430,6 +527,19 @@ export default function EnhancedDebtList() {
         onSuccess={() => {
           loadDebts();
           setShowRepaymentModal(false);
+        }}
+      />
+
+      {/* Batch Settlement Modal */}
+      <BatchSettlementModal
+        open={showBatchSettlementModal}
+        debts={debts.filter(d => selectedDebtsForBatch.has(d.id))}
+        onClose={() => setShowBatchSettlementModal(false)}
+        onSuccess={() => {
+          loadDebts();
+          setShowBatchSettlementModal(false);
+          setSelectedDebtsForBatch(new Set());
+          setBatchMode(false);
         }}
       />
 
