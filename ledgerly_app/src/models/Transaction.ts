@@ -9,4 +9,5 @@ export interface Transaction {
     description?: string;
     transactionDate: string;
     toAccountId?: string | null; // for transfers, the destination account
+    notes?: string;
 }

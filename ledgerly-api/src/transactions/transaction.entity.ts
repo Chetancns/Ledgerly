@@ -42,6 +42,9 @@ export class Transaction {
   @Index() @Column({ type: 'date' }) transactionDate: string;
 
   @Column({ type:'uuid', nullable: true }) toAccountId: string | null;
+
+  @Column({ type: 'text', nullable: true }) notes?: string;
+
   @CreateDateColumn() createdAt: Date;
   constructor(partial: Partial<Transaction>) {
     Object.assign(this, partial);

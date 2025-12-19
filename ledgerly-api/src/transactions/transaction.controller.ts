@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards, Put } from '@nestjs/common';
 import { TransactionsService } from './transaction.service';
-import { CreateTransactionDto ,TransferDto} from './dto/create-transaction.dto';
+import { CreateTransactionDto, TransferDto } from './dto/create-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUser } from '../common/decorators/user.decorator'
 
@@ -45,6 +45,7 @@ update(
 ) {
   return this.service.update(user.userId, id, dto);
 }
+
   @Get('summary')
   async getSummary(
     @GetUser() user: { userId: string, email: string, name: string },
@@ -70,7 +71,15 @@ update(
   ) {
     const skipNum = skip ? parseInt(skip, 10) : undefined;
     const takeNum = take ? parseInt(take, 10) : undefined;
-    return this.service.findByUser(user.userId, { from, to, categoryId, accountId, type, skip: skipNum, take: takeNum });
+    return this.service.findByUser(user.userId, { 
+      from, 
+      to, 
+      categoryId, 
+      accountId, 
+      type, 
+      skip: skipNum, 
+      take: takeNum 
+    });
   }
 
   @Delete(':id')

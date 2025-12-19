@@ -34,7 +34,7 @@ export const getFilterTransactions = ({
   skip?: number;
   take?: number;
 },options?:AxiosRequestConfig) => {
-  const params: Record<string, string | number> = {};
+  const params: Record<string, string | number | boolean> = {};
 
   if (from) params.from = from;
   if (to) params.to = to;

@@ -44,6 +44,8 @@ export default function TransactionForm({
   // 🔹 new state for import loading / progress
   const [importLoading, setImportLoading] = useState(false);
 
+  const [notes, setNotes] = useState(transaction?.notes || "");
+
   useEffect(() => {
     const fetchData = async () => {
       const [accRes, catRes] = await Promise.all([getUserAccount(), getUserCategory()]);
@@ -72,6 +74,8 @@ export default function TransactionForm({
     } else {
       setKind("normal");
     }
+
+    setNotes(transaction.notes || "");
   }
   }, [transaction]);
 
@@ -98,6 +102,7 @@ export default function TransactionForm({
   });
   setKind("normal");
   setToAccountId("");
+  setNotes("");
 };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -120,6 +125,7 @@ export default function TransactionForm({
           ...form,
           transactionDate: toISOStringWithoutOffset(form.transactionDate),
           ...(kind === "transfer" || kind === "savings" ? { toAccountId, type: kind } : {}),
+          notes: notes || undefined,
         };
 
         return updateTransaction(transaction.id, payload);
@@ -146,6 +152,7 @@ export default function TransactionForm({
       return createTransaction({
         ...form,
         transactionDate: toISOStringWithoutOffset(form.transactionDate),
+        notes: notes || undefined,
       });
     })();
 
@@ -169,15 +176,7 @@ export default function TransactionForm({
     }
 
     // Reset form after success
-    setForm({
-      accountId: "",
-      categoryId: "",
-      amount: "",
-      description: "",
-      transactionDate: new Date().toISOString().split("T")[0],
-    });
-    setKind("normal");
-    setToAccountId("");
+    resetForm();
   } catch (error) {
     console.error("Transaction error:", error);
   }

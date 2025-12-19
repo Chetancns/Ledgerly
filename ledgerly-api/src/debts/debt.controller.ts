@@ -1,8 +1,9 @@
 // debts/debt.controller.ts
-import { Body, Controller, Get, Param, Post ,Req,UseGuards} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { DebtService } from './debt.service';
 import { GetUser } from '../common/decorators/user.decorator'
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { CreateDebtDto, AddRepaymentDto, UpdateDebtDto, BatchRepaymentDto } from './dto/debt.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('debts')
@@ -11,17 +12,80 @@ export class DebtController {
 
   /** ➕ Create a new debt */
   @Post()
-  async createDebt(@GetUser() user: { userId: string }, @Body() body: any) {
+  async createDebt(@GetUser() user: { userId: string }, @Body() body: CreateDebtDto) {
     const userId = user.userId;
-
-    return this.debtService.createDebts(userId,body);
+    return this.debtService.createDebts(userId, body);
   }
 
   /** 📋 List all debts + progress */
   @Get()
-  async getDebts(@GetUser() user: { userId: string }) {
+  async getDebts(
+    @GetUser() user: { userId: string },
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+    @Query('counterpartyName') counterpartyName?: string
+  ) {
     const userId = user.userId;
-    return this.debtService.getDebt(userId);
+    return this.debtService.getDebt(userId, { role, status, counterpartyName });
+  }
+
+  /** ✏️ Update debt details */
+  @Put(':id')
+  async updateDebt(
+    @GetUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: UpdateDebtDto
+  ) {
+    const userId = user.userId;
+    return this.debtService.updateDebt(userId, id, body);
+  }
+
+  /** 🗑️ Delete debt */
+  @Delete(':id')
+  async deleteDebt(
+    @GetUser() user: { userId: string },
+    @Param('id') id: string
+  ) {
+    const userId = user.userId;
+    return this.debtService.deleteDebt(userId, id);
+  }
+
+  /** 💰 Add repayment to a debt */
+  @Post(':id/repayments')
+  async addRepayment(
+    @GetUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: AddRepaymentDto
+  ) {
+    const userId = user.userId;
+    return this.debtService.addRepayment(userId, id, body);
+  }
+
+  /** 📜 Get repayments for a debt */
+  @Get(':id/repayments')
+  async getRepayments(@Param('id') id: string) {
+    return this.debtService.getRepayments(id);
+  }
+
+  /** 🗑️ Delete a repayment */
+  @Delete(':id/repayments/:repaymentId')
+  async deleteRepayment(
+    @GetUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('repaymentId') repaymentId: string
+  ) {
+    const userId = user.userId;
+    return this.debtService.deleteRepayment(userId, id, repaymentId);
+  }
+
+  /** 💰 Batch repayment - settle multiple debts at once */
+  @Post('batch-repayment')
+  async batchRepayment(
+    @GetUser() user: { userId: string },
+    @Body() body: BatchRepaymentDto
+  ) {
+    const userId = user.userId;
+    return this.debtService.batchRepayment(userId, body);
   }
 
   /** 🔄 Run catch-up for one debt */
@@ -29,8 +93,9 @@ export class DebtController {
   async catchUpOne(@Param('id') id: string) {
     return this.debtService.catchUpDebt(id);
   }
+
   @Get(':id/updates')
-  async getDebtUpdates(@Param('id') id: string){
+  async getDebtUpdates(@Param('id') id: string) {
     return this.debtService.getDebtUpdates(id);
   }
   
@@ -40,8 +105,26 @@ export class DebtController {
     const userId = user.userId;
     return this.debtService.catchUpAllDebts(userId);
   }
+
   @Get(':id/pay-early')
-  async payearly(@Param('id') id :string){
+  async payearly(@Param('id') id: string) {
     return this.debtService.payEarly(id);
+  }
+
+  /** 📊 Get settlement groups */
+  @Get('settlement-groups/list')
+  async getSettlementGroups(@GetUser() user: { userId: string }) {
+    const userId = user.userId;
+    return this.debtService.getSettlementGroups(userId);
+  }
+
+  /** 📋 Get debts by settlement group */
+  @Get('settlement-groups/:groupId')
+  async getDebtsByGroup(
+    @GetUser() user: { userId: string },
+    @Param('groupId') groupId: string
+  ) {
+    const userId = user.userId;
+    return this.debtService.getDebtsBySettlementGroup(userId, groupId);
   }
 }
