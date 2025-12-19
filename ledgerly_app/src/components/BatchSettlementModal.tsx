@@ -27,12 +27,24 @@ export default function BatchSettlementModal({
   const { format } = useCurrencyFormatter();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
 
   useEffect(() => {
     if (open) {
       loadAccounts();
+      // Auto-select first account if available
+      if (accounts.length > 0) {
+        setSelectedAccountId(accounts[0].id);
+      }
     }
   }, [open]);
+
+  useEffect(() => {
+    // Auto-select first account when accounts load
+    if (accounts.length > 0 && !selectedAccountId) {
+      setSelectedAccountId(accounts[0].id);
+    }
+  }, [accounts]);
 
   const loadAccounts = async () => {
     try {
@@ -57,24 +69,21 @@ export default function BatchSettlementModal({
       return;
     }
 
-    if (accounts.length === 0) {
-      toast.error("No accounts found. Please create an account first.");
+    if (!selectedAccountId) {
+      toast.error("Please select an account to create a transaction and update the balance.");
       return;
     }
 
     try {
       setLoading(true);
       const currentDate = new Date().toISOString().split("T")[0];
-      
-      // Use first available account automatically
-      const accountId = accounts[0].id;
 
       const result = await toast.promise(
         batchRepayment({
           debtIds: debts.map(d => d.id),
           amount: totalRemaining.toFixed(2),
           date: currentDate,
-          accountId,
+          accountId: selectedAccountId,
         }),
         {
           loading: "Settling debts...",
@@ -85,6 +94,7 @@ export default function BatchSettlementModal({
 
       onSuccess();
       onClose();
+      setSelectedAccountId(""); // Reset for next use
     } catch (err) {
       console.error("Batch settlement error:", err);
     } finally {
@@ -180,22 +190,44 @@ export default function BatchSettlementModal({
                   <li>• Create {transactionType === "income" ? "an income" : "an expense"} transaction for {format(totalRemaining)}</li>
                   <li>• Mark all {debts.length} debt{debts.length > 1 ? 's' : ''} as settled</li>
                   <li>• Update your account balance</li>
-                  {accounts.length > 0 && (
-                    <li>• Use account: {accounts[0].name}</li>
-                  )}
                 </ul>
               </div>
 
-              {accounts.length === 0 && (
-                <div 
-                  className="mb-4 p-4 rounded-lg"
-                  style={{ background: "var(--bg-error)", border: "1px solid var(--border-error)" }}
-                >
-                  <p className="text-sm" style={{ color: "var(--text-error)" }}>
+              {/* Account Selector */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  Select Account to Update Balance *
+                </label>
+                {accounts.length > 0 ? (
+                  <select
+                    value={selectedAccountId}
+                    onChange={(e) => setSelectedAccountId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{
+                      background: "var(--bg-secondary)",
+                      borderColor: "var(--border-primary)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <option value="">Choose an account...</option>
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.type})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div 
+                    className="p-3 rounded-lg text-sm"
+                    style={{ background: "var(--bg-error)", border: "1px solid var(--border-error)", color: "var(--text-error)" }}
+                  >
                     ⚠️ No accounts found. Please create an account first.
-                  </p>
+                  </div>
+                )}
+                <div className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+                  A transaction will be created to update this account's balance
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Footer */}
@@ -211,7 +243,7 @@ export default function BatchSettlementModal({
                 variant="primary"
                 theme="dark"
                 fullWidth
-                disabled={loading || accounts.length === 0}
+                disabled={loading || !selectedAccountId}
               >
                 {loading ? "Processing..." : "Confirm Settlement"}
               </ModernButton>
