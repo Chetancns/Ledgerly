@@ -5,7 +5,8 @@ import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Debt } from "@/models/debt";
 import { getUserDebts } from "@/services/debts";
 import { batchRepayment } from "@/services/debts";
-import { useAccounts } from "@/hooks/useAccounts";
+import { getUserAccount } from "@/services/accounts";
+import { Account } from "@/models/account";
 import toast from "react-hot-toast";
 
 interface PersonBalance {
@@ -22,11 +23,21 @@ export default function SplitwiseStyleDebtView() {
   const [loading, setLoading] = useState(true);
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [view, setView] = useState<"people" | "groups">("people");
-  const { accounts } = useAccounts();
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
     loadDebts();
+    loadAccounts();
   }, []);
+
+  const loadAccounts = async () => {
+    try {
+      const res = await getUserAccount();
+      setAccounts(res);
+    } catch (error) {
+      console.error("Failed to load accounts", error);
+    }
+  };
 
   const loadDebts = async () => {
     setLoading(true);
