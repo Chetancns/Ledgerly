@@ -19,6 +19,10 @@ export default function EnhancedDebtList() {
   const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [filterRole, setFilterRole] = useState<"all" | "lent" | "borrowed" | "institutional" | "settlement-groups">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "open" | "settled" | "overdue">("open");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"amount" | "dueDate" | "created" | "status">("dueDate");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [settlementGroups, setSettlementGroups] = useState<string[]>([]);
   const [selectedSettlementGroup, setSelectedSettlementGroup] = useState<string | null>(null);
   
@@ -105,13 +109,59 @@ export default function EnhancedDebtList() {
     loadDebts();
   }, []);
 
+  // Advanced filtering
   const filteredDebts = debts.filter((debt) => {
-    if (filterRole === "all") return true;
-    if (filterRole === "settlement-groups") {
-      if (!selectedSettlementGroup) return debt.settlementGroupId;
-      return debt.settlementGroupId === selectedSettlementGroup;
+    // Role filter
+    if (filterRole !== "all") {
+      if (filterRole === "settlement-groups") {
+        if (!selectedSettlementGroup) {
+          if (!debt.settlementGroupId) return false;
+        } else if (debt.settlementGroupId !== selectedSettlementGroup) {
+          return false;
+        }
+      } else if (debt.role !== filterRole) {
+        return false;
+      }
     }
-    return debt.role === filterRole;
+    
+    // Status filter
+    if (filterStatus !== "all" && debt.status !== filterStatus) {
+      return false;
+    }
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = debt.name.toLowerCase().includes(query);
+      const matchesCounterparty = debt.counterpartyName?.toLowerCase().includes(query);
+      if (!matchesName && !matchesCounterparty) return false;
+    }
+    
+    return true;
+  });
+  
+  // Sorting
+  const sortedDebts = [...filteredDebts].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortBy) {
+      case "amount":
+        comparison = Number(a.remaining || 0) - Number(b.remaining || 0);
+        break;
+      case "dueDate":
+        const dateA = a.dueDate || a.nextDueDate || "";
+        const dateB = b.dueDate || b.nextDueDate || "";
+        comparison = dateA.localeCompare(dateB);
+        break;
+      case "created":
+        comparison = (a.createdAt || "").localeCompare(b.createdAt || "");
+        break;
+      case "status":
+        comparison = (a.status || "").localeCompare(b.status || "");
+        break;
+    }
+    
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   const lentDebts = debts.filter((d) => d.role === "lent");
@@ -300,12 +350,79 @@ export default function EnhancedDebtList() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Filters */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-          Your Debts
-        </h2>
+      {/* Header with Search & Sort */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            Your Debts
+          </h2>
+          
+          {/* Search & Sort Controls */}
+          <div className="flex gap-2 flex-wrap items-center">
+            <input
+              type="text"
+              placeholder="Search debts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-4 py-2 rounded-lg text-sm w-64"
+              style={{
+                background: "var(--input-bg)",
+                color: "var(--input-text)",
+                border: "1px solid var(--input-border)",
+              }}
+            />
+            
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-2 rounded-lg text-sm"
+              style={{
+                background: "var(--input-bg)",
+                color: "var(--input-text)",
+                border: "1px solid var(--input-border)",
+              }}
+            >
+              <option value="dueDate">Sort: Due Date</option>
+              <option value="amount">Sort: Amount</option>
+              <option value="created">Sort: Created</option>
+              <option value="status">Sort: Status</option>
+            </select>
+            
+            <button
+              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              className="px-3 py-2 rounded-lg transition-all text-sm font-medium"
+              style={{
+                background: "var(--accent-secondary)",
+                color: "#fff",
+              }}
+              title={sortOrder === "asc" ? "Ascending" : "Descending"}
+            >
+              {sortOrder === "asc" ? "↑" : "↓"}
+            </button>
+          </div>
+        </div>
+        
+        {/* Status Filters */}
+        <div className="flex gap-2 flex-wrap">
+          {["open", "settled", "overdue", "all"].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilterStatus(status as any)}
+              className={`px-4 py-2 rounded-lg transition-all text-sm font-medium ${
+                filterStatus === status
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              {status === "open" && "🟢 Open"}
+              {status === "settled" && "✅ Settled"}
+              {status === "overdue" && "🔴 Overdue"}
+              {status === "all" && "All Status"}
+            </button>
+          ))}
+        </div>
 
+        {/* Role Filters */}
         <div className="flex gap-2 flex-wrap">
           {["all", "lent", "borrowed", "institutional", "settlement-groups"].map((role) => (
             <button
@@ -316,11 +433,11 @@ export default function EnhancedDebtList() {
               }}
               className={`px-4 py-2 rounded-lg transition-all text-sm font-medium ${
                 filterRole === role
-                  ? "bg-blue-500 text-white"
+                  ? "bg-purple-500 text-white"
                   : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
               }`}
             >
-              {role === "all" && "All"}
+              {role === "all" && "All Types"}
               {role === "lent" && `💰 Lent (${lentDebts.length})`}
               {role === "borrowed" && `💸 Borrowed (${borrowedDebts.length})`}
               {role === "institutional" && `🏦 Institutional (${institutionalDebts.length})`}
@@ -385,6 +502,28 @@ export default function EnhancedDebtList() {
               >
                 {batchMode ? "✓ Batch Mode" : "Enable Batch Settlement"}
               </button>
+              
+              {batchMode && (
+                <>
+                  <button
+                    onClick={() => {
+                      const groupDebts = sortedDebts.filter(d => d.settlementGroupId === selectedSettlementGroup);
+                      setSelectedDebtsForBatch(new Set(groupDebts.map(d => d.id)));
+                    }}
+                    className="px-3 py-2 rounded-lg text-sm"
+                    style={{ background: "var(--accent-secondary)", color: "#fff" }}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => setSelectedDebtsForBatch(new Set())}
+                    className="px-3 py-2 rounded-lg text-sm"
+                    style={{ background: "var(--color-error)", color: "#fff" }}
+                  >
+                    Clear All
+                  </button>
+                </>
+              )}
             </div>
           </div>
           
@@ -422,20 +561,40 @@ export default function EnhancedDebtList() {
       )}
 
       {/* Debt Cards */}
-      {filteredDebts.length === 0 ? (
+      {sortedDebts.length === 0 ? (
         <div
           className="text-center py-12 rounded-lg"
           style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
         >
-          <p style={{ color: "var(--text-muted)" }}>
-            {filterRole === "all"
-              ? "No debts yet. Add one above!"
-              : `No ${filterRole} debts found.`}
+          <div className="mb-4 text-4xl">
+            {searchQuery ? "🔍" : filterStatus === "settled" ? "✅" : filterStatus === "overdue" ? "🔴" : "📊"}
+          </div>
+          <p className="text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+            {searchQuery
+              ? "No debts match your search"
+              : filterStatus === "open"
+              ? "No open debts"
+              : filterStatus === "settled"
+              ? "No settled debts yet"
+              : filterStatus === "overdue"
+              ? "No overdue debts"
+              : filterRole === "all"
+              ? "No debts yet"
+              : `No ${filterRole} debts found`}
+          </p>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            {searchQuery
+              ? "Try a different search term"
+              : filterStatus === "open"
+              ? "Great! You're all caught up."
+              : filterStatus === "settled"
+              ? "Settled debts will appear here once you make payments."
+              : "Add a debt using the form above to get started."}
           </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredDebts.map((debt) => renderDebtCard(debt))}
+          {sortedDebts.map((debt) => renderDebtCard(debt))}
         </div>
       )}
 
