@@ -31,6 +31,7 @@ Comprehensive documentation is available in the `/docs` directory:
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API endpoint documentation with examples
 - **[Database Schema](docs/DATABASE_SCHEMA.md)** - Database structure, relations, and migration guide
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step deployment instructions for various platforms
+- **[Tagging System](docs/TAGGING_SYSTEM.md)** - Complete guide to the transaction tagging system
 
 ### Developer Resources
 - **[Development Guide](docs/DEVELOPMENT.md)** - Setup, workflows, and best practices for developers
@@ -47,6 +48,11 @@ Comprehensive documentation is available in the `/docs` directory:
 ## Features
 
 - 💰 **Transaction Management** - Track income, expenses, transfers, and savings
+- 🏷️ **Tagging System** - Organize transactions with flexible, color-coded tags
+  - Multi-tag support for transactions
+  - Tag analytics and insights
+  - Tag merge and management tools
+  - Spending trends by tag
 - 🏦 **Account Management** - Manage multiple accounts (checking, savings, credit cards, cash)
 - 📊 **Budgeting** - Set and track budgets by category with multiple time periods
 - 💳 **Debt Tracking** - Monitor debts and payment progress
