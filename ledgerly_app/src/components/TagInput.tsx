@@ -93,6 +93,24 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
     onChange(newSelected.map(t => t.id));
   };
 
+  const generateRandomColor = () => {
+    const colors = [
+      "#3B82F6", // blue
+      "#10B981", // green
+      "#F59E0B", // amber
+      "#EF4444", // red
+      "#8B5CF6", // purple
+      "#EC4899", // pink
+      "#14B8A6", // teal
+      "#F97316", // orange
+      "#06B6D4", // cyan
+      "#84CC16", // lime
+      "#A855F7", // violet
+      "#F43F5E", // rose
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
   const handleCreateTag = async () => {
     const name = inputValue.trim();
     if (!name) return;
@@ -105,7 +123,7 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
     }
 
     try {
-      const res = await createTag({ name });
+      const res = await createTag({ name, color: generateRandomColor() });
       const newTag = res.data;
       setTags([...tags, newTag]);
       handleSelectTag(newTag);
@@ -196,13 +214,13 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
           }`}
         >
           {filteredTags.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <div className="flex flex-wrap gap-2">
               {filteredTags.map(tag => (
                 <button
                   key={tag.id}
                   type="button"
                   onClick={() => handleSelectTag(tag)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
                     theme === "dark"
                       ? "border-gray-600 hover:bg-gray-700 hover:border-blue-500"
                       : "border-gray-300 hover:bg-gray-100 hover:border-blue-500"
@@ -215,7 +233,7 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: tag.color }}
                   />
-                  <span className={`text-sm font-medium truncate ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  <span className={`text-sm font-medium whitespace-nowrap ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                     {tag.name}
                   </span>
                 </button>
