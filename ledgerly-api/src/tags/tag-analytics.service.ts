@@ -161,11 +161,11 @@ export class TagAnalyticsService {
       .addSelect('category.name', 'categoryName')
       .addSelect('category.type', 'categoryType')
       .addSelect('COUNT(transaction.id)', 'transactionCount')
-      .addSelect('SUM(CAST(transaction.amount AS DECIMAL))', 'totalAmount')
+      .addSelect('SUM(CAST(transaction.amount AS DECIMAL))', 'totalamount')
       .groupBy('category.id')
       .addGroupBy('category.name')
       .addGroupBy('category.type')
-      .orderBy('totalAmount', 'DESC');
+      .orderBy('totalamount', 'DESC');
 
     const results = await qb.getRawMany();
 
@@ -174,7 +174,7 @@ export class TagAnalyticsService {
       categoryName: r.categoryName || 'Uncategorized',
       categoryType: r.categoryType || 'expense',
       transactionCount: parseInt(r.transactionCount, 10),
-      totalAmount: parseFloat(r.totalAmount || 0),
+      totalAmount: parseFloat(r.totalamount || 0),
     }));
   }
 

@@ -425,7 +425,7 @@ export default function TagInsightsPage() {
                           cy="50%"
                           labelLine={false}
                           label={({ categoryName, percent }) =>
-                            `${categoryName} (${(percent * 100).toFixed(0)}%)`
+                            `${categoryName} (${((percent ?? 0) * 100).toFixed(0)}%)`
                           }
                           outerRadius={100}
                           fill="#8884d8"
@@ -447,7 +447,7 @@ export default function TagInsightsPage() {
                     </ResponsiveContainer>
                   </div>
                   <div className="space-y-3">
-                    {categoryBreakdown.map((cat) => (
+                    {categoryBreakdown.map((cat, index) => (
                       <div
                         key={cat.categoryId}
                         className={`p-3 rounded-lg ${

@@ -48,7 +48,8 @@ export class Transaction {
 
   @ManyToMany(() => Tag, (tag) => tag.transactions, { cascade: true })
   @JoinTable({
-    name: 'dbo.transaction_tags',
+    name: 'transaction_tags',
+    schema: 'dbo',
     joinColumn: { name: 'transactionId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
   })
