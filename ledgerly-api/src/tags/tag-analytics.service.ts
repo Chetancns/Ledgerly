@@ -46,11 +46,11 @@ export class TagAnalyticsService {
       .addSelect('tag.name', 'tagName')
       .addSelect('tag.color', 'tagColor')
       .addSelect('COUNT(transaction.id)', 'transactionCount')
-      .addSelect('SUM(CAST(transaction.amount AS DECIMAL))', 'totalSpent')
+      .addSelect('SUM(CAST(transaction.amount AS DECIMAL))', 'totalspent')
       .groupBy('tag.id')
       .addGroupBy('tag.name')
       .addGroupBy('tag.color')
-      .orderBy('totalSpent', 'DESC');
+      .orderBy('totalspent', 'DESC');
 
     const results = await qb.getRawMany();
 
@@ -59,7 +59,7 @@ export class TagAnalyticsService {
       tagName: r.tagName,
       tagColor: r.tagColor,
       transactionCount: parseInt(r.transactionCount, 10),
-      totalSpent: parseFloat(r.totalSpent || 0),
+      totalSpent: parseFloat(r.totalspent || 0),
     }));
   }
 

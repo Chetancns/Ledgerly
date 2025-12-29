@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { TagsService } from './tags.service';
 import { TagAnalyticsService } from './tag-analytics.service';
 import { CreateTagDto, UpdateTagDto, MergeTagsDto, BulkDeleteTagsDto } from './dto/tag.dto';
+import { GetUser } from 'src/common/decorators/user.decorator';
 
 @Controller('tags')
 @UseGuards(JwtAuthGuard)
@@ -28,8 +29,8 @@ export class TagsController {
    * POST /tags
    */
   @Post()
-  async create(@Request() req, @Body() createTagDto: CreateTagDto) {
-    return this.tagsService.create(req.user.userId, createTagDto);
+  async create(@GetUser() user: { userId: string }, @Body() createTagDto: CreateTagDto) {
+    return this.tagsService.create(user.userId, createTagDto);
   }
 
   /**
@@ -37,9 +38,9 @@ export class TagsController {
    * GET /tags?includeDeleted=false
    */
   @Get()
-  async findAll(@Request() req, @Query('includeDeleted') includeDeleted?: string) {
+  async findAll(@GetUser() user: { userId: string }, @Query('includeDeleted') includeDeleted?: string) {
     const includeDeletedBool = includeDeleted === 'true';
-    return this.tagsService.findAll(req.user.userId, includeDeletedBool);
+    return this.tagsService.findAll(user.userId, includeDeletedBool);
   }
 
   /**
@@ -47,8 +48,8 @@ export class TagsController {
    * GET /tags/with-usage
    */
   @Get('with-usage')
-  async getTagsWithUsage(@Request() req) {
-    return this.tagsService.getTagsWithUsage(req.user.userId);
+  async getTagsWithUsage(@GetUser() user: { userId: string }, @Request() req) {
+    return this.tagsService.getTagsWithUsage(user.userId);
   }
 
   /**
@@ -56,11 +57,11 @@ export class TagsController {
    * GET /tags/search?q=vacation
    */
   @Get('search')
-  async search(@Request() req, @Query('q') query: string) {
+  async search(@GetUser() user: { userId: string }, @Query('q') query: string) {
     if (!query || query.trim().length === 0) {
       return [];
     }
-    return this.tagsService.searchTags(req.user.userId, query);
+    return this.tagsService.searchTags(user.userId, query);
   }
 
   /**
@@ -68,8 +69,8 @@ export class TagsController {
    * GET /tags/:id
    */
   @Get(':id')
-  async findOne(@Request() req, @Param('id') id: string) {
-    return this.tagsService.findOne(req.user.userId, id);
+  async findOne(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    return this.tagsService.findOne(user.userId, id);
   }
 
   /**
@@ -77,8 +78,8 @@ export class TagsController {
    * GET /tags/:id/stats
    */
   @Get(':id/stats')
-  async getStats(@Request() req, @Param('id') id: string) {
-    return this.tagsService.getTagStats(req.user.userId, id);
+  async getStats(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    return this.tagsService.getTagStats(user.userId, id);
   }
 
   /**
@@ -87,11 +88,11 @@ export class TagsController {
    */
   @Put(':id')
   async update(
-    @Request() req,
+    @GetUser() user: { userId: string },
     @Param('id') id: string,
     @Body() updateTagDto: UpdateTagDto,
   ) {
-    return this.tagsService.update(req.user.userId, id, updateTagDto);
+    return this.tagsService.update(user.userId, id, updateTagDto);
   }
 
   /**
@@ -99,8 +100,8 @@ export class TagsController {
    * PUT /tags/:id/restore
    */
   @Put(':id/restore')
-  async restore(@Request() req, @Param('id') id: string) {
-    return this.tagsService.restore(req.user.userId, id);
+  async restore(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    return this.tagsService.restore(user.userId, id);
   }
 
   /**
@@ -108,8 +109,8 @@ export class TagsController {
    * DELETE /tags/:id
    */
   @Delete(':id')
-  async remove(@Request() req, @Param('id') id: string) {
-    await this.tagsService.remove(req.user.userId, id);
+  async remove(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    await this.tagsService.remove(user.userId, id);
     return { message: 'Tag deleted successfully' };
   }
 
@@ -118,8 +119,8 @@ export class TagsController {
    * DELETE /tags/:id/hard
    */
   @Delete(':id/hard')
-  async hardDelete(@Request() req, @Param('id') id: string) {
-    await this.tagsService.hardDelete(req.user.userId, id);
+  async hardDelete(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    await this.tagsService.hardDelete(user.userId, id);
     return { message: 'Tag permanently deleted' };
   }
 
@@ -128,8 +129,8 @@ export class TagsController {
    * POST /tags/merge
    */
   @Post('merge')
-  async merge(@Request() req, @Body() mergeTagsDto: MergeTagsDto) {
-    return this.tagsService.mergeTags(req.user.userId, mergeTagsDto);
+  async merge(@GetUser() user: { userId: string }, @Body() mergeTagsDto: MergeTagsDto) {
+    return this.tagsService.mergeTags(user.userId, mergeTagsDto);
   }
 
   /**
@@ -137,8 +138,8 @@ export class TagsController {
    * POST /tags/bulk-delete
    */
   @Post('bulk-delete')
-  async bulkDelete(@Request() req, @Body() bulkDeleteDto: BulkDeleteTagsDto) {
-    return this.tagsService.bulkDelete(req.user.userId, bulkDeleteDto.tagIds);
+  async bulkDelete(@GetUser() user: { userId: string }, @Body() bulkDeleteDto: BulkDeleteTagsDto) {
+    return this.tagsService.bulkDelete(user.userId, bulkDeleteDto.tagIds);
   }
 
   /**
@@ -147,13 +148,13 @@ export class TagsController {
    */
   @Get('analytics/spending')
   async getSpendingAnalytics(
-    @Request() req,
+    @GetUser() user: { userId: string } ,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('tagIds') tagIds?: string,
   ) {
     const tagIdsArray = tagIds ? tagIds.split(',').filter(id => id.trim()) : undefined;
-    return this.analyticsService.getSpendingByTag(req.user.userId, { from, to, tagIds: tagIdsArray });
+    return this.analyticsService.getSpendingByTag(user.userId, { from, to, tagIds: tagIdsArray });
   }
 
   /**
@@ -162,12 +163,12 @@ export class TagsController {
    */
   @Get('analytics/trends/:id')
   async getTagTrends(
-    @Request() req,
+    @GetUser() user: { userId: string },
     @Param('id') id: string,
     @Query('months') months?: string,
   ) {
     const monthsNum = months ? parseInt(months, 10) : 6;
-    return this.analyticsService.getTagTrends(req.user.userId, id, { months: monthsNum });
+    return this.analyticsService.getTagTrends(user.userId, id, { months: monthsNum });
   }
 
   /**
@@ -176,12 +177,12 @@ export class TagsController {
    */
   @Get('analytics/category-breakdown/:id')
   async getCategoryBreakdown(
-    @Request() req,
+    @GetUser() user: { userId: string },
     @Param('id') id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.analyticsService.getCategoryBreakdownByTag(req.user.userId, id, { from, to });
+    return this.analyticsService.getCategoryBreakdownByTag(user.userId, id, { from, to });
   }
 
   /**
@@ -190,7 +191,7 @@ export class TagsController {
    */
   @Get('analytics/compare')
   async compareTagSpending(
-    @Request() req,
+    @GetUser() user: { userId: string },
     @Query('tagIds') tagIds: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -199,7 +200,7 @@ export class TagsController {
     if (tagIdsArray.length === 0) {
       return [];
     }
-    return this.analyticsService.compareTagSpending(req.user.userId, tagIdsArray, { from, to });
+    return this.analyticsService.compareTagSpending(user.userId, tagIdsArray, { from, to });
   }
 
   /**
@@ -208,10 +209,10 @@ export class TagsController {
    */
   @Get('analytics/summary')
   async getInsightsSummary(
-    @Request() req,
+    @GetUser() user: { userId: string },
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.analyticsService.getTagInsightsSummary(req.user.userId, { from, to });
+    return this.analyticsService.getTagInsightsSummary(user.userId, { from, to });
   }
 }

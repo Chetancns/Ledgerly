@@ -13,7 +13,7 @@ import { Category } from '../categories/category.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Budget } from '../budgets/budget.entity';
 import { RecurringTransaction } from '../recurring/recurring.entity';
-import { Debt } from 'src/debts/debt.entity';
+import { Debt } from '../debts/debt.entity';
 import { Tag } from '../tags/tag.entity';
 
 @Entity('dbo.users')

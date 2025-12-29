@@ -12,7 +12,7 @@ import {
 import { User } from '../users/user.entity';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
-import { DebtUpdate } from 'src/debts/debt-update.entity';
+import { DebtUpdate } from '../debts/debt-update.entity';
 import { Tag } from '../tags/tag.entity';
 
 export type TxType = 'expense' | 'income' | 'savings' | 'transfer';

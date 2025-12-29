@@ -10,8 +10,11 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
+import quarterOfYear from "dayjs/plugin/quarterOfYear";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Tag as TagIcon, TrendingUp, DollarSign, Package } from "lucide-react";
+
+dayjs.extend(quarterOfYear);
 
 export default function TagInsightsPage() {
   const router = useRouter();
@@ -187,7 +190,7 @@ export default function TagInsightsPage() {
                   <DollarSign size={20} className="text-orange-500" />
                 </div>
                 <p className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                  {formatCurrency(summary.summary.totalSpent)}
+                  {formatCurrency.format(summary.summary.totalSpent)}
                 </p>
                 <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                   across all tags
@@ -211,7 +214,7 @@ export default function TagInsightsPage() {
                       {summary.topTag.tagName}
                     </p>
                     <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                      {formatCurrency(summary.topTag.totalSpent)}
+                      {formatCurrency.format(summary.topTag.totalSpent)}
                     </p>
                   </>
                 ) : (
@@ -244,7 +247,7 @@ export default function TagInsightsPage() {
                         borderRadius: "0.5rem",
                       }}
                       labelStyle={{ color: theme === "dark" ? "#F3F4F6" : "#1F2937" }}
-                      formatter={(value: number) => [formatCurrency(value), "Spent"]}
+                      formatter={(value: number) => [formatCurrency.format(value), "Spent"]}
                     />
                     <Legend />
                     <Bar dataKey="totalSpent" fill="#3B82F6" name="Amount Spent" />
@@ -271,7 +274,7 @@ export default function TagInsightsPage() {
                       cy="50%"
                       labelLine={false}
                       label={({ tagName, percent }) =>
-                        `${tagName} (${(percent * 100).toFixed(0)}%)`
+                        `${tagName} (${((percent ?? 0) * 100).toFixed(0)}%)`
                       }
                       outerRadius={100}
                       fill="#8884d8"
@@ -287,7 +290,7 @@ export default function TagInsightsPage() {
                         border: `1px solid ${theme === "dark" ? "#374151" : "#E5E7EB"}`,
                         borderRadius: "0.5rem",
                       }}
-                      formatter={(value: number) => [formatCurrency(value), "Spent"]}
+                      formatter={(value: number) => [formatCurrency.format(value), "Spent"]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -328,7 +331,7 @@ export default function TagInsightsPage() {
                       </div>
                       <div className="text-right">
                         <p className={`font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                          {formatCurrency(tag.totalSpent)}
+                          {formatCurrency.format(tag.totalSpent)}
                         </p>
                         <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
                           {((tag.totalSpent / summary.summary.totalSpent) * 100).toFixed(1)}% of total

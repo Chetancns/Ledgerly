@@ -59,9 +59,9 @@ export class TagsService {
    * Get a single tag by ID
    */
   async findOne(userId: string, tagId: string): Promise<Tag> {
+    // Load without relations to avoid unnecessary joins when updating
     const tag = await this.tagRepo.findOne({
       where: { id: tagId, userId, isDeleted: false },
-      relations: ['transactions'],
     });
 
     if (!tag) {
