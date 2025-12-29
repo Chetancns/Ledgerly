@@ -216,7 +216,7 @@ export default function TransactionForm({
   };
 
   return (
-      <div className="relative bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
+      <div className="relative z-20 bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
                       backdrop-blur-2xl rounded-2xl shadow-xl p-4 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible">
         <h2 className="text-2xl font-semibold text-white mb-2 flex items-center gap-2">
           {transaction ? "✏️ Edit Transaction" : "➕ Add Transaction"}
