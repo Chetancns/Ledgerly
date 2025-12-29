@@ -16,10 +16,11 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
   const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Load all tags on mount
   useEffect(() => {
@@ -51,16 +52,16 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
     }
   }, [inputValue, tags, selectedTags]);
 
-  // Close dropdown when clicking outside
+  // Close panel when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node) &&
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
       ) {
-        setShowSuggestions(false);
+        setShowPanel(false);
       }
     };
 
@@ -82,7 +83,7 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
     setSelectedTags(newSelected);
     onChange(newSelected.map(t => t.id));
     setInputValue("");
-    setShowSuggestions(false);
+    setShowPanel(false);
     inputRef.current?.focus();
   };
 
@@ -125,19 +126,26 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
     } else if (e.key === "Backspace" && !inputValue && selectedTags.length > 0) {
       handleRemoveTag(selectedTags[selectedTags.length - 1].id);
     } else if (e.key === "Escape") {
-      setShowSuggestions(false);
+      setShowPanel(false);
     }
+  };
+
+  const handleContainerClick = () => {
+    setShowPanel(true);
+    inputRef.current?.focus();
   };
 
   return (
     <div className={`relative ${className}`}>
-      {/* Tag display and input */}
+      {/* Tag display and input container */}
       <div
-        className={`flex flex-wrap gap-2 p-3 rounded-lg border ${
+        ref={containerRef}
+        onClick={handleContainerClick}
+        className={`flex flex-wrap gap-2 p-3 rounded-lg border cursor-text ${
           theme === "dark"
             ? "bg-gray-800 border-gray-700"
             : "bg-white border-gray-300"
-        } focus-within:ring-2 focus-within:ring-blue-500 transition-all`}
+        } ${showPanel ? "ring-2 ring-blue-500" : ""} transition-all`}
       >
         {selectedTags.map(tag => (
           <span
@@ -153,7 +161,10 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
             {tag.name}
             <button
               type="button"
-              onClick={() => handleRemoveTag(tag.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveTag(tag.id);
+              }}
               className="ml-1 hover:opacity-70 transition-opacity"
               aria-label={`Remove ${tag.name} tag`}
             >
@@ -166,7 +177,6 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
           type="text"
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
-          onFocus={() => setShowSuggestions(true)}
           onKeyDown={handleKeyDown}
           placeholder={selectedTags.length === 0 ? placeholder : ""}
           className={`flex-1 min-w-[120px] bg-transparent outline-none ${
@@ -175,60 +185,62 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
         />
       </div>
 
-      {/* Suggestions dropdown */}
-      {showSuggestions && (
+      {/* Tag selection panel with grid layout */}
+      {showPanel && (
         <div
-          ref={dropdownRef}
-          className={`absolute z-10 mt-1 w-full rounded-lg border shadow-lg max-h-60 overflow-auto ${
+          ref={panelRef}
+          className={`absolute z-10 mt-2 w-full rounded-lg border shadow-lg p-4 max-h-80 overflow-auto ${
             theme === "dark"
               ? "bg-gray-800 border-gray-700"
               : "bg-white border-gray-300"
           }`}
         >
           {filteredTags.length > 0 ? (
-            <ul>
-              {filteredTags.slice(0, 10).map(tag => (
-                <li key={tag.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectTag(tag)}
-                    className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
-                      theme === "dark"
-                        ? "hover:bg-gray-700"
-                        : "hover:bg-gray-100"
-                    }`}
-                  >
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    <span className={theme === "dark" ? "text-white" : "text-gray-900"}>
-                      {tag.name}
-                    </span>
-                  </button>
-                </li>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {filteredTags.map(tag => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => handleSelectTag(tag)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                    theme === "dark"
+                      ? "border-gray-600 hover:bg-gray-700 hover:border-blue-500"
+                      : "border-gray-300 hover:bg-gray-100 hover:border-blue-500"
+                  }`}
+                  style={{
+                    backgroundColor: theme === "dark" ? `${tag.color}10` : `${tag.color}05`,
+                  }}
+                >
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  <span className={`text-sm font-medium truncate ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                    {tag.name}
+                  </span>
+                </button>
               ))}
-            </ul>
-          ) : inputValue.trim() ? (
-            <div className="p-3">
-              <button
-                type="button"
-                onClick={handleCreateTag}
-                className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                  theme === "dark"
-                    ? "hover:bg-gray-700 text-blue-400"
-                    : "hover:bg-gray-100 text-blue-600"
-                }`}
-              >
-                <Plus size={16} />
-                <span>Create tag &quot;{inputValue.trim()}&quot;</span>
-              </button>
             </div>
+          ) : inputValue.trim() ? (
+            <button
+              type="button"
+              onClick={handleCreateTag}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed transition-colors ${
+                theme === "dark"
+                  ? "border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                  : "border-blue-500 text-blue-600 hover:bg-blue-50"
+              }`}
+            >
+              <Plus size={18} />
+              <span className="font-medium">Create tag &quot;{inputValue.trim()}&quot;</span>
+            </button>
           ) : (
-            <div className={`p-3 text-center text-sm ${
+            <div className={`text-center py-8 text-sm ${
               theme === "dark" ? "text-gray-400" : "text-gray-500"
             }`}>
-              No tags available
+              <TagIcon size={32} className="mx-auto mb-2 opacity-50" />
+              <p>No tags available</p>
+              <p className="text-xs mt-1">Type to create a new tag</p>
             </div>
           )}
         </div>
