@@ -44,7 +44,7 @@ export class TagsService {
    * Get all tags for a user (excluding soft-deleted)
    */
   async findAll(userId: string, includeDeleted = false): Promise<Tag[]> {
-    const where: any = { userId };
+    const where: Partial<Record<keyof Tag, any>> = { userId };
     if (!includeDeleted) {
       where.isDeleted = false;
     }

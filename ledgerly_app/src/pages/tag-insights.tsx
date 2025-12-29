@@ -5,9 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "@/context/ThemeContext";
 import {
   getTagInsightsSummary,
-  getSpendingByTag,
   TagInsightsSummary,
-  TagSpending,
 } from "@/services/tags";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import toast from "react-hot-toast";

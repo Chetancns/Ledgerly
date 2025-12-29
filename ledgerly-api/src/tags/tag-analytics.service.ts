@@ -118,9 +118,9 @@ export class TagAnalyticsService {
       transactionCount: number;
       netFlow: number;
     }> = [];
-    for (let i = 0; i < monthsBack; i++) {
+    for (let i = monthsBack - 1; i >= 0; i--) {
       const month = dayjs().subtract(i, 'month').format('YYYY-MM');
-      trends.unshift({
+      trends.push({
         month,
         expense: monthlyData[month]?.expense || 0,
         income: monthlyData[month]?.income || 0,
