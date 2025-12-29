@@ -65,12 +65,14 @@ update(
     @Query('categoryId') categoryId?: string,
     @Query('accountId') accountId?:string,
     @Query('type') type?: 'expense' | 'income' | 'savings'|'transfer',
+    @Query('tagIds') tagIds?: string, // Comma-separated tag IDs
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
     const skipNum = skip ? parseInt(skip, 10) : undefined;
     const takeNum = take ? parseInt(take, 10) : undefined;
-    return this.service.findByUser(user.userId, { from, to, categoryId, accountId, type, skip: skipNum, take: takeNum });
+    const tagIdsArray = tagIds ? tagIds.split(',').filter(id => id.trim()) : undefined;
+    return this.service.findByUser(user.userId, { from, to, categoryId, accountId, type, tagIds: tagIdsArray, skip: skipNum, take: takeNum });
   }
 
   @Delete(':id')

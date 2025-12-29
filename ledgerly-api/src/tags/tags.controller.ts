@@ -12,12 +12,16 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { TagsService } from './tags.service';
+import { TagAnalyticsService } from './tag-analytics.service';
 import { CreateTagDto, UpdateTagDto, MergeTagsDto, BulkDeleteTagsDto } from './dto/tag.dto';
 
 @Controller('tags')
 @UseGuards(JwtAuthGuard)
 export class TagsController {
-  constructor(private readonly tagsService: TagsService) {}
+  constructor(
+    private readonly tagsService: TagsService,
+    private readonly analyticsService: TagAnalyticsService,
+  ) {}
 
   /**
    * Create a new tag
@@ -135,5 +139,79 @@ export class TagsController {
   @Post('bulk-delete')
   async bulkDelete(@Request() req, @Body() bulkDeleteDto: BulkDeleteTagsDto) {
     return this.tagsService.bulkDelete(req.user.userId, bulkDeleteDto.tagIds);
+  }
+
+  /**
+   * Get spending analytics by tag
+   * GET /tags/analytics/spending?from=2024-01-01&to=2024-12-31
+   */
+  @Get('analytics/spending')
+  async getSpendingAnalytics(
+    @Request() req,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('tagIds') tagIds?: string,
+  ) {
+    const tagIdsArray = tagIds ? tagIds.split(',').filter(id => id.trim()) : undefined;
+    return this.analyticsService.getSpendingByTag(req.user.userId, { from, to, tagIds: tagIdsArray });
+  }
+
+  /**
+   * Get tag trends over time
+   * GET /tags/analytics/trends/:id?months=6
+   */
+  @Get('analytics/trends/:id')
+  async getTagTrends(
+    @Request() req,
+    @Param('id') id: string,
+    @Query('months') months?: string,
+  ) {
+    const monthsNum = months ? parseInt(months, 10) : 6;
+    return this.analyticsService.getTagTrends(req.user.userId, id, { months: monthsNum });
+  }
+
+  /**
+   * Get category breakdown for a tag
+   * GET /tags/analytics/category-breakdown/:id?from=2024-01-01&to=2024-12-31
+   */
+  @Get('analytics/category-breakdown/:id')
+  async getCategoryBreakdown(
+    @Request() req,
+    @Param('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.analyticsService.getCategoryBreakdownByTag(req.user.userId, id, { from, to });
+  }
+
+  /**
+   * Compare multiple tags
+   * GET /tags/analytics/compare?tagIds=id1,id2,id3&from=2024-01-01&to=2024-12-31
+   */
+  @Get('analytics/compare')
+  async compareTagSpending(
+    @Request() req,
+    @Query('tagIds') tagIds: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const tagIdsArray = tagIds.split(',').filter(id => id.trim());
+    if (tagIdsArray.length === 0) {
+      return [];
+    }
+    return this.analyticsService.compareTagSpending(req.user.userId, tagIdsArray, { from, to });
+  }
+
+  /**
+   * Get tag insights summary
+   * GET /tags/analytics/summary?from=2024-01-01&to=2024-12-31
+   */
+  @Get('analytics/summary')
+  async getInsightsSummary(
+    @Request() req,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.analyticsService.getTagInsightsSummary(req.user.userId, { from, to });
   }
 }

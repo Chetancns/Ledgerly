@@ -1,10 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, DataSource } from 'typeorm';
+import { Repository, Between, DataSource, In } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
+import { Tag } from '../tags/tag.entity';
 import { withTransaction } from '../utils/transaction.util';
 import { parseSafeAmount } from 'src/utils/number.util';
 @Injectable()
@@ -13,15 +14,17 @@ export class TransactionsService {
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Account) private accRepo: Repository<Account>,
     @InjectRepository(Category) private catRepo: Repository<Category>,
+    @InjectRepository(Tag) private tagRepo: Repository<Tag>,
     @InjectDataSource() private dataSource: DataSource,
   ) {}
 
  // ✅ CREATE
-  async create(dto: Partial<Transaction>) {
+  async create(dto: Partial<Transaction> & { tagIds?: string[] }) {
     return withTransaction(this.dataSource, async (manager) => {
       const txRepo = manager.withRepository(this.txRepo);
       const accRepo = manager.withRepository(this.accRepo);
       const catRepo = manager.withRepository(this.catRepo);
+      const tagRepo = manager.withRepository(this.tagRepo);
 
       const amount = parseSafeAmount(dto.amount);
       if (!amount) throw new Error('Invalid amount');
@@ -51,19 +54,31 @@ export class TransactionsService {
         await accRepo.save(acc);
       }
 
-      const tx = txRepo.create({ ...dto, amount: amount.toString() });
+      // Handle tags
+      let tags: Tag[] = [];
+      if (dto.tagIds && dto.tagIds.length > 0) {
+        tags = await tagRepo.find({
+          where: { id: In(dto.tagIds), userId: dto.userId, isDeleted: false },
+        });
+        if (tags.length !== dto.tagIds.length) {
+          throw new NotFoundException('One or more tags not found');
+        }
+      }
+
+      const tx = txRepo.create({ ...dto, amount: amount.toString(), tags });
       return txRepo.save(tx);
     });
   }
   
 // ✅ UPDATE
-  async update(userId: string, id: string, dto: Partial<Transaction>) {
+  async update(userId: string, id: string, dto: Partial<Transaction> & { tagIds?: string[] }) {
     return withTransaction(this.dataSource, async (manager) => {
       const txRepo = manager.withRepository(this.txRepo);
       const accRepo = manager.withRepository(this.accRepo);
       const catRepo = manager.withRepository(this.catRepo);
+      const tagRepo = manager.withRepository(this.tagRepo);
 
-      const tx = await txRepo.findOne({ where: { id, userId } });
+      const tx = await txRepo.findOne({ where: { id, userId }, relations: ['tags'] });
       if (!tx) throw new NotFoundException('Transaction not found');
 
       const oldAmount = parseSafeAmount(tx.amount);
@@ -94,6 +109,21 @@ export class TransactionsService {
         await accRepo.save(acc);
       }
 
+      // Handle tags update
+      if (dto.tagIds !== undefined) {
+        if (dto.tagIds.length > 0) {
+          const tags = await tagRepo.find({
+            where: { id: In(dto.tagIds), userId, isDeleted: false },
+          });
+          if (tags.length !== dto.tagIds.length) {
+            throw new NotFoundException('One or more tags not found');
+          }
+          tx.tags = tags;
+        } else {
+          tx.tags = [];
+        }
+      }
+
       Object.assign(tx, dto, { amount: newAmount });
       return txRepo.save(tx);
     });
@@ -108,31 +138,50 @@ export class TransactionsService {
       categoryId?: string; 
       accountId?: string;
       type?: 'expense'|'income' | 'savings'|'transfer';
+      tagIds?: string[];
       skip?: number;
       take?: number;
     }
   ) {
-    const where:  Partial<Record<keyof Transaction, any>> = { userId };
-    if (filters?.from && filters?.to) where.transactionDate = Between(filters.from, filters.to);
-    if (filters?.categoryId) where.categoryId = filters.categoryId;
-    if (filters?.accountId) where.accountId = filters.accountId;
-    if (filters?.type) where.type = filters.type;
-    
-    const order = { transactionDate: 'DESC' as const, createdAt: 'DESC' as const };
+    const qb = this.txRepo.createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.tags', 'tag')
+      .leftJoinAndSelect('transaction.account', 'account')
+      .leftJoinAndSelect('transaction.category', 'category')
+      .where('transaction.userId = :userId', { userId });
+
+    if (filters?.from && filters?.to) {
+      qb.andWhere('transaction.transactionDate BETWEEN :from AND :to', { 
+        from: filters.from, 
+        to: filters.to 
+      });
+    }
+    if (filters?.categoryId) {
+      qb.andWhere('transaction.categoryId = :categoryId', { categoryId: filters.categoryId });
+    }
+    if (filters?.accountId) {
+      qb.andWhere('transaction.accountId = :accountId', { accountId: filters.accountId });
+    }
+    if (filters?.type) {
+      qb.andWhere('transaction.type = :type', { type: filters.type });
+    }
+    if (filters?.tagIds && filters.tagIds.length > 0) {
+      qb.andWhere('tag.id IN (:...tagIds)', { tagIds: filters.tagIds });
+    }
+
+    qb.orderBy('transaction.transactionDate', 'DESC')
+      .addOrderBy('transaction.createdAt', 'DESC');
     
     // If pagination is requested, return paginated results with total count
     if (filters?.skip !== undefined || filters?.take !== undefined) {
-      const [data, total] = await this.txRepo.findAndCount({
-        where,
-        order,
-        skip: filters.skip,
-        take: filters.take || 50, // Default page size of 50
-      });
+      qb.skip(filters.skip || 0)
+        .take(filters.take || 50);
+      
+      const [data, total] = await qb.getManyAndCount();
       return { data, total, skip: filters.skip || 0, take: filters.take || 50 };
     }
     
     // Otherwise return all results (backward compatibility)
-    return this.txRepo.find({ where, order });
+    return qb.getMany();
   }
 
   async getSummary(
