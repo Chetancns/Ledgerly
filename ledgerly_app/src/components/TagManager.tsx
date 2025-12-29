@@ -389,13 +389,13 @@ export default function TagManager({ onClose }: TagManagerProps) {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <ConfirmModal
-          isOpen={!!deleteConfirm}
+          open={!!deleteConfirm}
           title="Delete Tag"
-          message={`Are you sure you want to delete "${deleteConfirm.name}"? This tag will be removed from all ${deleteConfirm.usageCount} transaction(s).`}
+          description={`Are you sure you want to delete "${deleteConfirm.name}"? This tag will be removed from all ${deleteConfirm.usageCount} transaction(s).`}
           onConfirm={() => handleDelete(deleteConfirm)}
-          onCancel={() => setDeleteConfirm(null)}
-          confirmText="Delete"
-          confirmButtonClass="bg-red-500 hover:bg-red-600"
+          onClose={() => setDeleteConfirm(null)}
+          confirmLabel="Delete"
+          confirmColor="red-500"
         />
       )}
     </div>
