@@ -154,7 +154,7 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative z-10 ${className}`}>
       {/* Tag display and input container */}
       <div
         ref={containerRef}
@@ -203,11 +203,11 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
         />
       </div>
 
-      {/* Tag selection panel with grid layout */}
+      {/* Tag selection panel with absolute positioning */}
       {showPanel && (
         <div
           ref={panelRef}
-          className={`absolute z-10 mt-2 w-full rounded-lg border shadow-lg p-4 max-h-80 overflow-auto ${
+          className={`absolute left-0 top-full mt-2 w-full z-[9999] rounded-lg border shadow-2xl p-4 max-h-80 overflow-auto ${
             theme === "dark"
               ? "bg-gray-800 border-gray-700"
               : "bg-white border-gray-300"
