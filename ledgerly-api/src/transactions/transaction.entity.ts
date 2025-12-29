@@ -6,11 +6,14 @@ import {
   CreateDateColumn,
   Index,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
-import { DebtUpdate } from 'src/debts/debt-update.entity';
+import { DebtUpdate } from '../debts/debt-update.entity';
+import { Tag } from '../tags/tag.entity';
 
 export type TxType = 'expense' | 'income' | 'savings' | 'transfer';
 
@@ -42,6 +45,16 @@ export class Transaction {
   @Index() @Column({ type: 'date' }) transactionDate: string;
 
   @Column({ type:'uuid', nullable: true }) toAccountId: string | null;
+
+  @ManyToMany(() => Tag, (tag) => tag.transactions, { cascade: true })
+  @JoinTable({
+    name: 'transaction_tags',
+    schema: 'dbo',
+    joinColumn: { name: 'transactionId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
+  })
+  tags: Tag[];
+
   @CreateDateColumn() createdAt: Date;
   constructor(partial: Partial<Transaction>) {
     Object.assign(this, partial);

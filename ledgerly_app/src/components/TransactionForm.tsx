@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import NeumorphicSelect from "./NeumorphicSelect";
 import NeumorphicInput from "./NeumorphicInput";
 import ModernButton from "./NeumorphicButton";
+import TagInput from "./TagInput";
 
 type TransactionFormData = Omit<Transaction, "id">;
 
@@ -30,6 +31,7 @@ export default function TransactionForm({
     amount: transaction?.amount?.toString() || "",
     description: transaction?.description || "",
     transactionDate: transaction?.transactionDate?.split("T")[0] || new Date().toISOString().split("T")[0],
+    tagIds: transaction?.tags?.map(t => t.id) || [],
   });
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -61,6 +63,7 @@ export default function TransactionForm({
       amount: transaction.amount.toString(),
       description: transaction.description,
       transactionDate: transaction.transactionDate.split("T")[0],
+      tagIds: transaction.tags?.map(t => t.id) || [],
     });
 
     // 🔹 Detect transfer/savings transactions
@@ -95,6 +98,7 @@ export default function TransactionForm({
     amount: "",
     description: "",
     transactionDate: new Date().toISOString().split("T")[0],
+    tagIds: [],
   });
   setKind("normal");
   setToAccountId("");
@@ -175,6 +179,7 @@ export default function TransactionForm({
       amount: "",
       description: "",
       transactionDate: new Date().toISOString().split("T")[0],
+      tagIds: [],
     });
     setKind("normal");
     setToAccountId("");
@@ -346,6 +351,18 @@ export default function TransactionForm({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Tags */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              Tags (optional)
+            </label>
+            <TagInput
+              value={form.tagIds || []}
+              onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
+              placeholder="Add tags to organize this transaction..."
+            />
           </div>
 
           {/* Buttons */}

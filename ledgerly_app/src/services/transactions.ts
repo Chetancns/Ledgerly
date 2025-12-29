@@ -23,6 +23,7 @@ export const getFilterTransactions = ({
   categoryId,
   accountId,
   type,
+  tagIds,
   skip,
   take
 }: {
@@ -31,6 +32,7 @@ export const getFilterTransactions = ({
   categoryId?: string;
   accountId?: string;
   type?: string;
+  tagIds?: string[];
   skip?: number;
   take?: number;
 },options?:AxiosRequestConfig) => {
@@ -41,6 +43,7 @@ export const getFilterTransactions = ({
   if (categoryId) params.categoryId = categoryId;
   if (accountId) params.accountId = accountId;
   if (type) params.type = type;
+  if (tagIds && tagIds.length > 0) params.tagIds = tagIds.join(',');
   if (skip !== undefined) params.skip = skip;
   if (take !== undefined) params.take = take;
   //console.log(params);
@@ -57,6 +60,7 @@ export const getTransactionsWithPagination = async ({
   categoryId?: string;
   accountId?: string;
   type?: string;
+  tagIds?: string[];
   skip?: number;
   take?: number;
 }) => {

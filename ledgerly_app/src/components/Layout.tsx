@@ -37,29 +37,43 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);  
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [showTransactionMenu, setShowTransactionMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false); // mobile "More"
+  const [showDesktopMoreMenu, setShowDesktopMoreMenu] = useState(false);
   
   const navItems = [
     { href: "/", label: "Dashboard", icon: "📊" },
+    { href: "/transactions", label: "Transactions", icon: "↔️" },
     { href: "/accounts", label: "Accounts", icon: "💳" },
     { href: "/categories", label: "Categories", icon: "📂" },
+    { href: "/tags", label: "Tags", icon: "🏷️" },
     { href: "/budgets", label: "Budget", icon: "💰" },
     { href: "/debts", label: "Debts", icon: "⚖️" },
     { href: "/calendar", label: "Calendar", icon: "📅" },
     { href: "/insights", label: "Insights", icon: "💡" },
+    { href: "/tag-insights", label: "Tag Insights", icon: "📈" },
     { href: "/profile", label: "Profile", icon: "👤" },
+    { href: "/recurring", label: "Recurring", icon: "🔁"},
     { href: "/help", label: "Help", icon: "❓" },
   ];
 
-  // Transactions item (positioned separately after Dashboard)
-  const transactionItem = { href: "/transactions", label: "Transactions", icon: "↔️" };
-
-  // Submenu for Transactions
-  const transactionSubmenu = [
-    { href: "/transactions", label: "Transactions", icon: "↔️" },
-    { href: "/recurring", label: "Recurring", icon: "🔁" },
-  ];
+  // Primary items to keep visible on desktop; rest go under More
+  const primaryNavHrefs = new Set([
+    "/",
+    "/transactions",
+    "/accounts",
+    "/categories",
+    "/tags",
+    "/budgets",
+    "/calendar",
+    "/insights",
+    "/profile",
+  ]);
+  const primaryNavItems = navItems.filter((item) => primaryNavHrefs.has(item.href));
+  const secondaryNavItems = navItems.filter((item) => !primaryNavHrefs.has(item.href));
+  const dashboardItem = navItems.find((item) => item.href === "/");
+  const transactionsItem = navItems.find((item) => item.href === "/transactions");
+  const accountsItem = navItems.find((item) => item.href === "/accounts");
+  const budgetItem = navItems.find((item) => item.href === "/budgets");
   const { user, loading, logoutapi } = useAuth();
   useAuthRedirect(user, loading);
   
@@ -215,8 +229,8 @@ const stopRecording = () => {
             <a href="/">💰 Ledgerly</a>
           </span>
 
-          <div className="flex gap-2 lg:gap-4 flex-1 flex-wrap">
-            {navItems.slice(0, 1).map((item) => {
+          <div className="flex gap-2 lg:gap-3 flex-1 items-center flex-nowrap overflow-visible">
+            {primaryNavItems.map((item) => {
               const isActive = router.pathname === item.href;
               return (
                 <Link
@@ -239,91 +253,57 @@ const stopRecording = () => {
               );
             })}
 
-            {/* Transactions with Dropdown Arrow */}
+            {/* Desktop More dropdown */}
             <div className="relative flex items-center">
-              <Link
-                href={transactionItem.href}
-                aria-label="Navigate to Transactions"
-                aria-current={router.pathname === transactionItem.href ? 'page' : undefined}
-                className={`flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1.5 rounded-lg font-semibold transition min-h-[44px] ${
-                  router.pathname === transactionItem.href
-                    ? "bg-[var(--bg-card-hover)]"
-                    : "hover:bg-[var(--bg-card)]"
-                }`}
-                style={{
-                  color: router.pathname === transactionItem.href ? "var(--nav-active)" : "var(--text-secondary)",
-                }}
-              >
-                <span className="text-base lg:text-lg">{transactionItem.icon}</span>
-                <span className="hidden lg:inline text-sm">{transactionItem.label}</span>
-              </Link>
-
-              {/* Chevron Button to Toggle Recurring */}
               <button
-                onClick={() => setShowTransactionMenu(!showTransactionMenu)}
-                aria-label="Toggle recurring transactions"
-                aria-expanded={showTransactionMenu}
-                className="px-2 py-1.5 rounded-lg transition min-h-[44px] min-w-[44px] flex items-center justify-center"
+                onClick={() => setShowDesktopMoreMenu((open) => !open)}
+                aria-label="Open more navigation"
+                aria-expanded={showDesktopMoreMenu}
+                className="flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1.5 rounded-lg font-semibold transition min-h-[44px] min-w-[44px]"
                 style={{
-                  color: showTransactionMenu ? "var(--nav-active)" : "var(--text-secondary)",
+                  color: showDesktopMoreMenu ? "var(--nav-active)" : "var(--text-secondary)",
+                  background: showDesktopMoreMenu ? "var(--bg-card-hover)" : undefined,
                 }}
               >
+                <span className="text-base lg:text-lg">⋯</span>
+                <span className="hidden lg:inline text-sm">More</span>
                 <FaChevronDown 
-                  className={`text-xs transition-transform ${showTransactionMenu ? "rotate-180" : ""}`}
+                  className={`text-xs transition-transform ${showDesktopMoreMenu ? "rotate-180" : ""}`}
                 />
               </button>
 
-              {/* Dropdown Menu - Recurring */}
-              {showTransactionMenu && (
-                <div 
-                  className="absolute top-full left-0 mt-1 rounded-lg shadow-lg backdrop-blur-md min-w-[150px] z-10 animate-fadeIn"
+              {showDesktopMoreMenu && (
+                <div
+                  className="absolute top-full left-0 mt-1 rounded-lg shadow-lg backdrop-blur-md min-w-[220px] z-20 animate-fadeIn"
                   style={{
                     background: "var(--nav-bg)",
                     border: "1px solid var(--border-primary)",
                   }}
-                  onClick={() => setShowTransactionMenu(false)}
                 >
-                  <Link
-                    href="/recurring"
-                    className={`block px-4 py-3 text-sm font-semibold transition rounded-lg ${
-                      router.pathname === "/recurring"
-                        ? "bg-[var(--bg-card-hover)]"
-                        : "hover:bg-[var(--bg-card)]"
-                    }`}
-                    style={{
-                      color: router.pathname === "/recurring" ? "var(--nav-active)" : "var(--text-secondary)",
-                    }}
-                  >
-                    <span className="mr-2">🔁</span>
-                    Recurring
-                  </Link>
+                  <div className="p-2 grid grid-cols-1 gap-1">
+                    {secondaryNavItems.map((item) => {
+                      const isActive = router.pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setShowDesktopMoreMenu(false)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+                            isActive ? "bg-[var(--bg-card-hover)]" : "hover:bg-[var(--bg-card)]"
+                          }`}
+                          style={{
+                            color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
+                          }}
+                        >
+                          <span className="text-lg">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Rest of nav items */}
-            {navItems.slice(1).map((item) => {
-              const isActive = router.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-label={`Navigate to ${item.label}`}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1.5 rounded-lg font-semibold transition min-h-[44px] ${
-                    isActive
-                      ? "bg-[var(--bg-card-hover)]"
-                      : "hover:bg-[var(--bg-card)]"
-                  }`}
-                  style={{
-                    color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
-                  }}
-                >
-                  <span className="text-base lg:text-lg">{item.icon}</span>
-                  <span className="hidden lg:inline text-sm">{item.label}</span>
-                </Link>
-              );
-            })}
           </div>
 
           <div className="ml-auto flex items-center gap-2 lg:gap-3">
@@ -400,125 +380,72 @@ const stopRecording = () => {
           }}
         >
           {/* Dashboard */}
-          {navItems.slice(0, 1).map((item) => {
-            const isActive = router.pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-label={`Navigate to ${item.label}`}
-                aria-current={isActive ? 'page' : undefined}
-                className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-                style={{
-                  color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
-                  background: isActive ? "var(--bg-card)" : "transparent",
-                }}
-              >
-                <div className="text-lg">{item.icon}</div>
-                <span className="text-center leading-tight whitespace-nowrap">{item.label}</span>
-              </Link>
-            );
-          })}
-
-          {/* Transactions with Dropdown */}
-          <div className="relative flex flex-col items-center">
+          {dashboardItem && (
             <Link
-              href={transactionItem.href}
-              aria-label="Navigate to Transactions"
-              aria-current={router.pathname === transactionItem.href ? 'page' : undefined}
+              href={dashboardItem.href}
+              aria-label={`Navigate to ${dashboardItem.label}`}
+              aria-current={router.pathname === dashboardItem.href ? 'page' : undefined}
               className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
               style={{
-                color: router.pathname === transactionItem.href ? "var(--nav-active)" : "var(--text-secondary)",
-                background: router.pathname === transactionItem.href ? "var(--bg-card)" : "transparent",
+                color: router.pathname === dashboardItem.href ? "var(--nav-active)" : "var(--text-secondary)",
+                background: router.pathname === dashboardItem.href ? "var(--bg-card)" : "transparent",
               }}
             >
-              <div className="text-lg">{transactionItem.icon}</div>
+              <div className="text-lg">{dashboardItem.icon}</div>
+              <span className="text-center leading-tight whitespace-nowrap">{dashboardItem.label}</span>
+            </Link>
+          )}
+
+          {/* Transactions (mobile) */}
+          {transactionsItem && (
+            <Link
+              href={transactionsItem.href}
+              aria-label="Navigate to Transactions"
+              aria-current={router.pathname === transactionsItem.href ? 'page' : undefined}
+              className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
+              style={{
+                color: router.pathname === transactionsItem.href ? "var(--nav-active)" : "var(--text-secondary)",
+                background: router.pathname === transactionsItem.href ? "var(--bg-card)" : "transparent",
+              }}
+            >
+              <div className="text-lg">{transactionsItem.icon}</div>
               <span className="text-center leading-tight whitespace-nowrap">Txns</span>
             </Link>
-
-            {/* Chevron for dropdown - positioned as overlay */}
-            <button
-              onClick={() => setShowTransactionMenu(!showTransactionMenu)}
-              aria-label="Toggle recurring menu"
-              aria-expanded={showTransactionMenu}
-              className="absolute bottom-0 right-0 text-xs transition min-h-[18px] min-w-[18px] flex items-center justify-center"
-              style={{
-                color: showTransactionMenu ? "var(--nav-active)" : "var(--text-secondary)",
-              }}
-            >
-              <FaChevronDown 
-                className={`transition-transform text-[10px] ${showTransactionMenu ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {showTransactionMenu && (
-              <div 
-                className="absolute bottom-full mb-2 rounded-xl shadow-lg backdrop-blur-md min-w-[140px] z-10 animate-fadeIn"
-                style={{
-                  background: "var(--nav-bg)",
-                  border: "1px solid var(--border-primary)",
-                }}
-                onClick={() => setShowTransactionMenu(false)}
-              >
-                <Link
-                  href="/recurring"
-                  className={`block px-3 py-2 text-xs font-semibold transition rounded-xl ${
-                    router.pathname === "/recurring"
-                      ? "bg-[var(--bg-card-hover)]"
-                      : "hover:bg-[var(--bg-card)]"
-                  }`}
-                  style={{
-                    color: router.pathname === "/recurring" ? "var(--nav-active)" : "var(--text-secondary)",
-                  }}
-                >
-                  <span className="mr-1">🔁</span>
-                  Recurring
-                </Link>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Accounts */}
-          {navItems.slice(1, 2).map((item) => {
-            const isActive = router.pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-label={`Navigate to ${item.label}`}
-                aria-current={isActive ? 'page' : undefined}
-                className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-                style={{
-                  color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
-                  background: isActive ? "var(--bg-card)" : "transparent",
-                }}
-              >
-                <div className="text-lg">{item.icon}</div>
-                <span className="text-center leading-tight whitespace-nowrap">{item.label}</span>
-              </Link>
-            );
-          })}
+          {accountsItem && (
+            <Link
+              href={accountsItem.href}
+              aria-label={`Navigate to ${accountsItem.label}`}
+              aria-current={router.pathname === accountsItem.href ? 'page' : undefined}
+              className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
+              style={{
+                color: router.pathname === accountsItem.href ? "var(--nav-active)" : "var(--text-secondary)",
+                background: router.pathname === accountsItem.href ? "var(--bg-card)" : "transparent",
+              }}
+            >
+              <div className="text-lg">{accountsItem.icon}</div>
+              <span className="text-center leading-tight whitespace-nowrap">{accountsItem.label}</span>
+            </Link>
+          )}
 
           {/* Budget */}
-          {navItems.slice(3, 4).map((item) => {
-            const isActive = router.pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-label={`Navigate to ${item.label}`}
-                aria-current={isActive ? 'page' : undefined}
-                className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-                style={{
-                  color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
-                  background: isActive ? "var(--bg-card)" : "transparent",
-                }}
-              >
-                <div className="text-lg">{item.icon}</div>
-                <span className="text-center leading-tight whitespace-nowrap">{item.label}</span>
-              </Link>
-            );
-          })}
+          {budgetItem && (
+            <Link
+              href={budgetItem.href}
+              aria-label={`Navigate to ${budgetItem.label}`}
+              aria-current={router.pathname === budgetItem.href ? 'page' : undefined}
+              className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
+              style={{
+                color: router.pathname === budgetItem.href ? "var(--nav-active)" : "var(--text-secondary)",
+                background: router.pathname === budgetItem.href ? "var(--bg-card)" : "transparent",
+              }}
+            >
+              <div className="text-lg">{budgetItem.icon}</div>
+              <span className="text-center leading-tight whitespace-nowrap">{budgetItem.label}</span>
+            </Link>
+          )}
 
           {/* More Menu */}
           <button

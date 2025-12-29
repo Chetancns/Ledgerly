@@ -8,8 +8,9 @@ import { Transaction } from './src/transactions/transaction.entity';
 import { Budget } from './src/budgets/budget.entity';
 import { RecurringTransaction } from './src/recurring/recurring.entity';
 import { AiInsight } from './src/reports/ai-insight.entity';
-import { DebtUpdate } from 'src/debts/debt-update.entity';
-import { Debt } from 'src/debts/debt.entity';
+import { DebtUpdate } from './src/debts/debt-update.entity';
+import { Debt } from './src/debts/debt.entity';
+import { Tag } from './src/tags/tag.entity';
 
 export default new DataSource({
   type: 'postgres',
@@ -29,6 +30,7 @@ export default new DataSource({
     AiInsight,
     DebtUpdate,
     Debt,
+    Tag,
   ],
   migrations: ['dist/migrations/*.js'],
   ssl: process.env.DB_SSL === 'true',
