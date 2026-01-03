@@ -23,6 +23,7 @@ export const getFilterTransactions = ({
   categoryId,
   accountId,
   type,
+  status,
   tagIds,
   skip,
   take
@@ -32,6 +33,7 @@ export const getFilterTransactions = ({
   categoryId?: string;
   accountId?: string;
   type?: string;
+  status?: string;
   tagIds?: string[];
   skip?: number;
   take?: number;
@@ -43,6 +45,7 @@ export const getFilterTransactions = ({
   if (categoryId) params.categoryId = categoryId;
   if (accountId) params.accountId = accountId;
   if (type) params.type = type;
+  if (status) params.status = status;
   if (tagIds && tagIds.length > 0) params.tagIds = tagIds.join(',');
   if (skip !== undefined) params.skip = skip;
   if (take !== undefined) params.take = take;

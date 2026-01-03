@@ -154,6 +154,7 @@ export class TransactionsService {
       categoryId?: string; 
       accountId?: string;
       type?: 'expense'|'income' | 'savings'|'transfer';
+      status?: 'pending' | 'posted' | 'cancelled';
       tagIds?: string[];
       skip?: number;
       take?: number;
@@ -179,6 +180,9 @@ export class TransactionsService {
     }
     if (filters?.type) {
       qb.andWhere('transaction.type = :type', { type: filters.type });
+    }
+    if (filters?.status) {
+      qb.andWhere('transaction.status = :status', { status: filters.status });
     }
     if (filters?.tagIds && filters.tagIds.length > 0) {
       qb.andWhere('tag.id IN (:...tagIds)', { tagIds: filters.tagIds });
