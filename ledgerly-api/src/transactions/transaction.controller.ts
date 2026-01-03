@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards, Put, Patch } from '@nestjs/common';
 import { TransactionsService } from './transaction.service';
 import { CreateTransactionDto ,TransferDto} from './dto/create-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -79,5 +79,28 @@ update(
   remove(@GetUser() user: { userId: string, email: string, name: string }, @Param('id') id: string) {
     //console.log("delete",id,user);
     return this.service.delete(user.userId, id);
+  }
+
+  @Get('pending')
+  getPending(@GetUser() user: { userId: string, email: string, name: string }) {
+    return this.service.getPendingTransactions(user.userId);
+  }
+
+  @Patch(':id/status')
+  updateStatus(
+    @GetUser() user: { userId: string, email: string, name: string },
+    @Param('id') id: string,
+    @Body('status') status: 'pending' | 'posted' | 'cancelled'
+  ) {
+    return this.service.updateStatus(user.userId, id, status);
+  }
+
+  @Patch('bulk/status')
+  bulkUpdateStatus(
+    @GetUser() user: { userId: string, email: string, name: string },
+    @Body('ids') ids: string[],
+    @Body('status') status: 'pending' | 'posted' | 'cancelled'
+  ) {
+    return this.service.bulkUpdateStatus(user.userId, ids, status);
   }
 }

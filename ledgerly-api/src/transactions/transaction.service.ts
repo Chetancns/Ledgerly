@@ -18,7 +18,7 @@ export class TransactionsService {
     @InjectDataSource() private dataSource: DataSource,
   ) {}
 
- // ✅ CREATE
+  // ✅ CREATE
   async create(dto: Partial<Transaction> & { tagIds?: string[] }) {
     return withTransaction(this.dataSource, async (manager) => {
       const txRepo = manager.withRepository(this.txRepo);
@@ -35,8 +35,14 @@ export class TransactionsService {
         dto.type = cat.type;
       }
 
+      // Set default status to 'posted' if not provided
+      const status = dto.status || 'posted';
+
+      // Only affect account balance if transaction is posted (not pending or cancelled)
+      const shouldAffectBalance = status === 'posted';
+
       // handle transfers
-      if (dto.type === 'transfer' || dto.type === 'savings') {
+      if (shouldAffectBalance && (dto.type === 'transfer' || dto.type === 'savings')) {
         const fromAcc = await accRepo.findOne({ where: { id: dto.accountId!, userId: dto.userId } });
         const toAcc = await accRepo.findOne({ where: { id: dto.toAccountId!, userId: dto.userId } });
         if (!fromAcc || !toAcc) throw new NotFoundException('Account not found');
@@ -45,7 +51,7 @@ export class TransactionsService {
           toAcc.balance = (Number(toAcc.balance) + Number(dto.amount)).toFixed(2);
 
         await accRepo.save([fromAcc, toAcc]);
-      } else if (dto.accountId) {
+      } else if (shouldAffectBalance && dto.accountId) {
         const acc = await accRepo.findOne({ where: { id: dto.accountId, userId: dto.userId } });
         if (!acc) throw new NotFoundException('Account not found');
 
@@ -65,7 +71,7 @@ export class TransactionsService {
         }
       }
 
-      const tx = txRepo.create({ ...dto, amount: amount.toString(), tags });
+      const tx = txRepo.create({ ...dto, amount: amount.toString(), status, tags });
       return txRepo.save(tx);
     });
   }
@@ -83,9 +89,17 @@ export class TransactionsService {
 
       const oldAmount = parseSafeAmount(tx.amount);
       const newAmount = parseSafeAmount(dto.amount ?? tx.amount);
+      const oldStatus = tx.status || 'posted';
+      const newStatus = dto.status ?? oldStatus;
 
-      // reverse old effect
-      if (tx.accountId) {
+      // Determine if we need to update balance based on status transition
+      // Old status was 'posted', new is not -> reverse the balance effect
+      // Old status was not 'posted', new is 'posted' -> apply the balance effect
+      const wasPosted = oldStatus === 'posted';
+      const willBePosted = newStatus === 'posted';
+
+      // reverse old effect only if it was posted
+      if (wasPosted && tx.accountId) {
         const acc = await accRepo.findOne({ where: { id: tx.accountId, userId } });
         if (acc) {
           const sign = tx.type === 'income' ? -1 : 1;
@@ -94,17 +108,19 @@ export class TransactionsService {
         }
       }
 
-      // apply new effect
+      // apply new effect only if it will be posted
       if (!dto.type && dto.categoryId) {
         const cat = await catRepo.findOne({ where: { id: dto.categoryId, userId } });
         if (!cat) throw new NotFoundException('Category not found');
         dto.type = cat.type;
       }
 
-      if (dto.accountId) {
+      const finalType = dto.type || tx.type;
+
+      if (willBePosted && dto.accountId) {
         const acc = await accRepo.findOne({ where: { id: dto.accountId, userId } });
         if (!acc) throw new NotFoundException('Account not found');
-        const sign = dto.type === 'income' ? 1 : -1;
+        const sign = finalType === 'income' ? 1 : -1;
         acc.balance = (Number(acc.balance) + sign * newAmount).toFixed(2);
         await accRepo.save(acc);
       }
@@ -222,32 +238,37 @@ export class TransactionsService {
       const amount = Number(tx.amount);
       if (isNaN(amount)) throw new Error('Invalid amount in transaction');
 
-      // Case 1️⃣ — Transfer or Savings: reverse both accounts
-      if (tx.type === 'transfer' || tx.type === 'savings') {
-        const fromAcc = tx.accountId
-          ? await accRepo.findOne({ where: { id: tx.accountId, userId } })
-          : null;
-        const toAcc = tx.toAccountId
-          ? await accRepo.findOne({ where: { id: tx.toAccountId, userId } })
-          : null;
+      // Only reverse balance if transaction was posted
+      const wasPosted = (tx.status || 'posted') === 'posted';
 
-        if (fromAcc) {
-          fromAcc.balance = (Number(fromAcc.balance) + amount).toFixed(2);
-          await accRepo.save(fromAcc);
-        }
-        if (toAcc) {
-          toAcc.balance = (Number(toAcc.balance) - amount).toFixed(2);
-          await accRepo.save(toAcc);
-        }
-      }
+      if (wasPosted) {
+        // Case 1️⃣ — Transfer or Savings: reverse both accounts
+        if (tx.type === 'transfer' || tx.type === 'savings') {
+          const fromAcc = tx.accountId
+            ? await accRepo.findOne({ where: { id: tx.accountId, userId } })
+            : null;
+          const toAcc = tx.toAccountId
+            ? await accRepo.findOne({ where: { id: tx.toAccountId, userId } })
+            : null;
 
-      // Case 2️⃣ — Regular income/expense
-      else if (tx.accountId) {
-        const acc = await accRepo.findOne({ where: { id: tx.accountId, userId } });
-        if (acc) {
-          const sign = tx.type === 'income' ? -1 : 1;
-          acc.balance = (Number(acc.balance) + sign * amount).toFixed(2);
-          await accRepo.save(acc);
+          if (fromAcc) {
+            fromAcc.balance = (Number(fromAcc.balance) + amount).toFixed(2);
+            await accRepo.save(fromAcc);
+          }
+          if (toAcc) {
+            toAcc.balance = (Number(toAcc.balance) - amount).toFixed(2);
+            await accRepo.save(toAcc);
+          }
+        }
+
+        // Case 2️⃣ — Regular income/expense
+        else if (tx.accountId) {
+          const acc = await accRepo.findOne({ where: { id: tx.accountId, userId } });
+          if (acc) {
+            const sign = tx.type === 'income' ? -1 : 1;
+            acc.balance = (Number(acc.balance) + sign * amount).toFixed(2);
+            await accRepo.save(acc);
+          }
         }
       }
 
@@ -257,6 +278,34 @@ export class TransactionsService {
       // ✅ If anything above fails, TypeORM rolls back automatically
       return { deleted: true };
     });
+  }
+
+  // ✅ Get pending transactions that need to be posted
+  async getPendingTransactions(userId: string) {
+    return this.txRepo.find({
+      where: { userId, status: 'pending' },
+      relations: ['account', 'category', 'tags'],
+      order: { expectedPostDate: 'ASC', transactionDate: 'ASC' },
+    });
+  }
+
+  // ✅ Transition transaction status (e.g., pending -> posted)
+  async updateStatus(userId: string, id: string, newStatus: 'pending' | 'posted' | 'cancelled') {
+    return this.update(userId, id, { status: newStatus });
+  }
+
+  // ✅ Bulk update status for multiple transactions
+  async bulkUpdateStatus(userId: string, ids: string[], newStatus: 'pending' | 'posted' | 'cancelled') {
+    const results: Array<{ id: string; success: boolean; transaction?: Transaction; error?: string }> = [];
+    for (const id of ids) {
+      try {
+        const result = await this.updateStatus(userId, id, newStatus);
+        results.push({ id, success: true, transaction: result });
+      } catch (error) {
+        results.push({ id, success: false, error: error.message });
+      }
+    }
+    return results;
   }
 
 }
