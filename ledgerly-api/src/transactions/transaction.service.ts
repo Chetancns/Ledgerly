@@ -115,12 +115,12 @@ export class TransactionsService {
         dto.type = cat.type;
       }
 
-      const finalType = dto.type || tx.type;
+      const transactionType = dto.type || tx.type;
 
       if (willBePosted && dto.accountId) {
         const acc = await accRepo.findOne({ where: { id: dto.accountId, userId } });
         if (!acc) throw new NotFoundException('Account not found');
-        const sign = finalType === 'income' ? 1 : -1;
+        const sign = transactionType === 'income' ? 1 : -1;
         acc.balance = (Number(acc.balance) + sign * newAmount).toFixed(2);
         await accRepo.save(acc);
       }
@@ -298,18 +298,20 @@ export class TransactionsService {
     return this.update(userId, id, { status: newStatus });
   }
 
-  // ✅ Bulk update status for multiple transactions
+  // ✅ Bulk update status for multiple transactions (parallel processing)
   async bulkUpdateStatus(userId: string, ids: string[], newStatus: 'pending' | 'posted' | 'cancelled') {
-    const results: Array<{ id: string; success: boolean; transaction?: Transaction; error?: string }> = [];
-    for (const id of ids) {
+    const updatePromises = ids.map(async (id) => {
       try {
         const result = await this.updateStatus(userId, id, newStatus);
-        results.push({ id, success: true, transaction: result });
+        return { id, success: true, transaction: result };
       } catch (error) {
-        results.push({ id, success: false, error: error.message });
+        return { id, success: false, error: error.message };
       }
-    }
-    return results;
+    });
+
+    return Promise.allSettled(updatePromises).then(results =>
+      results.map(result => result.status === 'fulfilled' ? result.value : result.reason)
+    );
   }
 
 }
