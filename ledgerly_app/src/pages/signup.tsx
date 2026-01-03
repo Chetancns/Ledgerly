@@ -174,6 +174,16 @@ export default function Signup() {
 
           {/* Right Panel: Signup Form */}
           <div className="p-6 md:p-8 lg:p-12 flex flex-col justify-center" style={{ background: "var(--bg-card)" }}>
+            {/* Mobile brand header */}
+            <div className="flex items-center justify-between mb-8 md:hidden">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">💰</span>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Ledgerly</span>
+                  <span className="text-sm" style={{ color: "var(--text-muted)" }}>Smart finance manager</span>
+                </div>
+              </div>
+            </div>
             <div className="space-y-2 mb-8">
               <h2 
                 className="text-3xl font-bold"
