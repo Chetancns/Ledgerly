@@ -32,6 +32,7 @@ Comprehensive documentation is available in the `/docs` directory:
 - **[Database Schema](docs/DATABASE_SCHEMA.md)** - Database structure, relations, and migration guide
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step deployment instructions for various platforms
 - **[Tagging System](docs/TAGGING_SYSTEM.md)** - Complete guide to the transaction tagging system
+- **[Pending Transactions](docs/PENDING_TRANSACTIONS.md)** - Guide to handling delayed/pending transactions
 
 ### Developer Resources
 - **[Development Guide](docs/DEVELOPMENT.md)** - Setup, workflows, and best practices for developers
@@ -48,6 +49,12 @@ Comprehensive documentation is available in the `/docs` directory:
 ## Features
 
 - 💰 **Transaction Management** - Track income, expenses, transfers, and savings
+- ⏳ **Pending Transactions** - Handle delayed transactions (hotel bookings, car rentals)
+  - Track authorized but not-yet-posted charges
+  - Separate pending and posted balances
+  - Expected post date tracking
+  - Quick "mark as posted" action
+  - Status filtering (pending/posted/cancelled)
 - 🏷️ **Tagging System** - Organize transactions with flexible, color-coded tags
   - Multi-tag support for transactions
   - Tag analytics and insights
