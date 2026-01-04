@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Delete, Param, Query, UseGuards, Put, Patch } from '@nestjs/common';
 import { TransactionsService } from './transaction.service';
 import { CreateTransactionDto ,TransferDto} from './dto/create-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -65,6 +65,7 @@ update(
     @Query('categoryId') categoryId?: string,
     @Query('accountId') accountId?:string,
     @Query('type') type?: 'expense' | 'income' | 'savings'|'transfer',
+    @Query('status') status?: 'pending' | 'posted' | 'cancelled',
     @Query('tagIds') tagIds?: string, // Comma-separated tag IDs
     @Query('skip') skip?: string,
     @Query('take') take?: string,
@@ -72,12 +73,35 @@ update(
     const skipNum = skip ? parseInt(skip, 10) : undefined;
     const takeNum = take ? parseInt(take, 10) : undefined;
     const tagIdsArray = tagIds ? tagIds.split(',').filter(id => id.trim()) : undefined;
-    return this.service.findByUser(user.userId, { from, to, categoryId, accountId, type, tagIds: tagIdsArray, skip: skipNum, take: takeNum });
+    return this.service.findByUser(user.userId, { from, to, categoryId, accountId, type, status, tagIds: tagIdsArray, skip: skipNum, take: takeNum });
   }
 
   @Delete(':id')
   remove(@GetUser() user: { userId: string, email: string, name: string }, @Param('id') id: string) {
     //console.log("delete",id,user);
     return this.service.delete(user.userId, id);
+  }
+
+  @Get('pending')
+  getPending(@GetUser() user: { userId: string, email: string, name: string }) {
+    return this.service.getPendingTransactions(user.userId);
+  }
+
+  @Patch(':id/status')
+  updateStatus(
+    @GetUser() user: { userId: string, email: string, name: string },
+    @Param('id') id: string,
+    @Body('status') status: 'pending' | 'posted' | 'cancelled'
+  ) {
+    return this.service.updateStatus(user.userId, id, status);
+  }
+
+  @Patch('bulk/status')
+  bulkUpdateStatus(
+    @GetUser() user: { userId: string, email: string, name: string },
+    @Body('ids') ids: string[],
+    @Body('status') status: 'pending' | 'posted' | 'cancelled'
+  ) {
+    return this.service.bulkUpdateStatus(user.userId, ids, status);
   }
 }

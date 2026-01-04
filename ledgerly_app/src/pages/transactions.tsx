@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Layout from "../components/Layout";
 import TransactionForm from "../components/TransactionForm";
-import { getTransactions, onDelete ,getFilterTransactions, getTransactionsWithPagination, getTransactionSummary} from "../services/transactions";
+import StatusBadge from "../components/StatusBadge";
+import { getTransactions, onDelete ,getFilterTransactions, getTransactionsWithPagination, getTransactionSummary, updateTransactionStatus} from "../services/transactions";
 import { Transaction, TransactionType } from "@/models/Transaction";
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
@@ -31,6 +32,7 @@ export default function Transactions() {
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [typeSummary, setTypeSummary] = useState<Partial<Record<TransactionType, number>>>({});
@@ -104,6 +106,22 @@ export default function Transactions() {
     }
   };
 
+  const handleMarkAsPosted = async (id: string) => {
+    try {
+      await toast.promise(
+        updateTransactionStatus(id, 'posted'),
+        {
+          loading: 'Marking as posted...',
+          success: '✅ Transaction marked as posted!',
+          error: 'Failed to update status',
+        }
+      );
+      await fetchTransaction();
+    } catch (err) {
+      console.error('Status update failed', err);
+    }
+  };
+
   const load = async () => {
     const [ accRes, catRes] = await Promise.all([
       //fetchTransaction(),
@@ -140,6 +158,10 @@ export default function Transactions() {
 
         if (selectedCategory !== 'all') {
           filters.categoryId = selectedCategory;
+        }
+
+        if (selectedStatus !== 'all') {
+          filters.status = selectedStatus;
         }
 
         // Add pagination if enabled
@@ -192,7 +214,7 @@ export default function Transactions() {
     };
 
     fetchData();
-  }, [selectedMonth, selectedYear, selectedAccount, selectedCategory, currentPage, usePagination]);
+  }, [selectedMonth, selectedYear, selectedAccount, selectedCategory, selectedStatus, currentPage, usePagination]);
 
   // Debounce logic
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -302,6 +324,22 @@ export default function Transactions() {
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
+            </select>
+          </div>
+
+          {/* Status */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Status</label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+            >
+              <option value="all">All Status</option>
+              <option value="posted">✅ Posted</option>
+              <option value="pending">⏳ Pending</option>
+              <option value="cancelled">❌ Cancelled</option>
             </select>
           </div>
 
@@ -484,6 +522,24 @@ export default function Transactions() {
           {t.description && (
             <p className="truncate text-gray-800 line-clamp-2">{t.description}</p>
           )}
+          {/* Status Badge */}
+          {t.status === 'pending' && (
+            <div className="flex items-center gap-1 text-xs">
+              <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-semibold">
+                ⏳ Pending
+              </span>
+              {t.expectedPostDate && (
+                <span className="text-gray-600">
+                  → {formatDateForUI(t.expectedPostDate)}
+                </span>
+              )}
+            </div>
+          )}
+          {t.status === 'cancelled' && (
+            <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-semibold text-xs">
+              ❌ Cancelled
+            </span>
+          )}
         </div>
 
         {/* Bottom Row: Type + Actions */}
@@ -499,6 +555,15 @@ export default function Transactions() {
 
           {/* Action Buttons */}
           <div className="flex gap-2">
+            {t.status === 'pending' && (
+              <button
+                onClick={() => handleMarkAsPosted(t.id)}
+                className="text-green-600 hover:text-green-800 transition text-xs px-2 py-1 bg-green-100 rounded-md font-semibold"
+                title="Mark as Posted"
+              >
+                ✅ Post
+              </button>
+            )}
             <button
               onClick={() => handleEdit(t)}
               className="text-blue-600 hover:text-blue-800 transition"
@@ -541,6 +606,7 @@ export default function Transactions() {
         <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Category</th>
         <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Description</th>
         <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Type</th>
+        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Status</th>
         <th className="px-3 py-2 text-right text-sm font-semibold text-gray-900">Actions</th>
       </tr>
     </thead>
@@ -568,7 +634,19 @@ export default function Transactions() {
             <td className={`px-3 py-2 text-xs font-semibold rounded-full text-${typeColor}-900  w-max`}>
               {t.type ? tLabels[t.type] : 'Unknown'}
             </td>
+            <td className="px-3 py-2 text-sm">
+              <StatusBadge status={t.status} />
+            </td>
             <td className="px-3 py-2 text-right flex gap-2 justify-end">
+              {t.status === 'pending' && (
+                <button
+                  onClick={() => handleMarkAsPosted(t.id)}
+                  className="text-green-600 hover:text-green-800 transition-transform hover:scale-110 text-xs px-2 py-1 bg-green-100 rounded-md font-semibold"
+                  title="Mark as Posted"
+                >
+                  ✅ Post
+                </button>
+              )}
               <button
                 onClick={() => handleEdit(t)}
                 className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"

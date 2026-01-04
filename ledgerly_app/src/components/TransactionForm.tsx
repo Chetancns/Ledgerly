@@ -32,6 +32,8 @@ export default function TransactionForm({
     description: transaction?.description || "",
     transactionDate: transaction?.transactionDate?.split("T")[0] || new Date().toISOString().split("T")[0],
     tagIds: transaction?.tags?.map(t => t.id) || [],
+    status: transaction?.status || "posted",
+    expectedPostDate: transaction?.expectedPostDate?.split("T")[0] || undefined,
   });
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -64,6 +66,8 @@ export default function TransactionForm({
       description: transaction.description,
       transactionDate: transaction.transactionDate.split("T")[0],
       tagIds: transaction.tags?.map(t => t.id) || [],
+      status: transaction.status || "posted",
+      expectedPostDate: transaction.expectedPostDate?.split("T")[0] || undefined,
     });
 
     // 🔹 Detect transfer/savings transactions
@@ -99,6 +103,8 @@ export default function TransactionForm({
     description: "",
     transactionDate: new Date().toISOString().split("T")[0],
     tagIds: [],
+    status: "posted",
+    expectedPostDate: undefined,
   });
   setKind("normal");
   setToAccountId("");
@@ -123,6 +129,7 @@ export default function TransactionForm({
         const payload = {
           ...form,
           transactionDate: toISOStringWithoutOffset(form.transactionDate),
+          expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
           ...(kind === "transfer" || kind === "savings" ? { toAccountId, type: kind } : {}),
         };
 
@@ -150,6 +157,7 @@ export default function TransactionForm({
       return createTransaction({
         ...form,
         transactionDate: toISOStringWithoutOffset(form.transactionDate),
+        expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
       });
     })();
 
@@ -180,6 +188,8 @@ export default function TransactionForm({
       description: "",
       transactionDate: new Date().toISOString().split("T")[0],
       tagIds: [],
+      status: "posted",
+      expectedPostDate: undefined,
     });
     setKind("normal");
     setToAccountId("");
@@ -216,7 +226,7 @@ export default function TransactionForm({
   };
 
   return (
-      <div className="relative bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
+      <div className="relative z-20 bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
                       backdrop-blur-2xl rounded-2xl shadow-xl p-4 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible">
         <h2 className="text-2xl font-semibold text-white mb-2 flex items-center gap-2">
           {transaction ? "✏️ Edit Transaction" : "➕ Add Transaction"}
@@ -309,6 +319,47 @@ export default function TransactionForm({
               theme={theme}
             />
           </div>
+
+          {/* Transaction Status */}
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-white/80 mb-2">
+              Status
+            </label>
+            <NeumorphicSelect
+              options={[
+                { value: "posted", label: "✅ Posted (Cleared)" },
+                { value: "pending", label: "⏳ Pending (Not yet posted)" },
+                { value: "cancelled", label: "❌ Cancelled" },
+              ]}
+              value={form.status || "posted"}
+              onChange={(val) =>
+                setForm((prev) => ({ ...prev, status: val as any }))
+              }
+              placeholder="Select Status"
+              theme={theme}
+            />
+          </div>
+
+          {/* Expected Post Date - only show for pending transactions */}
+          {form.status === "pending" && (
+            <div className="md:col-span-2">
+              <label htmlFor="expectedPostDate" className="block text-sm font-medium text-white/80 mb-2">
+                Expected Post Date (optional)
+              </label>
+              <NeumorphicInput
+                type="date"
+                placeholder="When will this clear?"
+                value={form.expectedPostDate || ""}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, expectedPostDate: val }))
+                }
+                theme={theme}
+              />
+              <p className="text-xs text-white/60 mt-1">
+                💡 For hotel bookings, car rentals, or other transactions that take days to post
+              </p>
+            </div>
+          )}
 
           {/* To Account (only for transfer/savings) */}
           {(kind === "transfer" || kind === "savings") && (

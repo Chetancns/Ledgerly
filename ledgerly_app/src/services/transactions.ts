@@ -23,6 +23,7 @@ export const getFilterTransactions = ({
   categoryId,
   accountId,
   type,
+  status,
   tagIds,
   skip,
   take
@@ -32,6 +33,7 @@ export const getFilterTransactions = ({
   categoryId?: string;
   accountId?: string;
   type?: string;
+  status?: string;
   tagIds?: string[];
   skip?: number;
   take?: number;
@@ -43,6 +45,7 @@ export const getFilterTransactions = ({
   if (categoryId) params.categoryId = categoryId;
   if (accountId) params.accountId = accountId;
   if (type) params.type = type;
+  if (status) params.status = status;
   if (tagIds && tagIds.length > 0) params.tagIds = tagIds.join(',');
   if (skip !== undefined) params.skip = skip;
   if (take !== undefined) params.take = take;
@@ -93,3 +96,15 @@ export const getTransactionSummary = ({
 };
 
 export const updateTransaction = (id:string, data:Partial<Transaction>)=> api.put(`/transactions/${id}`,data);
+
+export const getPendingTransactions = async () => {
+  const res = await api.get("/transactions/pending");
+  return res.data;
+};
+
+export const updateTransactionStatus = (id: string, status: 'pending' | 'posted' | 'cancelled') => 
+  api.patch(`/transactions/${id}/status`, { status });
+
+export const bulkUpdateTransactionStatus = (ids: string[], status: 'pending' | 'posted' | 'cancelled') => 
+  api.patch('/transactions/bulk/status', { ids, status });
+

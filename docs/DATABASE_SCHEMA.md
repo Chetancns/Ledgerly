@@ -162,7 +162,7 @@ Transaction categorization system.
 
 ### transactions
 
-Financial transaction records. Supports expense, income, savings, and transfer types.
+Financial transaction records. Supports expense, income, savings, and transfer types. Now includes transaction status tracking for pending/posted/cancelled transactions.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -175,6 +175,8 @@ Financial transaction records. Supports expense, income, savings, and transfer t
 | description | TEXT | NULLABLE | Transaction description/notes |
 | transactionDate | DATE | NOT NULL | Date of transaction |
 | toAccountId | UUID | NULLABLE | Target account (for transfers) |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'posted' | Transaction status (pending, posted, cancelled) |
+| expectedPostDate | DATE | NULLABLE | Expected date when pending transaction will post |
 | createdAt | TIMESTAMP | NOT NULL | Record creation timestamp |
 
 **Indexes:**
@@ -196,11 +198,19 @@ Financial transaction records. Supports expense, income, savings, and transfer t
 - `savings`: Transfer to savings
 - `transfer`: Transfer between accounts
 
+**Valid Status:**
+- `pending`: Transaction is authorized but not yet posted (doesn't affect account balance)
+- `posted`: Transaction has cleared and is reflected in account balance (default)
+- `cancelled`: Transaction was cancelled or reversed
+
 **Business Rules:**
 - For `transfer` type, `toAccountId` must be set
 - Amount should be positive
 - TransactionDate should not be in future (recommended)
 - Account and category may be NULL (for unspecified entries)
+- **Pending transactions do NOT affect account balance** until status is changed to `posted`
+- `expectedPostDate` is optional and only relevant for `pending` transactions
+- Common use case: Hotel bookings, car rentals, or pre-authorizations that take 3-10 days to post
 
 ---
 

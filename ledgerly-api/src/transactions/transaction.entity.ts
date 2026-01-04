@@ -16,6 +16,7 @@ import { DebtUpdate } from '../debts/debt-update.entity';
 import { Tag } from '../tags/tag.entity';
 
 export type TxType = 'expense' | 'income' | 'savings' | 'transfer';
+export type TxStatus = 'pending' | 'posted' | 'cancelled';
 
 @Entity('dbo.transactions')
 export class Transaction {
@@ -45,6 +46,10 @@ export class Transaction {
   @Index() @Column({ type: 'date' }) transactionDate: string;
 
   @Column({ type:'uuid', nullable: true }) toAccountId: string | null;
+
+  @Column({ type: 'varchar', length: 20, default: 'posted' }) status: TxStatus;
+
+  @Column({ type: 'date', nullable: true }) expectedPostDate?: string;
 
   @ManyToMany(() => Tag, (tag) => tag.transactions, { cascade: true })
   @JoinTable({

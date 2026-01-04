@@ -288,6 +288,10 @@ Get all transactions for authenticated user.
 - `categoryId` (optional): UUID
 - `accountId` (optional): UUID
 - `type` (optional): expense | income | savings | transfer
+- `status` (optional): pending | posted | cancelled
+- `tagIds` (optional): Comma-separated tag UUIDs
+- `skip` (optional): Number of records to skip (for pagination)
+- `take` (optional): Number of records to return (for pagination)
 
 **Response (200):**
 ```json
@@ -302,6 +306,8 @@ Get all transactions for authenticated user.
     "description": "Grocery shopping",
     "transactionDate": "2024-01-15",
     "toAccountId": null,
+    "status": "posted",
+    "expectedPostDate": null,
     "createdAt": "2024-01-15T10:30:00.000Z",
     "account": {
       "id": "uuid",
@@ -310,9 +316,20 @@ Get all transactions for authenticated user.
     "category": {
       "id": "uuid",
       "name": "Groceries"
-    }
+    },
+    "tags": []
   }
 ]
+```
+
+**Paginated Response (when skip/take provided):**
+```json
+{
+  "data": [...],
+  "total": 150,
+  "skip": 0,
+  "take": 50
+}
 ```
 
 ---
@@ -331,7 +348,24 @@ Create a new transaction.
   "type": "expense",
   "description": "Grocery shopping",
   "transactionDate": "2024-01-15",
-  "toAccountId": null
+  "toAccountId": null,
+  "status": "posted",
+  "expectedPostDate": null,
+  "tagIds": ["uuid1", "uuid2"]
+}
+```
+
+**For pending transactions (e.g., hotel bookings):**
+```json
+{
+  "accountId": "uuid",
+  "categoryId": "uuid",
+  "amount": "250.00",
+  "type": "expense",
+  "description": "Hotel reservation",
+  "transactionDate": "2024-01-15",
+  "status": "pending",
+  "expectedPostDate": "2024-01-25"
 }
 ```
 
@@ -343,7 +377,8 @@ Create a new transaction.
   "amount": "100.00",
   "type": "transfer",
   "description": "Transfer between accounts",
-  "transactionDate": "2024-01-15"
+  "transactionDate": "2024-01-15",
+  "status": "posted"
 }
 ```
 
@@ -358,6 +393,8 @@ Create a new transaction.
   "type": "expense",
   "description": "Grocery shopping",
   "transactionDate": "2024-01-15",
+  "status": "posted",
+  "expectedPostDate": null,
   "createdAt": "2024-01-15T10:30:00.000Z"
 }
 ```
@@ -423,6 +460,106 @@ Delete a transaction.
   "message": "Transaction deleted successfully"
 }
 ```
+
+---
+
+### GET /transactions/pending
+Get all pending transactions for authenticated user.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "userId": "uuid",
+    "accountId": "uuid",
+    "categoryId": "uuid",
+    "amount": "250.00",
+    "type": "expense",
+    "description": "Hotel reservation",
+    "transactionDate": "2024-01-15",
+    "status": "pending",
+    "expectedPostDate": "2024-01-25",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "account": { ... },
+    "category": { ... },
+    "tags": []
+  }
+]
+```
+
+**Use Case:** Retrieve all transactions that are authorized but not yet posted to track upcoming charges that will affect your balance.
+
+---
+
+### PATCH /transactions/:id/status
+Update the status of a transaction.
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "status": "posted"
+}
+```
+
+**Valid Status Values:**
+- `pending`: Transaction is authorized but not posted (doesn't affect balance)
+- `posted`: Transaction has cleared (affects account balance)
+- `cancelled`: Transaction was cancelled/reversed
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "status": "posted",
+  "amount": "250.00",
+  ...
+}
+```
+
+**Use Case:** Mark a pending transaction as posted when it clears your account, which will then update your account balance.
+
+---
+
+### PATCH /transactions/bulk/status
+Update the status of multiple transactions at once.
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "ids": ["uuid1", "uuid2", "uuid3"],
+  "status": "posted"
+}
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid1",
+    "success": true,
+    "transaction": { ... }
+  },
+  {
+    "id": "uuid2",
+    "success": true,
+    "transaction": { ... }
+  },
+  {
+    "id": "uuid3",
+    "success": false,
+    "error": "Transaction not found"
+  }
+]
+```
+
+**Use Case:** Batch update multiple pending transactions to posted when they all clear on the same day.
 
 ---
 
@@ -988,6 +1125,99 @@ Parse transaction from voice recording.
     "description": "Grocery store",
     "suggestedCategory": "Groceries"
   }
+}
+```
+
+---
+
+## Notifications Endpoints
+
+### GET /notifications
+Get all notifications for the authenticated user.
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `unreadOnly` (optional): "true" to get only unread notifications
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "userId": "uuid",
+    "type": "transaction_posted",
+    "title": "Pending Transaction Posted",
+    "message": "Your pending transaction of $250.00 (Hotel & Lodging - Checking Account) has been automatically posted.",
+    "isRead": false,
+    "metadata": {
+      "transactionId": "uuid",
+      "amount": "250.00",
+      "accountId": "uuid",
+      "categoryId": "uuid",
+      "expectedPostDate": "2024-01-25",
+      "actualPostDate": "2024-01-25"
+    },
+    "createdAt": "2024-01-25T03:00:15.234Z"
+  }
+]
+```
+
+---
+
+### GET /notifications/unread-count
+Get the count of unread notifications.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "count": 5
+}
+```
+
+---
+
+### PATCH /notifications/:id/read
+Mark a specific notification as read.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "isRead": true,
+  ...
+}
+```
+
+---
+
+### PATCH /notifications/read-all
+Mark all notifications as read for the authenticated user.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "updated": true
+}
+```
+
+---
+
+### DELETE /notifications/:id
+Delete a specific notification.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "deleted": true
 }
 ```
 

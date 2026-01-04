@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Transaction Status Tracking** - Pending/Posted/Cancelled transaction support
+  - Track transactions that are authorized but not yet posted (e.g., hotel bookings)
+  - Three status types: `pending`, `posted` (default), `cancelled`
+  - Pending transactions do NOT affect account balance until marked as posted
+  - Optional `expectedPostDate` field for pending transactions
+  - Status-based balance calculations in transaction service
+  - Quick "Mark as Posted" action button for pending transactions
+  - Status filter in transaction list (filter by pending/posted/cancelled)
+  - Visual status badges (green for posted, yellow for pending, gray for cancelled)
+  - API endpoints: GET /transactions/pending, PATCH /transactions/:id/status, PATCH /transactions/bulk/status
+  - Migration: 1735948800000-AddTransactionStatus
+  - Use case: Hotel reservations, car rentals, pre-authorizations that take days to post
+- **Documentation**
+  - Comprehensive Pending Transactions Guide (PENDING_TRANSACTIONS.md)
+  - Updated API Reference with status endpoints
+  - Updated Database Schema documentation with status fields
+  - Best practices and common scenarios guide
+  - Troubleshooting section for pending transactions
 - **Tagging System** - Complete transaction tagging functionality
   - Tag entity with color-coded labels and descriptions
   - Many-to-many relationship between transactions and tags

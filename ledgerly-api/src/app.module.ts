@@ -26,6 +26,8 @@ import { DebtModule } from './debts/debt.module';
 import { AiInsight } from './reports/ai-insight.entity';
 import { TagsModule } from './tags/tags.module';
 import { Tag } from './tags/tag.entity';
+import { NotificationsModule } from './notifications/notifications.module';
+import { Notification } from './notifications/notification.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -50,6 +52,7 @@ import { Tag } from './tags/tag.entity';
           DebtUpdate,
           AiInsight,
           Tag,
+          Notification,
         ],
         synchronize: false, // true for dev only; use migrations instead
         ssl: process.env.DB_SSL === 'true',
@@ -66,6 +69,7 @@ import { Tag } from './tags/tag.entity';
      DebtModule,
      RecurringModule,
      TagsModule,
+     NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
