@@ -36,16 +36,16 @@ export default function NeumorphicSelect({
     o.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Theme styles - Match NeumorphicInput
+  // Theme styles - Use CSS custom properties for transparency
   const isDark = theme === "dark";
 
   const triggerStyle = isDark
-    ? "bg-[#1d1f24] text-white shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33] border-white/5"
-    : "bg-[#f4f4f6] text-black shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff] border-black/10";
+    ? "text-white shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33] border-white/5"
+    : "text-black shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff] border-black/10";
 
   const dropdownStyle = isDark
-    ? "bg-[#1d1f24] shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/10"
-    : "bg-[#f4f4f6] shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff] border-black/10";
+    ? "shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/10"
+    : "shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff] border-black/10";
 
   const textMuted = isDark ? "text-white/40" : "text-black/40";
   const textPrimary = isDark ? "text-white" : "text-black";
@@ -160,8 +160,14 @@ export default function NeumorphicSelect({
             exit={{ opacity: 0, scale: 0.94, y: 6 }}
             transition={{ type: "spring", stiffness: 180, damping: 18 }}
             className={`rounded-2xl overflow-visible ${dropdownStyle}`}
-            // ensure this element is positioned and on top of the backdrop so clicks reach options
-            style={{ position: "absolute", zIndex: 10001, top: 0, left: 0 }}
+            style={{ 
+              position: "absolute", 
+              zIndex: 10001, 
+              top: 0, 
+              left: 0,
+              background: isDark ? 'rgba(29, 31, 36, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(12px)'
+            }}
           >
             {/* Search */}
             <div
@@ -226,6 +232,10 @@ export default function NeumorphicSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={`w-full px-4 py-3 rounded-2xl flex items-center justify-between border transition ${triggerStyle}`}
+        style={{ 
+          background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)'
+        }}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
