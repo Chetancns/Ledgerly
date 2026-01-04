@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import { useState, ChangeEvent, FormEvent, useEffect, useCallback } from "react";
 import { Transaction } from "@/models/Transaction"; 
 import { createTransaction, onDelete, transfer, updateTransaction } from "@/services/transactions"; 
 import { getUserAccount } from "@/services/accounts";
@@ -11,6 +11,8 @@ import NeumorphicSelect from "./NeumorphicSelect";
 import NeumorphicInput from "./NeumorphicInput";
 import ModernButton from "./NeumorphicButton";
 import TagInput from "./TagInput";
+import SegmentedControl from "./SegmentedControl";
+import { useTheme } from "@/context/ThemeContext";
 
 type TransactionFormData = Omit<Transaction, "id">;
 
@@ -40,7 +42,7 @@ export default function TransactionForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [showImportPopup, setShowImportPopup] = useState(false);
   const [importInput, setImportInput] = useState("");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const { theme } = useTheme();
   // 🔹 new state for type + destination
   const [kind, setKind] = useState<"normal" | "transfer" | "savings">("normal");
   const [toAccountId, setToAccountId] = useState<string>("");
@@ -198,6 +200,20 @@ export default function TransactionForm({
   }
 };
 
+  // Keyboard shortcuts handler
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Esc to cancel
+    if (e.key === "Escape" && onCancel) {
+      e.preventDefault();
+      onCancel();
+    }
+  }, [onCancel]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   const CallAIbackendAPI = async () => {
   // small UX guard: if input empty, fail fast
   if (!importInput.trim()) {
@@ -226,125 +242,197 @@ export default function TransactionForm({
   };
 
   return (
-      <div className="relative z-20 bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 
-                      backdrop-blur-2xl rounded-2xl shadow-xl p-4 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible">
-        <h2 className="text-2xl font-semibold text-white mb-2 flex items-center gap-2">
-          {transaction ? "✏️ Edit Transaction" : "➕ Add Transaction"}
-        </h2>
+      <div className="relative z-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-6 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible"
+           style={{ 
+             background: "var(--bg-card)", 
+             border: "1px solid var(--border-primary)" 
+           }}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-3xl font-bold flex items-center gap-3" style={{ color: "var(--text-primary)" }}>
+            {transaction ? (
+              <>
+                <span className="text-2xl">✏️</span>
+                <span>Edit Transaction</span>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl">➕</span>
+                <span>New Transaction</span>
+              </>
+            )}
+          </h2>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="p-2 rounded-lg transition-all hover:bg-white/10"
+              style={{ color: "var(--text-secondary)" }}
+              aria-label="Close form (Esc)"
+              title="Press Esc to close"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {/* Account */}
-          <div>
-            <label htmlFor="accountId" className="block text-sm font-medium text-white/80 mb-2">
-              Account
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Transaction Type Selector */}
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Transaction Type
             </label>
-              <NeumorphicSelect 
-                options={accounts.map(acc => ({
-                    value: acc.id,
-                    label: acc.name ?? "Unnamed Account"
-                  }))}
-                value={form.accountId}
+            <SegmentedControl
+              options={[
+                { value: "normal", label: "Normal", icon: "💸" },
+                { value: "transfer", label: "Transfer", icon: "🔀" },
+                { value: "savings", label: "Savings", icon: "🏦" },
+              ]}
+              value={kind}
+              onChange={(val) => setKind(val as any)}
+              size="md"
+            />
+          </div>
+
+          {/* Main Form Fields Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Account */}
+            <div className="space-y-2">
+              <label htmlFor="accountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                From Account *
+              </label>
+                <NeumorphicSelect 
+                  options={accounts.map(acc => ({
+                      value: acc.id,
+                      label: acc.name ?? "Unnamed Account"
+                    }))}
+                  value={form.accountId}
+                  onChange={(val) =>
+                      setForm((prev) => ({ ...prev, accountId: val }))
+                    }
+                  placeholder="Select Account"
+                  theme={theme}
+                />
+            </div>
+
+            {/* To Account (only for transfer/savings) */}
+            {(kind === "transfer" || kind === "savings") && (
+              <div className="space-y-2">
+                <label htmlFor="toAccountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {kind === "transfer" ? "To Account *" : "Savings Account *"}
+                </label>
+                <NeumorphicSelect
+                  placeholder="Select Destination Account"
+                  value={toAccountId}
+                  onChange={(val) => setToAccountId(val)}
+                  theme={theme}
+                  options={accounts
+                    .filter((acc) => acc.id !== form.accountId)
+                    .map((acc) => ({
+                      label: `${acc.name} (${acc.type})`,
+                      value: acc.id,
+                    }))}
+                />
+              </div>
+            )}
+
+            {/* Category */}
+            <div className="space-y-2">
+              <label htmlFor="categoryId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Category *
+              </label>
+              <NeumorphicSelect
+                options={categories.map(cat => ({
+                  value: cat.id,
+                  label: `${cat.type === "income" ? "💰" : "💸"} ${cat.name}`
+                }))}
+                value={form.categoryId}
                 onChange={(val) =>
-                    setForm((prev) => ({ ...prev, accountId: val }))
-                  }
-                placeholder="Select Account"
+                  setForm((prev) => ({ ...prev, categoryId: val }))
+                }
+                placeholder="Select Category"
                 theme={theme}
               />
-          </div>
+            </div>
 
-          {/* Category */}
-          <div>
-            <label htmlFor="categoryId" className="block text-sm font-medium text-white/80 mb-2">
-              Category
-            </label>
-            <NeumorphicSelect
-              options={categories.map(cat => ({
-                value: cat.id,
-                label: `${cat.type === "income" ? "💰" : "💸"} ${cat.name}`
-              }))}
-              value={form.categoryId}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, categoryId: val }))
-              }
-              placeholder="Select Category"
-              theme={theme}
-            />
+            {/* Amount */}
+            <div className="space-y-2">
+              <label htmlFor="amount" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Amount *
+              </label>
+              <NeumorphicInput
+                type="number"
+                placeholder="0.00"
+                value={form.amount}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, amount: val }))
+                }
+                theme={theme}
+              />
+            </div>
 
-          </div>
+            {/* Transaction Date */}
+            <div className="space-y-2">
+              <label htmlFor="transactionDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Transaction Date *
+              </label>
+              <NeumorphicInput
+                type="date"
+                placeholder="Select date"
+                value={form.transactionDate}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, transactionDate: val }))
+                }
+                theme={theme}
+              />
+            </div>
 
-          {/* Amount */}
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-white/80 mb-2">
-              Amount
-            </label>
-            <NeumorphicInput
-              type="number"
-              placeholder="Enter amount"
-              value={form.amount}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, amount: val }))
-              }
-              theme={theme}
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-white/80 mb-2">
-              Description
-            </label>
-            <NeumorphicInput
-              type="text"
-              placeholder="What was this for?"
-              value={form.description ?? ""}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, description: val }))
-              }
-              theme={theme}
-            />
-          </div>
-
-          {/* Transaction Date */}
-          <div>
-            <label htmlFor="transactionDate" className="block text-sm font-medium text-white/80 mb-2">
-              Transaction Date
-            </label>
-            <NeumorphicInput
-              type="date"
-              placeholder="Select date"
-              value={form.transactionDate}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, transactionDate: val }))
-              }
-              theme={theme}
-            />
+            {/* Description - Full Width */}
+            <div className="md:col-span-2 space-y-2">
+              <label htmlFor="description" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Description
+              </label>
+              <NeumorphicInput
+                type="text"
+                placeholder="What was this transaction for?"
+                value={form.description ?? ""}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, description: val }))
+                }
+                theme={theme}
+              />
+            </div>
           </div>
 
           {/* Transaction Status */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-white/80 mb-2">
+          <div className="space-y-3">
+            <label htmlFor="status" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               Status
             </label>
-            <NeumorphicSelect
+            <SegmentedControl
               options={[
-                { value: "posted", label: "✅ Posted (Cleared)" },
-                { value: "pending", label: "⏳ Pending (Not yet posted)" },
-                { value: "cancelled", label: "❌ Cancelled" },
+                { value: "posted", label: "Posted", icon: "✅" },
+                { value: "pending", label: "Pending", icon: "⏳" },
+                { value: "cancelled", label: "Cancelled", icon: "❌" },
               ]}
               value={form.status || "posted"}
               onChange={(val) =>
                 setForm((prev) => ({ ...prev, status: val as any }))
               }
-              placeholder="Select Status"
-              theme={theme}
+              size="md"
             />
           </div>
 
           {/* Expected Post Date - only show for pending transactions */}
           {form.status === "pending" && (
-            <div className="md:col-span-2">
-              <label htmlFor="expectedPostDate" className="block text-sm font-medium text-white/80 mb-2">
-                Expected Post Date (optional)
+            <div className="space-y-2 p-4 rounded-xl" style={{ 
+              background: "var(--color-warning-bg)",
+              border: "1px solid var(--color-warning)"
+            }}>
+              <label htmlFor="expectedPostDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Expected Post Date <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
               </label>
               <NeumorphicInput
                 type="date"
@@ -355,92 +443,39 @@ export default function TransactionForm({
                 }
                 theme={theme}
               />
-              <p className="text-xs text-white/60 mt-1">
+              <p className="text-xs mt-2" style={{ color: "var(--text-secondary)" }}>
                 💡 For hotel bookings, car rentals, or other transactions that take days to post
               </p>
             </div>
           )}
 
-          {/* To Account (only for transfer/savings) */}
-          {(kind === "transfer" || kind === "savings") && (
-            <div className="relative">
-              <label htmlFor="toAccountId" className="block text-sm font-medium text-white/80 mb-2">
-                {kind === "transfer" ? "Destination Account" : "Savings Account"}
-              </label>
-              <NeumorphicSelect
-                placeholder="Select Destination Account"
-                value={toAccountId}
-                onChange={(val) => setToAccountId(val)}
-                theme={theme}
-                options={accounts
-                  .filter((acc) => acc.id !== form.accountId)
-                  .map((acc) => ({
-                    label: `${acc.name} (${acc.type})`,
-                    value: acc.id,
-                  }))}
-              />
-            </div>
-          )}
-
-          {/* Transaction Type */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-white/80 mb-2">Transaction Type</label>
-            <div className="flex gap-3">
-              {["normal", "transfer", "savings"].map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setKind(t as any)}
-                  className={`px-4 py-2 rounded-xl font-semibold w-1/3 transition-all duration-200 
-                    ${
-                      kind === t
-                        ? "bg-blue-400 text-indigo-900 shadow-lg shadow-blue-500/20"
-                        : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
-                >
-                  {t === "normal" ? "💸 Normal" : t === "transfer" ? "🔀 Transfer" : "🏦 Savings"}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Tags */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-white/80 mb-2">
-              Tags (optional)
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Tags <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
             </label>
             <TagInput
               value={form.tagIds || []}
               onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
               placeholder="Add tags to organize this transaction..."
             />
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+              💡 Use tags to organize and filter your transactions easily
+            </p>
           </div>
 
-          {/* Buttons */}
-          <div className="md:col-span-2 flex flex-wrap gap-4 mt-2">
-            {/* Add / Update Transaction */}
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 pt-4 border-t" style={{ borderColor: "var(--border-primary)" }}>
+            {/* Submit Button */}
             <ModernButton
               type="submit"
               color="yellow-400"
               variant="solid"
               size="lg"
               theme={theme}
-              className="flex-1 text-indigo-900 font-semibold"
+              className="flex-1 min-w-[200px] text-indigo-900 font-semibold shadow-lg hover:shadow-xl transition-shadow"
             >
-              {transaction ? "Update Transaction" : "Add Transaction"}
-            </ModernButton>
-
-            {/* Cancel */}
-            <ModernButton
-              type="button"
-              onClick={() => { resetForm(); onCancel?.(); }}
-              color="gray-600"
-              variant="solid"
-              size="lg"
-              theme={theme}
-              className="text-white font-semibold"
-            >
-              Cancel
+              {transaction ? "💾 Update Transaction" : "➕ Add Transaction"}
             </ModernButton>
 
             {/* AI Import */}
@@ -452,18 +487,41 @@ export default function TransactionForm({
               size="lg"
               theme={theme}
               className="text-white font-semibold"
-              leftIcon={<span>📥</span>}
+              leftIcon={<span>🤖</span>}
             >
               AI Import
             </ModernButton>
+
+            {/* Cancel */}
+            {onCancel && (
+              <ModernButton
+                type="button"
+                onClick={() => { resetForm(); onCancel(); }}
+                color="gray-600"
+                variant="solid"
+                size="lg"
+                theme={theme}
+                className="text-white font-semibold"
+              >
+                Cancel
+              </ModernButton>
+            )}
+          </div>
+
+          {/* Keyboard Shortcuts Hint */}
+          <div className="text-xs text-center pt-2" style={{ color: "var(--text-muted)" }}>
+            💡 <strong>Tip:</strong> Press <kbd className="px-2 py-1 rounded" style={{ background: "var(--bg-tertiary)" }}>Enter</kbd> to submit or <kbd className="px-2 py-1 rounded" style={{ background: "var(--bg-tertiary)" }}>Esc</kbd> to cancel
           </div>
         </form>
 
         {/* Import Popup */}
         {showImportPopup && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-zinc-900/90 border border-white/10 text-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
-              <h3 className="text-lg font-semibold mb-3">AI Transaction Import</h3>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-zinc-900/95 border border-white/10 text-white rounded-2xl p-6 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
+              <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <span className="text-2xl">🤖</span>
+                AI Transaction Import
+              </h3>
               <p className="text-sm text-gray-400 mb-4">
                 Paste transaction details below and let AI parse them automatically.
               </p>
@@ -471,7 +529,7 @@ export default function TransactionForm({
               <textarea
                 value={importInput}
                 onChange={(e) => setImportInput(e.target.value)}
-                className="w-full h-32 p-3 rounded-xl bg-white/10 text-white/90 border border-white/10 mb-4 resize-y"
+                className="w-full h-32 p-3 rounded-xl bg-white/10 text-white/90 border border-white/10 mb-4 resize-y focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 placeholder="Example: 'Transfer 500 to Savings for groceries on 2025-11-08'"
                 disabled={importLoading}
               />
@@ -480,6 +538,7 @@ export default function TransactionForm({
                 <button
                   onClick={() => setShowImportPopup(false)}
                   className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-500 transition"
+                  disabled={importLoading}
                 >
                   Cancel
                 </button>
@@ -487,7 +546,7 @@ export default function TransactionForm({
                 <button
                   onClick={CallAIbackendAPI}
                   disabled={importLoading}
-                  className={`px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-400 flex items-center gap-2 transition 
+                  className={`px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 flex items-center gap-2 transition 
                             ${importLoading ? "opacity-70 cursor-not-allowed" : ""}`}
                 >
                   {importLoading && (

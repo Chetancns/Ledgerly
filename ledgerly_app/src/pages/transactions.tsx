@@ -473,7 +473,7 @@ export default function Transactions() {
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.25 }}
     >
-      <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 px-2">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 px-2">
   {transactions.map((t) => {
     const account = accounts.find(a => a.id === t.accountId);
     const category = categories.find(c => c.id === t.categoryId);
@@ -483,7 +483,7 @@ export default function Transactions() {
     const typeColor = t.type === 'income' ? 'green' :
                       t.type === 'expense' ? 'red' : 
                       t.type === 'savings' ? 'blue' : 
-                      t.type === 'transfer' ? 'gray' : 'white';
+                      t.type === 'transfer' ? 'purple' : 'white';
     const typeIcon = t.type === 'income' ? '💰' :
                      t.type === 'expense' ? '💸' : 
                      t.type === 'transfer' ? '🔀' : 
@@ -493,92 +493,135 @@ export default function Transactions() {
       <li
         key={t.id}
         className={clsx(`
-          relative flex flex-col justify-between bg-white/75 shadow-sm
-          border-l-4 border-${typeColor}-900 rounded-md p-3
-          transition-transform hover:shadow-md hover:-translate-y-0.5
-          ${deletingId === t.id ? 'opacity-0' : 'opacity-100'}
+          relative flex flex-col justify-between backdrop-blur-xl shadow-md
+          border rounded-2xl p-4 transition-all duration-300
+          hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]
+          ${deletingId === t.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
         `)}
+        style={{
+          background: "var(--bg-card)",
+          borderColor: "var(--border-primary)",
+        }}
       >
-        {/* Top Row: Amount + Date */}
-        <div className="flex justify-between items-center mb-1">
-          <span className={clsx(
-`font-bold text-${typeColor}-700 text-lg flex items-center gap-1`)}>
-            {typeIcon} {format(t.amount)}
+        {/* Top Row: Type Badge + Date */}
+        <div className="flex justify-between items-start mb-3">
+          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm
+            ${t.type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+              t.type === 'expense' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
+              t.type === 'savings' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
+              'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'}
+          `}>
+            {typeIcon} {t.type ? tLabels[t.type] : 'Unknown'}
           </span>
-          <span className="text-xs text-gray-900">{formatDateForUI(t.transactionDate)}</span>
+          <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+            {formatDateForUI(t.transactionDate)}
+          </span>
         </div>
 
-        {/* Middle Row: Accounts + Category */}
-        <div className="flex flex-col text-sm text-gray-900 space-y-0.5">
-          <p className="truncate">
-            <span className="font-medium">{account ? account.name : 'Unknown Account'}</span>
-            {toAccount && (
-              <span className="text-blue-600 font-medium"> → {toAccount.name}</span>
-            )}
-          </p>
-          <p className="truncate text-gray-600">
-            Category: <span className="font-medium">{category ? category.name : 'Unknown'}</span>
-          </p>
-          {t.description && (
-            <p className="truncate text-gray-800 line-clamp-2">{t.description}</p>
-          )}
-          {/* Status Badge */}
-          {t.status === 'pending' && (
-            <div className="flex items-center gap-1 text-xs">
-              <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-semibold">
-                ⏳ Pending
-              </span>
-              {t.expectedPostDate && (
-                <span className="text-gray-600">
-                  → {formatDateForUI(t.expectedPostDate)}
-                </span>
-              )}
+        {/* Amount - Prominent Display */}
+        <div className="mb-3">
+          <span className={clsx(
+            "font-bold text-2xl flex items-center gap-2",
+            t.type === 'income' ? 'text-green-600 dark:text-green-400' :
+            t.type === 'expense' ? 'text-red-600 dark:text-red-400' :
+            t.type === 'savings' ? 'text-blue-600 dark:text-blue-400' :
+            'text-purple-600 dark:text-purple-400'
+          )}>
+            {format(t.amount)}
+          </span>
+        </div>
+
+        {/* Account Info */}
+        <div className="flex flex-col text-sm space-y-1.5 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              {account ? account.name : 'Unknown Account'}
+            </span>
+          </div>
+          {toAccount && (
+            <div className="flex items-center gap-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+              <span>→</span>
+              <span className="font-medium">{toAccount.name}</span>
             </div>
           )}
-          {t.status === 'cancelled' && (
-            <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-semibold text-xs">
-              ❌ Cancelled
-            </span>
+          <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <span className="font-medium">Category:</span> {category ? category.name : 'Unknown'}
+          </div>
+        </div>
+
+        {/* Description */}
+        {t.description && (
+          <p className="text-sm mb-3 line-clamp-2" style={{ color: "var(--text-secondary)" }}>
+            {t.description}
+          </p>
+        )}
+
+        {/* Tags Display */}
+        {t.tags && t.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {t.tags.slice(0, 3).map(tag => (
+              <span
+                key={tag.id}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium"
+                style={{
+                  backgroundColor: `${tag.color}20`,
+                  color: tag.color,
+                  border: `1px solid ${tag.color}40`,
+                }}
+              >
+                🏷️ {tag.name}
+              </span>
+            ))}
+            {t.tags.length > 3 && (
+              <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                +{t.tags.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Status Badge */}
+        <div className="mb-3">
+          <StatusBadge status={t.status} size="md" />
+          {t.status === 'pending' && t.expectedPostDate && (
+            <div className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+              <span>Expected:</span>
+              <span className="font-medium">{formatDateForUI(t.expectedPostDate)}</span>
+            </div>
           )}
         </div>
 
-        {/* Bottom Row: Type + Actions */}
-        <div className="flex justify-between items-center mt-2">
-          {/* Type Tag */}
-          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold
-            ${t.type === 'income' ? 'bg-green-100 text-green-800' :
-              t.type === 'expense' ? 'bg-red-100 text-red-800' :
-              'bg-blue-100 text-blue-800'}
-          `}>
-            {t.type ? tLabels[t.type] : 'Unknown'}
-          </span>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            {t.status === 'pending' && (
-              <button
-                onClick={() => handleMarkAsPosted(t.id)}
-                className="text-green-600 hover:text-green-800 transition text-xs px-2 py-1 bg-green-100 rounded-md font-semibold"
-                title="Mark as Posted"
-              >
-                ✅ Post
-              </button>
-            )}
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-3 border-t" style={{ borderColor: "var(--border-secondary)" }}>
+          {t.status === 'pending' && (
             <button
-              onClick={() => handleEdit(t)}
-              className="text-blue-600 hover:text-blue-800 transition"
-              title="Edit"
+              onClick={() => handleMarkAsPosted(t.id)}
+              className="flex-1 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all hover:scale-105
+                       bg-green-100 text-green-700 hover:bg-green-200
+                       dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-800/50"
+              title="Mark as Posted"
             >
-              ✏️
+              ✅ Post
             </button>
-            <button
-              onClick={() => setDeleteConfirm(t.id)}
-              className="text-red-600 hover:text-red-800 transition"
-              title="Delete"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </div>
+          )}
+          <button
+            onClick={() => handleEdit(t)}
+            className="flex-1 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all hover:scale-105
+                     bg-blue-100 text-blue-700 hover:bg-blue-200
+                     dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-800/50"
+            title="Edit Transaction"
+          >
+            ✏️ Edit
+          </button>
+          <button
+            onClick={() => setDeleteConfirm(t.id)}
+            className="px-3 py-1.5 rounded-lg transition-all hover:scale-105
+                     bg-red-100 text-red-700 hover:bg-red-200
+                     dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-800/50"
+            title="Delete Transaction"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
         </div>
       </li>
     );
@@ -595,72 +638,161 @@ export default function Transactions() {
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.25 }}
     > 
-    <div className="overflow-x-auto bg-white/40 backdrop-blur-md shadow-md rounded-md p-4">
-  <table className="min-w-full divide-y divide-gray-200">
-    <thead className="bg-gray-300">
+    <div className="overflow-x-auto backdrop-blur-xl shadow-xl rounded-2xl p-4"
+         style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+  <table className="min-w-full divide-y" style={{ borderColor: "var(--border-secondary)" }}>
+    <thead style={{ background: "var(--bg-secondary)" }}>
       <tr>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Date</th>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Amount</th>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Account</th>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">To Account</th>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Category</th>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Description</th>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Type</th>
-        <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Status</th>
-        <th className="px-3 py-2 text-right text-sm font-semibold text-gray-900">Actions</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Date</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Amount</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>From</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>To</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Category</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Description</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Type</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Tags</th>
+        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Status</th>
+        <th className="px-4 py-3 text-right text-sm font-bold" style={{ color: "var(--text-primary)" }}>Actions</th>
       </tr>
     </thead>
-    <tbody className="divide-y divide-gray-200">
+    <tbody className="divide-y" style={{ borderColor: "var(--border-secondary)" }}>
       {transactions.map((t) => {
         const account = accounts.find(a => a.id === t.accountId);
         const category = categories.find(c => c.id === t.categoryId);
         const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
 
         const typeColor = t.type === 'income' ? 'green' :
-                          t.type === 'expense' ? 'red' : 'blue';
+                          t.type === 'expense' ? 'red' : 
+                          t.type === 'savings' ? 'blue' : 'purple';
         const typeIcon = t.type === 'income' ? '💰' :
-                         t.type === 'expense' ? '💸' : '🔁';
+                         t.type === 'expense' ? '💸' : 
+                         t.type === 'transfer' ? '🔀' :
+                         t.type === 'savings' ? '🏦' : '🔁';
 
         return (
-          <tr key={t.id} className={`transition-all ${deletingId === t.id ? 'opacity-0' : 'opacity-100'} hover:bg-gray-50`}>
-            <td className="px-3 py-2 text-sm text-gray-800">{formatDateForUI(t.transactionDate)}</td>
-            <td className={`px-3 py-2 text-sm font-semibold text-${typeColor}-800 flex items-center gap-1`}>
-              {typeIcon} {format(t.amount)}
+          <tr 
+            key={t.id} 
+            className={`transition-all ${deletingId === t.id ? 'opacity-0' : 'opacity-100'}`}
+            style={{ 
+              background: theme === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = theme === 'dark' 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : 'rgba(0, 0, 0, 0.04)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = theme === 'dark' 
+                ? 'rgba(255, 255, 255, 0.02)' 
+                : 'rgba(0, 0, 0, 0.02)';
+            }}
+          >
+            <td className="px-4 py-3 text-sm font-medium whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
+              {formatDateForUI(t.transactionDate)}
             </td>
-            <td className="px-3 py-2 text-sm text-gray-800">{account ? account.name : 'Unknown'}</td>
-            <td className="px-3 py-2 text-sm text-gray-800">{toAccount ? toAccount.name : '-'}</td>
-            <td className="px-3 py-2 text-sm text-gray-800">{category ? category.name : 'Unknown'}</td>
-            <td className="px-3 py-2 text-sm text-gray-800 line-clamp-2">{t.description || '-'}</td>
-            <td className={`px-3 py-2 text-xs font-semibold rounded-full text-${typeColor}-900  w-max`}>
-              {t.type ? tLabels[t.type] : 'Unknown'}
+            <td className="px-4 py-3 text-sm font-bold whitespace-nowrap">
+              <span className={clsx(
+                "flex items-center gap-2",
+                t.type === 'income' ? 'text-green-600 dark:text-green-400' :
+                t.type === 'expense' ? 'text-red-600 dark:text-red-400' :
+                t.type === 'savings' ? 'text-blue-600 dark:text-blue-400' :
+                'text-purple-600 dark:text-purple-400'
+              )}>
+                {typeIcon} {format(t.amount)}
+              </span>
             </td>
-            <td className="px-3 py-2 text-sm">
-              <StatusBadge status={t.status} />
+            <td className="px-4 py-3 text-sm" style={{ color: "var(--text-primary)" }}>
+              {account ? account.name : 'Unknown'}
             </td>
-            <td className="px-3 py-2 text-right flex gap-2 justify-end">
-              {t.status === 'pending' && (
-                <button
-                  onClick={() => handleMarkAsPosted(t.id)}
-                  className="text-green-600 hover:text-green-800 transition-transform hover:scale-110 text-xs px-2 py-1 bg-green-100 rounded-md font-semibold"
-                  title="Mark as Posted"
-                >
-                  ✅ Post
-                </button>
+            <td className="px-4 py-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {toAccount ? toAccount.name : '-'}
+            </td>
+            <td className="px-4 py-3 text-sm" style={{ color: "var(--text-primary)" }}>
+              {category ? category.name : 'Unknown'}
+            </td>
+            <td className="px-4 py-3 text-sm max-w-xs">
+              <div className="line-clamp-2" style={{ color: "var(--text-secondary)" }}>
+                {t.description || '-'}
+              </div>
+            </td>
+            <td className="px-4 py-3">
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1.5
+                ${t.type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                  t.type === 'expense' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
+                  t.type === 'savings' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
+                  'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'}
+              `}>
+                {typeIcon} {t.type ? tLabels[t.type] : 'Unknown'}
+              </span>
+            </td>
+            <td className="px-4 py-3">
+              {t.tags && t.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1 max-w-xs">
+                  {t.tags.slice(0, 2).map(tag => (
+                    <span
+                      key={tag.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium"
+                      style={{
+                        backgroundColor: `${tag.color}20`,
+                        color: tag.color,
+                        border: `1px solid ${tag.color}40`,
+                      }}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                  {t.tags.length > 2 && (
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                      +{t.tags.length - 2}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span style={{ color: "var(--text-muted)" }}>-</span>
               )}
-              <button
-                onClick={() => handleEdit(t)}
-                className="text-blue-600 hover:text-blue-800 transition-transform hover:scale-110"
-                title="Edit"
-              >
-                ✏️
-              </button>
-              <button
-                onClick={() => setDeleteConfirm(t.id)}
-                className="text-red-600 hover:text-red-800 transition-transform hover:scale-110"
-                title="Delete"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
+            </td>
+            <td className="px-4 py-3">
+              <div className="space-y-1">
+                <StatusBadge status={t.status} size="sm" />
+                {t.status === 'pending' && t.expectedPostDate && (
+                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    Expected: {formatDateForUI(t.expectedPostDate)}
+                  </div>
+                )}
+              </div>
+            </td>
+            <td className="px-4 py-3 text-right">
+              <div className="flex gap-2 justify-end">
+                {t.status === 'pending' && (
+                  <button
+                    onClick={() => handleMarkAsPosted(t.id)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition-all hover:scale-105
+                             bg-green-100 text-green-700 hover:bg-green-200
+                             dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-800/50"
+                    title="Mark as Posted"
+                  >
+                    ✅ Post
+                  </button>
+                )}
+                <button
+                  onClick={() => handleEdit(t)}
+                  className="p-2 rounded-lg transition-all hover:scale-110
+                           bg-blue-100 text-blue-700 hover:bg-blue-200
+                           dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-800/50"
+                  title="Edit"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => setDeleteConfirm(t.id)}
+                  className="p-2 rounded-lg transition-all hover:scale-110
+                           bg-red-100 text-red-700 hover:bg-red-200
+                           dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-800/50"
+                  title="Delete"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
             </td>
           </tr>
         );
