@@ -33,6 +33,7 @@ Comprehensive documentation is available in the `/docs` directory:
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step deployment instructions for various platforms
 - **[Tagging System](docs/TAGGING_SYSTEM.md)** - Complete guide to the transaction tagging system
 - **[Pending Transactions](docs/PENDING_TRANSACTIONS.md)** - Guide to handling delayed/pending transactions
+- **[Auto-Post & Notifications](docs/AUTO_POST_NOTIFICATIONS.md)** - Automated posting and notification system
 
 ### Developer Resources
 - **[Development Guide](docs/DEVELOPMENT.md)** - Setup, workflows, and best practices for developers
@@ -55,6 +56,13 @@ Comprehensive documentation is available in the `/docs` directory:
   - Expected post date tracking
   - Quick "mark as posted" action
   - Status filtering (pending/posted/cancelled)
+  - **Auto-posting via cron job** - Automatically posts pending transactions on expected date
+  - **Notifications** - Get notified when transactions are auto-posted
+- 🔔 **Notification System** - Stay informed about account activities
+  - Transaction posting alerts
+  - Budget threshold notifications (coming soon)
+  - Unread count and notification management
+  - REST API for custom integrations
 - 🏷️ **Tagging System** - Organize transactions with flexible, color-coded tags
   - Multi-tag support for transactions
   - Tag analytics and insights

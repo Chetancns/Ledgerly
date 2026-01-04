@@ -1130,6 +1130,99 @@ Parse transaction from voice recording.
 
 ---
 
+## Notifications Endpoints
+
+### GET /notifications
+Get all notifications for the authenticated user.
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `unreadOnly` (optional): "true" to get only unread notifications
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "userId": "uuid",
+    "type": "transaction_posted",
+    "title": "Pending Transaction Posted",
+    "message": "Your pending transaction of $250.00 (Hotel & Lodging - Checking Account) has been automatically posted.",
+    "isRead": false,
+    "metadata": {
+      "transactionId": "uuid",
+      "amount": "250.00",
+      "accountId": "uuid",
+      "categoryId": "uuid",
+      "expectedPostDate": "2024-01-25",
+      "actualPostDate": "2024-01-25"
+    },
+    "createdAt": "2024-01-25T03:00:15.234Z"
+  }
+]
+```
+
+---
+
+### GET /notifications/unread-count
+Get the count of unread notifications.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "count": 5
+}
+```
+
+---
+
+### PATCH /notifications/:id/read
+Mark a specific notification as read.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "isRead": true,
+  ...
+}
+```
+
+---
+
+### PATCH /notifications/read-all
+Mark all notifications as read for the authenticated user.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "updated": true
+}
+```
+
+---
+
+### DELETE /notifications/:id
+Delete a specific notification.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "deleted": true
+}
+```
+
+---
+
 ## Error Responses
 
 All endpoints may return the following error responses:
