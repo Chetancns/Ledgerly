@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Modern Transaction Form UI/UX** - Complete redesign with premium SaaS aesthetics
+  - New `SegmentedControl` component for Transaction Type and Status selection
+  - Pill-style status selector with smooth animations (Posted, Pending, Cancelled)
+  - Improved form layout with better spacing, grouping, and visual hierarchy
+  - Enhanced field organization for better user flow
+  - Keyboard shortcuts: `Esc` to cancel/close form
+  - Helpful inline tips and contextual information
+  - Smooth animations and transitions throughout
+  - Fully responsive design for desktop, tablet, and mobile
+  - Natural integration of tags field with improved TagInput
+  - Modernized AI Import modal with better UX
+  - Theme-aware styling (seamless light/dark mode support)
+- **Enhanced Transaction List Display** - Modern card and table views
+  - Redesigned StatusBadge component with pulsing animation and better visual hierarchy
+  - Modern transaction cards with improved spacing and hover effects
+  - Better tag display in both list and table views
+  - Enhanced color-coded type badges (Income, Expense, Transfer, Savings)
+  - Improved table view with tags column and better status visualization
+  - Prominent amount display with better typography
+  - Smooth hover animations and scale effects
+  - Better visual separation and grouping
+  - Theme-consistent styling with CSS custom properties
+- **UI Animation Improvements**
+  - Added `animate-in`, `fade-in`, and `zoom-in` CSS animations
+  - Smooth transitions for all interactive elements
+  - Enhanced button hover states with scale transformations
+  - Better loading states and feedback
 - **Transaction Status Tracking** - Pending/Posted/Cancelled transaction support
   - Track transactions that are authorized but not yet posted (e.g., hotel bookings)
   - Three status types: `pending`, `posted` (default), `cancelled`
