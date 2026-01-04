@@ -9,6 +9,7 @@ import {
   deleteNotification,
   BackendNotification 
 } from "@/services/notifications";
+import { NOTIFICATION_CONFIG } from "@/config/notifications.config";
 
 export type NotificationType = "transaction_posted" | "budget_limit" | "debt_reminder" | "recurring_payment" | "info" | "success" | "warning" | "error";
 
@@ -31,7 +32,7 @@ interface NotificationContextType {
   removeNotification: (id: string) => void;
   clearAll: () => void;
   unreadCount: number;
-  refreshNotifications: () => Promise<void>;
+  refreshNotifications: (fetchAll?: boolean) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -75,11 +76,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   });
 
   // Fetch notifications from backend
-  const refreshNotifications = useCallback(async () => {
+  const refreshNotifications = useCallback(async (fetchAll = false) => {
     try {
-      const backendNotifications = await getNotifications();
+      // Fetch only unread notifications by default to reduce server load (configurable)
+      // Pass fetchAll=true to get all notifications (e.g., when user opens notification center)
+      const shouldFetchUnreadOnly = !fetchAll && NOTIFICATION_CONFIG.FETCH_UNREAD_ONLY;
+      const backendNotifications = await getNotifications(shouldFetchUnreadOnly);
       const converted = backendNotifications.map(convertBackendNotification);
-      setNotifications(converted);
+      
+      if (fetchAll) {
+        // Replace all notifications (limit to max in memory)
+        const limited = converted.slice(0, NOTIFICATION_CONFIG.MAX_NOTIFICATIONS_IN_MEMORY);
+        setNotifications(limited);
+      } else {
+        // Merge unread with existing read notifications
+        setNotifications(prev => {
+          const existingRead = prev.filter(n => n.read);
+          const newUnreadIds = new Set(converted.map(n => n.id));
+          const keptRead = existingRead.filter(n => !newUnreadIds.has(n.id));
+          const merged = [...converted, ...keptRead];
+          // Limit total notifications in memory
+          return merged.slice(0, NOTIFICATION_CONFIG.MAX_NOTIFICATIONS_IN_MEMORY);
+        });
+      }
 
       // Show toast for new unread notifications that we haven't shown yet
       const newUnread = converted.filter(n => !n.read && !shownNotificationIds.has(n.id));
@@ -125,10 +144,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshNotifications();
     
-    // Poll for new notifications every 60 seconds
-    const interval = setInterval(refreshNotifications, 60000);
+    // Use configurable polling interval to reduce server load
+    // Set NOTIFICATION_CONFIG.POLLING_INTERVAL to 0 to disable auto-polling entirely
+    const pollingInterval = NOTIFICATION_CONFIG.POLLING_INTERVAL;
     
-    return () => clearInterval(interval);
+    if (pollingInterval > 0) {
+      const interval = setInterval(refreshNotifications, pollingInterval);
+      return () => clearInterval(interval);
+    }
   }, [refreshNotifications]);
 
   // Add notification (for immediate UI feedback, not persisted to backend automatically)
@@ -193,7 +216,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);
       // Refresh to get accurate state
-      await refreshNotifications();
+      await refreshNotifications(true);
     }
   }, [refreshNotifications]);
 
@@ -208,7 +231,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Failed to delete notification:", error);
         // Refresh to get accurate state
-        await refreshNotifications();
+        await refreshNotifications(true);
       }
     }
   }, [refreshNotifications]);
