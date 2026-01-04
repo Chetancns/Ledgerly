@@ -93,22 +93,36 @@ export class TransactionsService {
       const newStatus = dto.status ?? oldStatus;
 
       // Determine if we need to update balance based on status transition
-      // Old status was 'posted', new is not -> reverse the balance effect
-      // Old status was not 'posted', new is 'posted' -> apply the balance effect
       const wasPosted = oldStatus === 'posted';
       const willBePosted = newStatus === 'posted';
 
-      // reverse old effect only if it was posted
-      if (wasPosted && tx.accountId) {
-        const acc = await accRepo.findOne({ where: { id: tx.accountId, userId } });
-        if (acc) {
-          const sign = tx.type === 'income' ? -1 : 1;
-          acc.balance = (Number(acc.balance) + sign * oldAmount).toFixed(2);
-          await accRepo.save(acc);
+      // Reverse old effect only if it was posted
+      if (wasPosted) {
+        if (tx.type === 'transfer' || tx.type === 'savings') {
+          // Reverse transfer/savings
+          const fromAcc = tx.accountId ? await accRepo.findOne({ where: { id: tx.accountId, userId } }) : null;
+          const toAcc = tx.toAccountId ? await accRepo.findOne({ where: { id: tx.toAccountId, userId } }) : null;
+          
+          if (fromAcc) {
+            fromAcc.balance = (Number(fromAcc.balance) + oldAmount).toFixed(2);
+            await accRepo.save(fromAcc);
+          }
+          if (toAcc) {
+            toAcc.balance = (Number(toAcc.balance) - oldAmount).toFixed(2);
+            await accRepo.save(toAcc);
+          }
+        } else if (tx.accountId) {
+          // Reverse regular transaction
+          const acc = await accRepo.findOne({ where: { id: tx.accountId, userId } });
+          if (acc) {
+            const sign = tx.type === 'income' ? -1 : 1;
+            acc.balance = (Number(acc.balance) + sign * oldAmount).toFixed(2);
+            await accRepo.save(acc);
+          }
         }
       }
 
-      // apply new effect only if it will be posted
+      // Determine transaction type for new effect
       if (!dto.type && dto.categoryId) {
         const cat = await catRepo.findOne({ where: { id: dto.categoryId, userId } });
         if (!cat) throw new NotFoundException('Category not found');
@@ -116,13 +130,29 @@ export class TransactionsService {
       }
 
       const transactionType = dto.type || tx.type;
+      const accountIdToUpdate = dto.accountId ?? tx.accountId;
+      const toAccountIdToUpdate = dto.toAccountId ?? tx.toAccountId;
 
-      if (willBePosted && dto.accountId) {
-        const acc = await accRepo.findOne({ where: { id: dto.accountId, userId } });
-        if (!acc) throw new NotFoundException('Account not found');
-        const sign = transactionType === 'income' ? 1 : -1;
-        acc.balance = (Number(acc.balance) + sign * newAmount).toFixed(2);
-        await accRepo.save(acc);
+      // Apply new effect if it will be posted
+      if (willBePosted) {
+        if (transactionType === 'transfer' || transactionType === 'savings') {
+          // Apply transfer/savings
+          const fromAcc = accountIdToUpdate ? await accRepo.findOne({ where: { id: accountIdToUpdate, userId } }) : null;
+          const toAcc = toAccountIdToUpdate ? await accRepo.findOne({ where: { id: toAccountIdToUpdate, userId } }) : null;
+          
+          if (!fromAcc || !toAcc) throw new NotFoundException('Account not found for transfer');
+          
+          fromAcc.balance = (Number(fromAcc.balance) - newAmount).toFixed(2);
+          toAcc.balance = (Number(toAcc.balance) + newAmount).toFixed(2);
+          await accRepo.save([fromAcc, toAcc]);
+        } else if (accountIdToUpdate) {
+          // Apply regular transaction
+          const acc = await accRepo.findOne({ where: { id: accountIdToUpdate, userId } });
+          if (!acc) throw new NotFoundException('Account not found');
+          const sign = transactionType === 'income' ? 1 : -1;
+          acc.balance = (Number(acc.balance) + sign * newAmount).toFixed(2);
+          await accRepo.save(acc);
+        }
       }
 
       // Handle tags update
