@@ -21,7 +21,7 @@ export const NOTIFICATION_CONFIG = {
    * 
    * Default: true (recommended for limited resources)
    */
-  FETCH_UNREAD_ONLY: true,
+  FETCH_UNREAD_ONLY: false,
 
   /**
    * Maximum number of notifications to keep in memory
