@@ -33,7 +33,7 @@ export default function TransactionForm({
     transactionDate: transaction?.transactionDate?.split("T")[0] || new Date().toISOString().split("T")[0],
     tagIds: transaction?.tags?.map(t => t.id) || [],
     status: transaction?.status || "posted",
-    expectedPostDate: transaction?.expectedPostDate?.split("T")[0] || "",
+    expectedPostDate: transaction?.expectedPostDate?.split("T")[0] || undefined,
   });
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -67,7 +67,7 @@ export default function TransactionForm({
       transactionDate: transaction.transactionDate.split("T")[0],
       tagIds: transaction.tags?.map(t => t.id) || [],
       status: transaction.status || "posted",
-      expectedPostDate: transaction.expectedPostDate?.split("T")[0] || "",
+      expectedPostDate: transaction.expectedPostDate?.split("T")[0] || undefined,
     });
 
     // 🔹 Detect transfer/savings transactions
@@ -104,7 +104,7 @@ export default function TransactionForm({
     transactionDate: new Date().toISOString().split("T")[0],
     tagIds: [],
     status: "posted",
-    expectedPostDate: "",
+    expectedPostDate: undefined,
   });
   setKind("normal");
   setToAccountId("");
@@ -129,6 +129,7 @@ export default function TransactionForm({
         const payload = {
           ...form,
           transactionDate: toISOStringWithoutOffset(form.transactionDate),
+          expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
           ...(kind === "transfer" || kind === "savings" ? { toAccountId, type: kind } : {}),
         };
 
@@ -156,6 +157,7 @@ export default function TransactionForm({
       return createTransaction({
         ...form,
         transactionDate: toISOStringWithoutOffset(form.transactionDate),
+        expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
       });
     })();
 
@@ -187,7 +189,7 @@ export default function TransactionForm({
       transactionDate: new Date().toISOString().split("T")[0],
       tagIds: [],
       status: "posted",
-      expectedPostDate: "",
+      expectedPostDate: undefined,
     });
     setKind("normal");
     setToAccountId("");

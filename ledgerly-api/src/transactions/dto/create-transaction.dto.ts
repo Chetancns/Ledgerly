@@ -15,7 +15,10 @@ export class CreateTransactionDto {
   @IsOptional() @IsIn(['expense' , 'income' , 'savings','transfer']) type: 'expense' | 'income' | 'savings' | 'transfer';
   @IsOptional() @IsDateString() transactionDate: string;
   @IsOptional() @IsIn(['pending', 'posted', 'cancelled']) status?: 'pending' | 'posted' | 'cancelled';
-  @IsOptional() @IsDateString() expectedPostDate?: string;
+  @IsOptional() 
+  @IsDateString()
+  @Transform(({ value }) => value === '' || value === null || value === undefined ? undefined : value)
+  expectedPostDate?: string;
   @IsOptional() 
   @IsString() 
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
