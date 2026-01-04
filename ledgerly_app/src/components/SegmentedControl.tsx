@@ -25,9 +25,9 @@ export default function SegmentedControl({
   const { theme } = useTheme();
 
   const sizeClasses = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-base",
-    lg: "px-5 py-2.5 text-lg",
+    sm: "px-2 py-1.5 text-xs",
+    md: "px-3 py-2 text-sm",
+    lg: "px-4 py-2.5 text-base",
   };
 
   const selectedIndex = options.findIndex((opt) => opt.value === value);
@@ -76,9 +76,9 @@ export default function SegmentedControl({
             type="button"
             onClick={() => onChange(option.value)}
             className={`
-              relative z-10 flex-1 flex items-center justify-center gap-2
+              relative z-10 flex-1 flex items-center justify-center gap-1
               ${sizeClasses[size]}
-              font-semibold rounded-lg transition-all duration-200
+              font-semibold rounded-lg transition-all duration-200 min-w-0
               ${isSelected
                 ? theme === "dark"
                   ? "text-white"
@@ -92,8 +92,8 @@ export default function SegmentedControl({
             aria-selected={isSelected}
             aria-label={option.label}
           >
-            {option.icon && <span className="text-lg">{option.icon}</span>}
-            <span>{option.label}</span>
+            {option.icon && <span className="text-base shrink-0">{option.icon}</span>}
+            <span className="truncate">{option.label}</span>
           </button>
         );
       })}

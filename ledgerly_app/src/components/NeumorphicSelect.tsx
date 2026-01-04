@@ -36,16 +36,16 @@ export default function NeumorphicSelect({
     o.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Theme styles
+  // Theme styles - Match NeumorphicInput
   const isDark = theme === "dark";
 
   const triggerStyle = isDark
-    ? "bg-[#1d1f24] text-white shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/5"
-    : "bg-[#f4f4f6] text-black shadow-[3px_3px_8px_#d8d8db,-3px_-3px_8px_#ffffff] border-black/10";
+    ? "bg-[#1d1f24] text-white shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33] border-white/5"
+    : "bg-[#f4f4f6] text-black shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff] border-black/10";
 
   const dropdownStyle = isDark
     ? "bg-[#1d1f24] shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33] border-white/10"
-    : "bg-[#f4f4f6] shadow-[3px_3px_8px_#d8d8db,-3px_-3px_8px_#ffffff] border-black/10";
+    : "bg-[#f4f4f6] shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff] border-black/10";
 
   const textMuted = isDark ? "text-white/40" : "text-black/40";
   const textPrimary = isDark ? "text-white" : "text-black";

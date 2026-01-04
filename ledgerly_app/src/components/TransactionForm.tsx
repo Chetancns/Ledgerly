@@ -301,7 +301,7 @@ export default function TransactionForm({
             {/* Account */}
             <div className="space-y-2">
               <label htmlFor="accountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                From Account *
+                Account *
               </label>
                 <NeumorphicSelect 
                   options={accounts.map(acc => ({
@@ -316,27 +316,6 @@ export default function TransactionForm({
                   theme={theme}
                 />
             </div>
-
-            {/* To Account (only for transfer/savings) */}
-            {(kind === "transfer" || kind === "savings") && (
-              <div className="space-y-2">
-                <label htmlFor="toAccountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                  {kind === "transfer" ? "To Account *" : "Savings Account *"}
-                </label>
-                <NeumorphicSelect
-                  placeholder="Select Destination Account"
-                  value={toAccountId}
-                  onChange={(val) => setToAccountId(val)}
-                  theme={theme}
-                  options={accounts
-                    .filter((acc) => acc.id !== form.accountId)
-                    .map((acc) => ({
-                      label: `${acc.name} (${acc.type})`,
-                      value: acc.id,
-                    }))}
-                />
-              </div>
-            )}
 
             {/* Category */}
             <div className="space-y-2">
@@ -376,7 +355,7 @@ export default function TransactionForm({
             {/* Transaction Date */}
             <div className="space-y-2">
               <label htmlFor="transactionDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Transaction Date *
+                Date *
               </label>
               <NeumorphicInput
                 type="date"
@@ -405,6 +384,27 @@ export default function TransactionForm({
               />
             </div>
           </div>
+
+          {/* To Account (only for transfer/savings) - After main grid */}
+          {(kind === "transfer" || kind === "savings") && (
+            <div className="space-y-2">
+              <label htmlFor="toAccountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                {kind === "transfer" ? "To Account *" : "Savings Account *"}
+              </label>
+              <NeumorphicSelect
+                placeholder="Select Destination Account"
+                value={toAccountId}
+                onChange={(val) => setToAccountId(val)}
+                theme={theme}
+                options={accounts
+                  .filter((acc) => acc.id !== form.accountId)
+                  .map((acc) => ({
+                    label: `${acc.name} (${acc.type})`,
+                    value: acc.id,
+                  }))}
+              />
+            </div>
+          )}
 
           {/* Transaction Status */}
           <div className="space-y-3">
