@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, DataSource, In } from 'typeorm';
+import { Repository, Between, DataSource, In, LessThanOrEqual } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { Account } from '../accounts/account.entity';
@@ -8,14 +8,20 @@ import { Category } from '../categories/category.entity';
 import { Tag } from '../tags/tag.entity';
 import { withTransaction } from '../utils/transaction.util';
 import { parseSafeAmount } from 'src/utils/number.util';
+import { Cron } from '@nestjs/schedule';
+import dayjs from 'dayjs';
+import { NotificationsService } from '../notifications/notifications.service';
 @Injectable()
 export class TransactionsService {
+  private readonly logger = new Logger(TransactionsService.name);
+
   constructor(
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Account) private accRepo: Repository<Account>,
     @InjectRepository(Category) private catRepo: Repository<Category>,
     @InjectRepository(Tag) private tagRepo: Repository<Tag>,
     @InjectDataSource() private dataSource: DataSource,
+    private notificationsService: NotificationsService,
   ) {}
 
   // ✅ CREATE
@@ -342,6 +348,76 @@ export class TransactionsService {
     return Promise.allSettled(updatePromises).then(results =>
       results.map(result => result.status === 'fulfilled' ? result.value : result.reason)
     );
+  }
+
+  // 🕑 AUTO-POST PENDING TRANSACTIONS (Cron Job)
+  // Runs at 3:00 AM daily to automatically post pending transactions that have reached their expected post date
+  // Set env var CRON_TIMEZONE to your region, e.g., 'Asia/Kolkata' or 'America/Los_Angeles'.
+  @Cron('0 3 * * *', { timeZone: process.env.CRON_TIMEZONE || 'UTC' }) // 3:00 AM daily
+  async autoPostPendingTransactions() {
+    this.logger.log('Starting auto-post of pending transactions...');
+    const today = dayjs().format('YYYY-MM-DD');
+
+    try {
+      // Find pending transactions where expectedPostDate is today or earlier
+      const dueTransactions = await this.txRepo.find({
+        where: [
+          { status: 'pending', expectedPostDate: LessThanOrEqual(today) },
+        ],
+        relations: ['user', 'account', 'category'],
+      });
+
+      if (dueTransactions.length === 0) {
+        this.logger.log('No pending transactions due for posting.');
+        return { posted: 0, errors: [] };
+      }
+
+      this.logger.log(`Found ${dueTransactions.length} pending transaction(s) to post.`);
+
+      const results = {
+        posted: 0,
+        errors: [] as Array<{ id: string; error: string }>,
+      };
+
+      // Process each transaction
+      for (const tx of dueTransactions) {
+        try {
+          await this.updateStatus(tx.userId, tx.id, 'posted');
+          results.posted++;
+          this.logger.log(`Posted transaction ${tx.id} for user ${tx.userId}`);
+
+          // Create notification for user
+          const accountName = tx.account?.name || 'Unknown Account';
+          const categoryName = tx.category?.name || 'Unknown Category';
+          const amount = parseFloat(tx.amount).toFixed(2);
+          
+          await this.notificationsService.create(
+            tx.userId,
+            'transaction_posted',
+            'Pending Transaction Posted',
+            `Your pending transaction of $${amount} (${categoryName} - ${accountName}) has been automatically posted.`,
+            {
+              transactionId: tx.id,
+              amount: tx.amount,
+              accountId: tx.accountId,
+              categoryId: tx.categoryId,
+              expectedPostDate: tx.expectedPostDate,
+              actualPostDate: today,
+            },
+          );
+        } catch (error) {
+          const errorMsg = error.message || 'Unknown error';
+          results.errors.push({ id: tx.id, error: errorMsg });
+          this.logger.error(`Failed to post transaction ${tx.id}: ${errorMsg}`);
+        }
+      }
+
+      this.logger.log(`Auto-post completed: ${results.posted} posted, ${results.errors.length} errors.`);
+      return results;
+    } catch (error) {
+      this.logger.error('Error in auto-post cron job:', error);
+      throw error;
+    }
   }
 
 }

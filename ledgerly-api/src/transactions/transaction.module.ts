@@ -7,9 +7,14 @@ import { Account } from '../accounts/account.entity';
 import { Category } from 'src/categories/category.entity';
 import { Tag } from '../tags/tag.entity';
 import { AuthModule } from 'src/auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Transaction, Account, Category, Tag]), AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([Transaction, Account, Category, Tag]),
+    AuthModule,
+    NotificationsModule,
+  ],
   providers: [TransactionsService],
   controllers: [TransactionsController],
   exports:[TransactionsService]
