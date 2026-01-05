@@ -17,7 +17,7 @@ export default function NeumorphicInput({
 }: NeumorphicInputProps) {
   const isDark = theme === "dark";
 
-  const baseBg = isDark ? "bg-[#1d1f24] text-white" : "bg-[#f4f4f6] text-black";
+  const textColor = isDark ? "text-white" : "text-black";
   const softShadow = isDark
     ? "shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33]"
     : "shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff]";
@@ -47,10 +47,14 @@ export default function NeumorphicInput({
         placeholder={placeholder}
         className={`
           w-full px-4 py-3 rounded-2xl outline-none
-          ${baseBg} ${softShadow}
+          ${textColor} ${softShadow}
           placeholder:${isDark ? "text-white/40" : "text-black/40"}
           transition-all duration-200
         `}
+        style={{
+          background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)'
+        }}
         whileFocus={{
           scale: 1.015,
         }}
