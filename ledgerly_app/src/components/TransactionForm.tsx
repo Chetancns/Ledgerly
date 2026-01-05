@@ -243,7 +243,7 @@ export default function TransactionForm({
   };
 
   return (
-      <div className="relative z-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-6 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible"
+      <div className="relative z-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-6 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-y-auto max-h-[85vh]"
            style={{ 
              background: "var(--bg-card)", 
              border: "1px solid var(--border-primary)" 
@@ -386,24 +386,53 @@ export default function TransactionForm({
             </div>
           </div>
 
-          {/* To Account (only for transfer/savings) - After main grid */}
-          {(kind === "transfer" || kind === "savings") && (
-            <div className="space-y-2">
-              <label htmlFor="toAccountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                {kind === "transfer" ? "To Account *" : "Savings Account *"}
-              </label>
-              <NeumorphicSelect
-                placeholder="Select Destination Account"
-                value={toAccountId}
-                onChange={(val) => setToAccountId(val)}
-                theme={theme}
-                options={accounts
-                  .filter((acc) => acc.id !== form.accountId)
-                  .map((acc) => ({
-                    label: `${acc.name} (${acc.type})`,
-                    value: acc.id,
-                  }))}
-              />
+          {/* To Account and Expected Post Date - Side by side when both visible */}
+          {((kind === "transfer" || kind === "savings") || form.status === "pending") && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* To Account (only for transfer/savings) */}
+              {(kind === "transfer" || kind === "savings") && (
+                <div className="space-y-2">
+                  <label htmlFor="toAccountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {kind === "transfer" ? "To Account *" : "Savings Account *"}
+                  </label>
+                  <NeumorphicSelect
+                    placeholder="Select Destination Account"
+                    value={toAccountId}
+                    onChange={(val) => setToAccountId(val)}
+                    theme={theme}
+                    options={accounts
+                      .filter((acc) => acc.id !== form.accountId)
+                      .map((acc) => ({
+                        label: `${acc.name} (${acc.type})`,
+                        value: acc.id,
+                      }))}
+                  />
+                </div>
+              )}
+
+              {/* Expected Post Date - only show for pending transactions */}
+              {form.status === "pending" && (
+                <div className={`space-y-2 p-4 rounded-xl ${(kind === "transfer" || kind === "savings") ? '' : 'md:col-span-2'}`} style={{ 
+                  background: "var(--color-warning-bg)",
+                  border: "1px solid var(--color-warning)"
+                }}>
+                  <label htmlFor="expectedPostDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Expected Post Date <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+                  </label>
+                  <NeumorphicInput
+                    type="date"
+                    placeholder="When will this clear?"
+                    value={form.expectedPostDate || ""}
+                    onChange={(val) =>
+                      setForm((prev) => ({ ...prev, expectedPostDate: val }))
+                    }
+                    theme={theme}
+                  />
+                  <p className="text-xs mt-2" style={{ color: "var(--text-secondary)" }}>
+                    💡 For hotel bookings, car rentals, or other transactions that take days to post
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -425,30 +454,6 @@ export default function TransactionForm({
               size="md"
             />
           </div>
-
-          {/* Expected Post Date - only show for pending transactions */}
-          {form.status === "pending" && (
-            <div className="space-y-2 p-4 rounded-xl" style={{ 
-              background: "var(--color-warning-bg)",
-              border: "1px solid var(--color-warning)"
-            }}>
-              <label htmlFor="expectedPostDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Expected Post Date <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
-              </label>
-              <NeumorphicInput
-                type="date"
-                placeholder="When will this clear?"
-                value={form.expectedPostDate || ""}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, expectedPostDate: val }))
-                }
-                theme={theme}
-              />
-              <p className="text-xs mt-2" style={{ color: "var(--text-secondary)" }}>
-                💡 For hotel bookings, car rentals, or other transactions that take days to post
-              </p>
-            </div>
-          )}
 
           {/* Tags */}
           <div className="space-y-2">
