@@ -47,10 +47,14 @@ export class TransferDto {
   @IsNotEmpty()
   amount: string;
 
-  @IsString()
   @IsOptional()
-  type?: 'transfer'; // Optional, but still validated if present
+  @IsIn(['transfer', 'savings'])
+  type?: 'transfer' | 'savings'; // Support both transfer and savings types
   @IsOptional() @IsDateString() date: string;
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   description: string;
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  tagIds?: string[]; // Array of tag IDs to associate with this transaction
 }

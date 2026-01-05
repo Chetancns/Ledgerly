@@ -159,11 +159,15 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
       <div
         ref={containerRef}
         onClick={handleContainerClick}
-        className={`flex flex-wrap gap-2 p-3 rounded-lg border cursor-text ${
+        className={`flex flex-wrap gap-2 p-3 rounded-2xl border cursor-text transition-all ${
           theme === "dark"
-            ? "bg-gray-800 border-gray-700"
-            : "bg-white border-gray-300"
-        } ${showPanel ? "ring-2 ring-blue-500" : ""} transition-all`}
+            ? "border-white/5 shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33]"
+            : "border-black/10 shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff]"
+        } ${showPanel ? "ring-2 ring-blue-500" : ""}`}
+        style={{
+          background: theme === "dark" ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)'
+        }}
       >
         {selectedTags.map(tag => (
           <span
@@ -207,11 +211,15 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
       {showPanel && (
         <div
           ref={panelRef}
-          className={`absolute left-0 top-full mt-2 w-full z-[9999] rounded-lg border shadow-2xl p-4 max-h-80 overflow-auto ${
+          className={`absolute left-0 top-full mt-2 w-full z-[9999] rounded-2xl border shadow-2xl p-4 max-h-80 overflow-auto ${
             theme === "dark"
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-300"
+              ? "border-white/10 shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33]"
+              : "border-black/10 shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff]"
           }`}
+          style={{
+            background: theme === "dark" ? 'rgba(29, 31, 36, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(12px)'
+          }}
         >
           {filteredTags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
