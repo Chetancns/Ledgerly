@@ -496,6 +496,7 @@ export default function Transactions() {
           relative flex flex-col backdrop-blur-xl shadow-md
           border rounded-2xl p-3 transition-all duration-300
           hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]
+          min-h-[200px]
           ${deletingId === t.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
         `)}
         style={{
@@ -547,40 +548,48 @@ export default function Transactions() {
           </div>
         </div>
 
-        {/* Description */}
-        {t.description && (
-          <p className="text-xs mb-2 line-clamp-2" style={{ color: "var(--text-secondary)" }}>
-            {t.description}
-          </p>
-        )}
+        {/* Description - Fixed height container */}
+        <div className="mb-2 min-h-[2.5rem]">
+          {t.description ? (
+            <p className="text-xs line-clamp-2" style={{ color: "var(--text-secondary)" }}>
+              {t.description}
+            </p>
+          ) : (
+            <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>
+              No description
+            </p>
+          )}
+        </div>
 
-        {/* Tags Display */}
-        {t.tags && t.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {t.tags.slice(0, 2).map(tag => (
-              <span
-                key={tag.id}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
-                style={{
-                  backgroundColor: `${tag.color}20`,
-                  color: tag.color,
-                  border: `1px solid ${tag.color}40`,
-                }}
-              >
-                {tag.name}
-              </span>
-            ))}
-            {t.tags.length > 2 && (
-              <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                +{t.tags.length - 2}
-              </span>
-            )}
-          </div>
-        )}
+        {/* Tags Display - Fixed height container */}
+        <div className="mb-2 min-h-[1.5rem]">
+          {t.tags && t.tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {t.tags.slice(0, 2).map(tag => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+                  style={{
+                    backgroundColor: `${tag.color}20`,
+                    color: tag.color,
+                    border: `1px solid ${tag.color}40`,
+                  }}
+                >
+                  {tag.name}
+                </span>
+              ))}
+              {t.tags.length > 2 && (
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  +{t.tags.length - 2}
+                </span>
+              )}
+            </div>
+          ) : null}
+        </div>
 
-        {/* Status Badge + Actions Combined */}
-        <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "var(--border-secondary)" }}>
-          <div>
+        {/* Status Badge + Actions Combined - Push to bottom */}
+        <div className="flex items-center justify-between pt-2 mt-auto border-t" style={{ borderColor: "var(--border-secondary)" }}>
+          <div className="flex-1">
             <StatusBadge status={t.status} size="sm" />
             {t.status === 'pending' && t.expectedPostDate && (
               <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>

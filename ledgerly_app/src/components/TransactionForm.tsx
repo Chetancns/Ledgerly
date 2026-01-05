@@ -243,7 +243,7 @@ export default function TransactionForm({
   };
 
   return (
-      <div className="relative z-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-6 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-y-auto max-h-[85vh]"
+      <div className="relative z-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-6 w-full transition-all duration-300 hover:shadow-blue-500/10"
            style={{ 
              background: "var(--bg-card)", 
              border: "1px solid var(--border-primary)" 
@@ -412,10 +412,7 @@ export default function TransactionForm({
 
               {/* Expected Post Date - only show for pending transactions */}
               {form.status === "pending" && (
-                <div className={`space-y-2 p-4 rounded-xl ${(kind === "transfer" || kind === "savings") ? '' : 'md:col-span-2'}`} style={{ 
-                  background: "var(--color-warning-bg)",
-                  border: "1px solid var(--color-warning)"
-                }}>
+                <div className={`space-y-2 ${(kind === "transfer" || kind === "savings") ? '' : 'md:col-span-2'}`}>
                   <label htmlFor="expectedPostDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                     Expected Post Date <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
                   </label>
@@ -428,7 +425,7 @@ export default function TransactionForm({
                     }
                     theme={theme}
                   />
-                  <p className="text-xs mt-2" style={{ color: "var(--text-secondary)" }}>
+                  <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                     💡 For hotel bookings, car rentals, or other transactions that take days to post
                   </p>
                 </div>
