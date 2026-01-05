@@ -280,21 +280,43 @@ export default function TransactionForm({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Transaction Type Selector */}
-          <div className="space-y-3">
-            <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-              Transaction Type
-            </label>
-            <SegmentedControl
-              options={[
-                { value: "normal", label: "Normal", icon: "💸" },
-                { value: "transfer", label: "Transfer", icon: "🔀" },
-                { value: "savings", label: "Savings", icon: "🏦" },
-              ]}
-              value={kind}
-              onChange={(val) => setKind(val as any)}
-              size="md"
-            />
+          {/* Transaction Type and Status - Side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Transaction Type */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Transaction Type
+              </label>
+              <SegmentedControl
+                options={[
+                  { value: "normal", label: "Normal", icon: "💸" },
+                  { value: "transfer", label: "Transfer", icon: "🔀" },
+                  { value: "savings", label: "Savings", icon: "🏦" },
+                ]}
+                value={kind}
+                onChange={(val) => setKind(val as any)}
+                size="md"
+              />
+            </div>
+
+            {/* Transaction Status */}
+            <div className="space-y-3">
+              <label htmlFor="status" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Status
+              </label>
+              <SegmentedControl
+                options={[
+                  { value: "posted", label: "Posted", icon: "✅" },
+                  { value: "pending", label: "Pending", icon: "⏳" },
+                  { value: "cancelled", label: "Cancelled", icon: "❌" },
+                ]}
+                value={form.status || "posted"}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, status: val as any }))
+                }
+                size="md"
+              />
+            </div>
           </div>
 
           {/* Main Form Fields Grid */}
@@ -445,25 +467,6 @@ export default function TransactionForm({
               )}
             </div>
           )}
-
-          {/* Transaction Status */}
-          <div className="space-y-3">
-            <label htmlFor="status" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-              Status
-            </label>
-            <SegmentedControl
-              options={[
-                { value: "posted", label: "Posted", icon: "✅" },
-                { value: "pending", label: "Pending", icon: "⏳" },
-                { value: "cancelled", label: "Cancelled", icon: "❌" },
-              ]}
-              value={form.status || "posted"}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, status: val as any }))
-              }
-              size="md"
-            />
-          </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t" style={{ borderColor: "var(--border-primary)" }}>
