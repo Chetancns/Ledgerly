@@ -369,35 +369,36 @@ export default function TransactionForm({
               />
             </div>
 
-            {/* Description and Tags - Side by side */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Description */}
-              <div className="space-y-2">
-                <label htmlFor="description" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                  Description <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
-                </label>
-                <NeumorphicInput
-                  type="text"
-                  placeholder="What was this transaction for?"
-                  value={form.description ?? ""}
-                  onChange={(val) =>
-                    setForm((prev) => ({ ...prev, description: val }))
-                  }
-                  theme={theme}
-                />
-              </div>
+          </div>
 
-              {/* Tags */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                  Tags <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
-                </label>
-                <TagInput
-                  value={form.tagIds || []}
-                  onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
-                  placeholder="Add tags..."
-                />
-              </div>
+          {/* Description and Tags - Single row with 2 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Description */}
+            <div className="space-y-2">
+              <label htmlFor="description" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Description <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+              </label>
+              <NeumorphicInput
+                type="text"
+                placeholder="What was this transaction for?"
+                value={form.description ?? ""}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, description: val }))
+                }
+                theme={theme}
+              />
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Tags <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+              </label>
+              <TagInput
+                value={form.tagIds || []}
+                onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
+                placeholder="Add tags..."
+              />
             </div>
           </div>
 

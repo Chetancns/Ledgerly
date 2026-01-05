@@ -532,19 +532,28 @@ export default function Transactions() {
           </span>
         </div>
 
-        {/* Account Info */}
-        <div className="flex flex-col text-sm space-y-1 mb-2">
-          <span className="font-semibold truncate" style={{ color: "var(--text-primary)" }}>
-            {account ? account.name : 'Unknown Account'}
-          </span>
-          {toAccount && (
-            <div className="flex items-center gap-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-              <span>→</span>
-              <span className="font-medium truncate">{toAccount.name}</span>
+        {/* Account and Category - 2-column layout */}
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          {/* Account Column */}
+          <div className="min-h-[2.5rem]">
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Account</p>
+            <span className="text-sm font-semibold truncate block" style={{ color: "var(--text-primary)" }}>
+              {account ? account.name : 'Unknown Account'}
+            </span>
+            {toAccount && (
+              <div className="flex items-center gap-1 text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                <span>→</span>
+                <span className="font-medium truncate">{toAccount.name}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Category Column */}
+          <div className="min-h-[2.5rem]">
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Category</p>
+            <div className="text-sm truncate" style={{ color: "var(--text-primary)" }}>
+              {category ? category.name : 'Unknown'}
             </div>
-          )}
-          <div className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
-            {category ? category.name : 'Unknown'}
           </div>
         </div>
 
