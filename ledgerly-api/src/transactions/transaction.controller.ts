@@ -18,16 +18,17 @@ async transfer(
 ) {
   const now = new Date().toISOString();
 
-   // Create a single transfer transaction
+   // Create a single transfer or savings transaction
   return this.service.create({
     userId: user.userId,
     accountId: dto.from,
     toAccountId: dto.to, // Add this field to your entity/DTO
     categoryId: dto.cat,
-    type: 'transfer',
+    type: dto.type || 'transfer', // Use dto.type to support both transfer and savings
     amount: dto.amount,
     description: dto.description,
     transactionDate: dto.date,
+    tagIds: dto.tagIds, // Pass tags to the service
   });
 }
   @Post()

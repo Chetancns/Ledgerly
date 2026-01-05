@@ -153,6 +153,7 @@ export default function TransactionForm({
           description: form.description || "",
           date: toISOStringWithoutOffset(form.transactionDate),
           type: kind,
+          tagIds: form.tagIds,
         });
       }
 
