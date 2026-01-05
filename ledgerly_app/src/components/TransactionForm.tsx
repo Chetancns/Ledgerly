@@ -369,20 +369,35 @@ export default function TransactionForm({
               />
             </div>
 
-            {/* Description - Full Width */}
-            <div className="md:col-span-2 space-y-2">
-              <label htmlFor="description" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Description
-              </label>
-              <NeumorphicInput
-                type="text"
-                placeholder="What was this transaction for?"
-                value={form.description ?? ""}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, description: val }))
-                }
-                theme={theme}
-              />
+            {/* Description and Tags - Side by side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Description */}
+              <div className="space-y-2">
+                <label htmlFor="description" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Description <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+                </label>
+                <NeumorphicInput
+                  type="text"
+                  placeholder="What was this transaction for?"
+                  value={form.description ?? ""}
+                  onChange={(val) =>
+                    setForm((prev) => ({ ...prev, description: val }))
+                  }
+                  theme={theme}
+                />
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Tags <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+                </label>
+                <TagInput
+                  value={form.tagIds || []}
+                  onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
+                  placeholder="Add tags..."
+                />
+              </div>
             </div>
           </div>
 
@@ -447,21 +462,6 @@ export default function TransactionForm({
               }
               size="md"
             />
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-              Tags <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
-            </label>
-            <TagInput
-              value={form.tagIds || []}
-              onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
-              placeholder="Add tags to organize this transaction..."
-            />
-            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-              💡 Use tags to organize and filter your transactions easily
-            </p>
           </div>
 
           {/* Action Buttons */}
