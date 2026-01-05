@@ -473,7 +473,7 @@ export default function Transactions() {
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.25 }}
     >
-      <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 px-2">
+      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2">
   {transactions.map((t) => {
     const account = accounts.find(a => a.id === t.accountId);
     const category = categories.find(c => c.id === t.categoryId);

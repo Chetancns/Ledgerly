@@ -425,9 +425,6 @@ export default function TransactionForm({
                     }
                     theme={theme}
                   />
-                  <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-                    💡 For hotel bookings, car rentals, or other transactions that take days to post
-                  </p>
                 </div>
               )}
             </div>
