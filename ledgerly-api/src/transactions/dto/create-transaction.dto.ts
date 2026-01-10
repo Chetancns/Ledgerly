@@ -60,9 +60,6 @@ export class TransferDto {
   @IsUUID('4', { each: true })
   tagIds?: string[];
 
-  @IsString()
-  @IsOptional()
-  type?: 'transfer'; // Optional, but still validated if present
   @IsOptional() @IsDateString() date: string;
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   description: string;
