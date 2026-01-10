@@ -16,6 +16,7 @@ export const transfer = (par:{
         date:string,
         description:string,
         type?: 'transfer' | 'savings',
+        status?: 'pending' | 'posted' | 'cancelled',
         tagIds?: string[]
       }) => api.post("/transactions/transfers",par);
 export const getFilterTransactions = ({

@@ -49,12 +49,21 @@ export class TransferDto {
 
   @IsOptional()
   @IsIn(['transfer', 'savings'])
-  type?: 'transfer' | 'savings'; // Support both transfer and savings types
-  @IsOptional() @IsDateString() date: string;
-  @Transform(({ value }) => value ? sanitizeInput(value) : value)
-  description: string;
+  type?: 'transfer' | 'savings';
+
+  @IsOptional()
+  @IsIn(['pending', 'posted', 'cancelled'])
+  status?: 'pending' | 'posted' | 'cancelled';
+
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
-  tagIds?: string[]; // Array of tag IDs to associate with this transaction
+  tagIds?: string[];
+
+  @IsString()
+  @IsOptional()
+  type?: 'transfer'; // Optional, but still validated if present
+  @IsOptional() @IsDateString() date: string;
+  @Transform(({ value }) => value ? sanitizeInput(value) : value)
+  description: string;
 }

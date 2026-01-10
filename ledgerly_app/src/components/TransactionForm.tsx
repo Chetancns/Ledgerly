@@ -153,6 +153,7 @@ export default function TransactionForm({
           description: form.description || "",
           date: toISOStringWithoutOffset(form.transactionDate),
           type: kind,
+          status: form.status,
           tagIds: form.tagIds,
         });
       }
@@ -243,7 +244,7 @@ export default function TransactionForm({
   };
 
   return (
-      <div className="relative z-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-6 w-full transition-all duration-300 hover:shadow-blue-500/10"
+      <div className="relative z-20 backdrop-blur-2xl rounded-3xl shadow-2xl p-6 w-full transition-all duration-300 hover:shadow-blue-500/10 overflow-visible"
            style={{ 
              background: "var(--bg-card)", 
              border: "1px solid var(--border-primary)" 
@@ -280,43 +281,21 @@ export default function TransactionForm({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Transaction Type and Status - Side by side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Transaction Type */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Transaction Type
-              </label>
-              <SegmentedControl
-                options={[
-                  { value: "normal", label: "Normal", icon: "💸" },
-                  { value: "transfer", label: "Transfer", icon: "🔀" },
-                  { value: "savings", label: "Savings", icon: "🏦" },
-                ]}
-                value={kind}
-                onChange={(val) => setKind(val as any)}
-                size="md"
-              />
-            </div>
-
-            {/* Transaction Status */}
-            <div className="space-y-3">
-              <label htmlFor="status" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Status
-              </label>
-              <SegmentedControl
-                options={[
-                  { value: "posted", label: "Posted", icon: "✅" },
-                  { value: "pending", label: "Pending", icon: "⏳" },
-                  { value: "cancelled", label: "Cancelled", icon: "❌" },
-                ]}
-                value={form.status || "posted"}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, status: val as any }))
-                }
-                size="md"
-              />
-            </div>
+          {/* Transaction Type Selector */}
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Transaction Type
+            </label>
+            <SegmentedControl
+              options={[
+                { value: "normal", label: "Normal", icon: "💸" },
+                { value: "transfer", label: "Transfer", icon: "🔀" },
+                { value: "savings", label: "Savings", icon: "🏦" },
+              ]}
+              value={kind}
+              onChange={(val) => setKind(val as any)}
+              size="md"
+            />
           </div>
 
           {/* Main Form Fields Grid */}
@@ -324,7 +303,7 @@ export default function TransactionForm({
             {/* Account */}
             <div className="space-y-2">
               <label htmlFor="accountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Account *
+                From Account *
               </label>
                 <NeumorphicSelect 
                   options={accounts.map(acc => ({
@@ -339,6 +318,27 @@ export default function TransactionForm({
                   theme={theme}
                 />
             </div>
+
+            {/* To Account (only for transfer/savings) */}
+            {(kind === "transfer" || kind === "savings") && (
+              <div className="space-y-2">
+                <label htmlFor="toAccountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {kind === "transfer" ? "To Account *" : "Savings Account *"}
+                </label>
+                <NeumorphicSelect
+                  placeholder="Select Destination Account"
+                  value={toAccountId}
+                  onChange={(val) => setToAccountId(val)}
+                  theme={theme}
+                  options={accounts
+                    .filter((acc) => acc.id !== form.accountId)
+                    .map((acc) => ({
+                      label: `${acc.name} (${acc.type})`,
+                      value: acc.id,
+                    }))}
+                />
+              </div>
+            )}
 
             {/* Category */}
             <div className="space-y-2">
@@ -378,7 +378,7 @@ export default function TransactionForm({
             {/* Transaction Date */}
             <div className="space-y-2">
               <label htmlFor="transactionDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Date *
+                Transaction Date *
               </label>
               <NeumorphicInput
                 type="date"
@@ -391,14 +391,10 @@ export default function TransactionForm({
               />
             </div>
 
-          </div>
-
-          {/* Description and Tags - Single row with 2 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Description */}
-            <div className="space-y-2">
+            {/* Description - Full Width */}
+            <div className="md:col-span-2 space-y-2">
               <label htmlFor="description" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Description <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+                Description
               </label>
               <NeumorphicInput
                 type="text"
@@ -410,63 +406,65 @@ export default function TransactionForm({
                 theme={theme}
               />
             </div>
-
-            {/* Tags */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Tags <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
-              </label>
-              <TagInput
-                value={form.tagIds || []}
-                onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
-                placeholder="Add tags..."
-              />
-            </div>
           </div>
 
-          {/* To Account and Expected Post Date - Side by side when both visible */}
-          {((kind === "transfer" || kind === "savings") || form.status === "pending") && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* To Account (only for transfer/savings) */}
-              {(kind === "transfer" || kind === "savings") && (
-                <div className="space-y-2">
-                  <label htmlFor="toAccountId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {kind === "transfer" ? "To Account *" : "Savings Account *"}
-                  </label>
-                  <NeumorphicSelect
-                    placeholder="Select Destination Account"
-                    value={toAccountId}
-                    onChange={(val) => setToAccountId(val)}
-                    theme={theme}
-                    options={accounts
-                      .filter((acc) => acc.id !== form.accountId)
-                      .map((acc) => ({
-                        label: `${acc.name} (${acc.type})`,
-                        value: acc.id,
-                      }))}
-                  />
-                </div>
-              )}
+          {/* Transaction Status */}
+          <div className="space-y-3">
+            <label htmlFor="status" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Status
+            </label>
+            <SegmentedControl
+              options={[
+                { value: "posted", label: "Posted", icon: "✅" },
+                { value: "pending", label: "Pending", icon: "⏳" },
+                { value: "cancelled", label: "Cancelled", icon: "❌" },
+              ]}
+              value={form.status || "posted"}
+              onChange={(val) =>
+                setForm((prev) => ({ ...prev, status: val as any }))
+              }
+              size="md"
+            />
+          </div>
 
-              {/* Expected Post Date - only show for pending transactions */}
-              {form.status === "pending" && (
-                <div className={`space-y-2 ${(kind === "transfer" || kind === "savings") ? '' : 'md:col-span-2'}`}>
-                  <label htmlFor="expectedPostDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                    Expected Post Date <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
-                  </label>
-                  <NeumorphicInput
-                    type="date"
-                    placeholder="When will this clear?"
-                    value={form.expectedPostDate || ""}
-                    onChange={(val) =>
-                      setForm((prev) => ({ ...prev, expectedPostDate: val }))
-                    }
-                    theme={theme}
-                  />
-                </div>
-              )}
+          {/* Expected Post Date - only show for pending transactions */}
+          {form.status === "pending" && (
+            <div className="space-y-2 p-4 rounded-xl" style={{ 
+              background: "var(--color-warning-bg)",
+              border: "1px solid var(--color-warning)"
+            }}>
+              <label htmlFor="expectedPostDate" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Expected Post Date <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+              </label>
+              <NeumorphicInput
+                type="date"
+                placeholder="When will this clear?"
+                value={form.expectedPostDate || ""}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, expectedPostDate: val }))
+                }
+                theme={theme}
+              />
+              <p className="text-xs mt-2" style={{ color: "var(--text-secondary)" }}>
+                💡 For hotel bookings, car rentals, or other transactions that take days to post
+              </p>
             </div>
           )}
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Tags <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
+            </label>
+            <TagInput
+              value={form.tagIds || []}
+              onChange={(tagIds) => setForm((prev) => ({ ...prev, tagIds }))}
+              placeholder="Add tags to organize this transaction..."
+            />
+            <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
+              💡 Use tags to organize and filter your transactions easily
+            </p>
+          </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-4 border-t" style={{ borderColor: "var(--border-primary)" }}>
