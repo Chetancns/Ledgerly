@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, TableColumn, Table, TableForeignKey } from 'typeorm';
+import { MigrationInterface, QueryRunner, TableColumn, Table, TableForeignKey, TableIndex } from 'typeorm';
 
 export class AddRecurringTransactionImprovements1737079200000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -20,19 +20,41 @@ export class AddRecurringTransactionImprovements1737079200000 implements Migrati
           {
             name: 'recurringTransactionId',
             type: 'uuid',
-            isPrimary: true,
+            isNullable: false,
           },
           {
             name: 'tagId',
             type: 'uuid',
-            isPrimary: true,
+            isNullable: false,
           },
         ],
       }),
-      true
+      true,
     );
 
-    // Add foreign key for recurringTransactionId
+    // Add composite primary key on junction table
+    await queryRunner.query(
+      `ALTER TABLE "dbo"."recurring_transaction_tags" ADD CONSTRAINT "PK_recurring_transaction_tags" PRIMARY KEY ("recurringTransactionId", "tagId")`,
+    );
+
+    // Add indexes on junction table
+    await queryRunner.createIndex(
+      'dbo.recurring_transaction_tags',
+      new TableIndex({
+        name: 'IDX_RECURRING_TRANSACTION_TAGS_RECURRING_ID',
+        columnNames: ['recurringTransactionId'],
+      }),
+    );
+
+    await queryRunner.createIndex(
+      'dbo.recurring_transaction_tags',
+      new TableIndex({
+        name: 'IDX_RECURRING_TRANSACTION_TAGS_TAG_ID',
+        columnNames: ['tagId'],
+      }),
+    );
+
+    // Add foreign keys on junction table
     await queryRunner.createForeignKey(
       'dbo.recurring_transaction_tags',
       new TableForeignKey({
@@ -43,7 +65,6 @@ export class AddRecurringTransactionImprovements1737079200000 implements Migrati
       })
     );
 
-    // Add foreign key for tagId
     await queryRunner.createForeignKey(
       'dbo.recurring_transaction_tags',
       new TableForeignKey({
@@ -57,7 +78,7 @@ export class AddRecurringTransactionImprovements1737079200000 implements Migrati
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop junction table (will automatically drop foreign keys)
-    await queryRunner.dropTable('dbo.recurring_transaction_tags');
+    await queryRunner.dropTable('dbo.recurring_transaction_tags', true);
 
     // Drop toAccountId column
     await queryRunner.dropColumn('dbo.recurring_transactions', 'toAccountId');
