@@ -492,7 +492,7 @@ export default function Recurring() {
                   Tags (optional)
                 </label>
                 <TagInput
-                  selectedTagIds={form.tagIds || []}
+                  value={form.tagIds || []}
                   onChange={(tagIds) => setForm(prev => ({ ...prev, tagIds }))}
                 />
               </div>
