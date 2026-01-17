@@ -35,8 +35,7 @@ export class RecurringService {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tagIds, ...recData } = data;
+    const { tagIds: _, ...recData } = data;
     const rec = this.recRepo.create({ ...recData, tags });
     return await this.recRepo.save(rec);
   }
@@ -79,8 +78,7 @@ export class RecurringService {
       }
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tagIds, ...recData } = data;
+    const { tagIds: _, ...recData } = data;
     Object.assign(rec, recData);
     return await this.recRepo.save(rec);
   }

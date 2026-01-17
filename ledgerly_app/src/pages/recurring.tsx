@@ -32,6 +32,13 @@ export default function Recurring() {
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+
+  // Helper function to get color for transaction type
+  const getTypeColor = (type: string) => {
+    if (type === "income") return "var(--color-success)";
+    if (type === "transfer" || type === "savings") return "var(--color-info)";
+    return "var(--color-error)";
+  };
   const [form, setForm] = useState<Partial<RecurringTransaction>>({
     accountId: "",
     categoryId: "",
@@ -56,7 +63,8 @@ export default function Recurring() {
     try {
       const res = await getRecurringTransactions();
       setTransactions(res);
-    } catch {
+    } catch (error) {
+      console.error("Failed to load recurring transactions:", error);
       toast.error("Failed to load recurring transactions");
     }
   };
@@ -68,7 +76,8 @@ export default function Recurring() {
         const [accRes, catRes] = await Promise.all([getUserAccount(), getUserCategory()]);
         setAccounts(accRes);
         setCategories(catRes);
-      } catch {
+      } catch (error) {
+        console.error("Failed to load accounts or categories:", error);
         toast.error("Failed to load accounts or categories");
       }
     };
@@ -255,7 +264,7 @@ export default function Recurring() {
         <span>
           Type:{" "}
           <span
-            style={{ color: tx.type === "income" ? "var(--color-success)" : tx.type === "transfer" || tx.type === "savings" ? "var(--color-info)" : "var(--color-error)" }}
+            style={{ color: getTypeColor(tx.type) }}
             className="font-medium"
           >
             {tx.type}
