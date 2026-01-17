@@ -8,6 +8,10 @@ import dayjs from 'dayjs';
 import { TransactionsService } from 'src/transactions/transaction.service';
 import { Tag } from 'src/tags/tag.entity';
 
+interface CreateRecurringDto extends Partial<RecurringTransaction> {
+  tagIds?: string[];
+}
+
 @Injectable()
 export class RecurringService {
   constructor(
@@ -19,7 +23,7 @@ export class RecurringService {
   ) {}
 
   // 🧩 CREATE
-  async create(data: Partial<RecurringTransaction>) {
+  async create(data: CreateRecurringDto) {
     // Handle tags if provided
     let tags: Tag[] = [];
     if (data.tagIds && data.tagIds.length > 0) {
@@ -31,7 +35,8 @@ export class RecurringService {
       }
     }
 
-    const rec = this.recRepo.create({ ...data, tags });
+    const { tagIds, ...recData } = data;
+    const rec = this.recRepo.create({ ...recData, tags });
     return await this.recRepo.save(rec);
   }
 
@@ -55,7 +60,7 @@ export class RecurringService {
   }
 
   // ✏️ UPDATE
-  async update(id: string, userId: string, data: Partial<RecurringTransaction>) {
+  async update(id: string, userId: string, data: CreateRecurringDto) {
     const rec = await this.findOne(id, userId);
     
     // Handle tags update if provided
@@ -71,10 +76,10 @@ export class RecurringService {
       } else {
         rec.tags = [];
       }
-      delete data.tagIds; // Remove tagIds from data as we've handled it
     }
     
-    Object.assign(rec, data);
+    const { tagIds, ...recData } = data;
+    Object.assign(rec, recData);
     return await this.recRepo.save(rec);
   }
 
