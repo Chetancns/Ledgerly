@@ -166,7 +166,7 @@ export default function CalendarPage() {
   // Build calendar grid (start on Sunday)
   const firstWeekday = startOfMonth.day(); // 0-6 (Sun-Sat)
   const daysInMonth = endOfMonth.date();
-  const cells: Array<{ key: string; label: string; date?: string }>= [];
+  const cells: Array<{ key: string; label: string; date?: string }> = [];
   for (let i = 0; i < firstWeekday; i++) {
     cells.push({ key: `pad-${i}`, label: "", date: undefined });
   }
@@ -400,7 +400,11 @@ export default function CalendarPage() {
                   >
                     {/* Today indicator */}
                     {isToday && (
-                      <div className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <div 
+                        className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+                        aria-label="Today"
+                        role="status"
+                      ></div>
                     )}
                     
                     <div className="flex justify-between items-start mb-1">
@@ -487,7 +491,7 @@ export default function CalendarPage() {
                     {/* Recurring transaction indicators with improved design */}
                     {hasRecurring && c.date && (
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {recurringMarks[c.date].slice(0, 2).map((r: any, idx: number) => (
+                        {recurringMarks[c.date].slice(0, 2).map((r, idx) => (
                           <span
                             key={idx}
                             className={clsx(
@@ -652,7 +656,12 @@ export default function CalendarPage() {
                   <div className="text-base" style={{ color: "var(--text-primary)" }}>Loading transactions...</div>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin">
+                <div 
+                  className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin"
+                  role="list"
+                  aria-label="Transactions for selected day"
+                  tabIndex={0}
+                >
                   {dayTxns.length === 0 ? (
                     <div className="text-center py-8 rounded-xl" style={{ background: "var(--bg-card-hover)", color: "var(--text-muted)" }}>
                       <div className="text-3xl mb-2">📭</div>
