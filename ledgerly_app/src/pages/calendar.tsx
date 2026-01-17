@@ -485,9 +485,9 @@ export default function CalendarPage() {
                     )}
                     
                     {/* Recurring transaction indicators with improved design */}
-                    {hasRecurring && (
+                    {hasRecurring && c.date && (
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {recurringMarks[c.date].slice(0, 2).map((r, idx) => (
+                        {recurringMarks[c.date].slice(0, 2).map((r: any, idx: number) => (
                           <span
                             key={idx}
                             className={clsx(
@@ -516,7 +516,7 @@ export default function CalendarPage() {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Enhanced Day Detail Modal */}
