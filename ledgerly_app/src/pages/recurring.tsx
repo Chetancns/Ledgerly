@@ -7,13 +7,15 @@ import {
   createRecurring,
   updateRecurring,
   deleteRecurring,
+  triggerRecurring,
 } from "../services/recurring";
 import { getUserAccount } from "../services/accounts";
 import { getUserCategory } from "../services/category";
 import { Frequency, RecurringTransaction, TxType } from "../models/recurring";
-import { TrashIcon, PauseIcon, PlayIcon } from "@heroicons/react/24/solid";
+import { TrashIcon, PauseIcon, PlayIcon, BoltIcon } from "@heroicons/react/24/solid";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useTheme } from "@/context/ThemeContext";
+import TagInput from "@/components/TagInput";
 
 export default function Recurring() {
   const { theme } = useTheme();
@@ -30,12 +32,15 @@ export default function Recurring() {
     nextOccurrence: "",
     description: "",
     status: "active",
+    toAccountId: "",
+    tagIds: [],
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [pauseResumeConfirm, setPauseResumeConfirm] = useState<{ id: string; status: string } | null>(null);
+  const [triggerConfirm, setTriggerConfirm] = useState<string | null>(null);
 
   // Load recurring transactions
   const load = async () => {
@@ -78,6 +83,12 @@ export default function Recurring() {
       return;
     }
 
+    // Validate transfer/savings requires destination account
+    if ((form.type === "transfer" || form.type === "savings") && !form.toAccountId) {
+      toast.error("Please select a destination account for transfer/savings.");
+      return;
+    }
+
     setLoading(true);
     try {
       if (editingId) {
@@ -99,6 +110,8 @@ export default function Recurring() {
         nextOccurrence: "",
         description: "",
         status: "active",
+        toAccountId: "",
+        tagIds: [],
       });
       await load();
     } catch {
@@ -134,6 +147,19 @@ export default function Recurring() {
     }
   };
 
+  const handleTriggerNow = async (id: string) => {
+    try {
+      await triggerRecurring(id);
+      toast.success("Recurring transaction triggered successfully!");
+      await load();
+    } catch (err) {
+      console.error("Trigger failed", err);
+      toast.error("Trigger failed. Please try again.");
+    } finally {
+      setTriggerConfirm(null);
+    }
+  };
+
   const openModal = (tx?: RecurringTransaction) => {
   if (tx) {
     setEditingId(tx.id);
@@ -149,6 +175,8 @@ export default function Recurring() {
         : "",
       description: tx.description ?? "",
       status: tx.status ?? "active",
+      toAccountId: tx.toAccountId ?? "",
+      tagIds: tx.tags?.map(t => t.id) || [],
     });
   } else {
     setEditingId(null);
@@ -161,6 +189,8 @@ export default function Recurring() {
       nextOccurrence: "",
       description: "",
       status: "active",
+      toAccountId: "",
+      tagIds: [],
     });
   }
 
@@ -190,6 +220,7 @@ export default function Recurring() {
             <ul className="flex flex-wrap gap-4">
               {transactions.map((tx) => {
               const account = accounts.find(a => a.id === tx.accountId);
+              const toAccount = accounts.find(a => a.id === tx.toAccountId);
               const category = categories.find(c => c.id === tx.categoryId);
               return (
   <li
@@ -215,7 +246,7 @@ export default function Recurring() {
         <span>
           Type:{" "}
           <span
-            style={{ color: tx.type === "income" ? "var(--color-success)" : "var(--color-error)" }}
+            style={{ color: tx.type === "income" ? "var(--color-success)" : tx.type === "transfer" || tx.type === "savings" ? "var(--color-info)" : "var(--color-error)" }}
             className="font-medium"
           >
             {tx.type}
@@ -244,9 +275,34 @@ export default function Recurring() {
         Account: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{account?.name}</span>
       </p>
 
+      {(tx.type === "transfer" || tx.type === "savings") && toAccount && (
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+          To Account: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{toAccount.name}</span>
+        </p>
+      )}
+
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>
         Category: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{category?.name}</span>
       </p>
+
+      {/* Display tags */}
+      {tx.tags && tx.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {tx.tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="px-2 py-0.5 rounded-full text-xs font-medium"
+              style={{
+                backgroundColor: tag.color + "20",
+                color: tag.color,
+                border: `1px solid ${tag.color}40`,
+              }}
+            >
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
 
     {/* Right side: action buttons */}
@@ -258,6 +314,15 @@ export default function Recurring() {
         title="Edit"
       >
         ✏️
+      </button>
+
+      <button
+        onClick={() => setTriggerConfirm(tx.id)}
+        className="p-2 rounded-full transition-transform hover:scale-110"
+        style={{ color: "var(--color-warning)" }}
+        title="Trigger Now"
+      >
+        <BoltIcon className="h-5 w-5" />
       </button>
 
       <button
@@ -303,6 +368,20 @@ export default function Recurring() {
             </h2>
 
             <form onSubmit={handleCreateOrUpdate} className="flex flex-col gap-4">
+              {/* Type */}
+              <select
+                name="type"
+                className="p-2 rounded-lg"
+                value={form.type ?? "expense"}
+                onChange={handleChange}
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+              >
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+                <option value="transfer">Transfer</option>
+                <option value="savings">Savings</option>
+              </select>
+
               {/* Account */}
               <select
                 name="accountId"
@@ -311,13 +390,31 @@ export default function Recurring() {
                 className="p-2 rounded-lg"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
-                <option value="">Select Account</option>
+                <option value="">Select {form.type === "transfer" || form.type === "savings" ? "From " : ""}Account</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
                     {acc.name}
                   </option>
                 ))}
               </select>
+
+              {/* To Account (only for transfer/savings) */}
+              {(form.type === "transfer" || form.type === "savings") && (
+                <select
+                  name="toAccountId"
+                  value={form.toAccountId ?? ""}
+                  onChange={handleChange}
+                  className="p-2 rounded-lg"
+                  style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                >
+                  <option value="">Select To Account</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               {/* Category */}
               <select
@@ -333,18 +430,6 @@ export default function Recurring() {
                     {cat.type === "income" ? "💰" : "💸"} {cat.name}
                   </option>
                 ))}
-              </select>
-
-              {/* Type */}
-              <select
-                name="type"
-                className="p-2 rounded-lg"
-                value={form.type ?? "expense"}
-                onChange={handleChange}
-                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-              >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
               </select>
 
               {/* Frequency */}
@@ -392,6 +477,17 @@ export default function Recurring() {
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
 
+              {/* Tags */}
+              <div>
+                <label className="text-sm mb-1 block" style={{ color: "var(--text-secondary)" }}>
+                  Tags (optional)
+                </label>
+                <TagInput
+                  selectedTagIds={form.tagIds || []}
+                  onChange={(tagIds) => setForm(prev => ({ ...prev, tagIds }))}
+                />
+              </div>
+
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -436,6 +532,17 @@ export default function Recurring() {
         loading={false}
         onConfirm={() => handlePauseResume(pauseResumeConfirm!.id, pauseResumeConfirm!.status)}
         onClose={() => setPauseResumeConfirm(null)}
+      />
+
+      <ConfirmModal
+        open={!!triggerConfirm}
+        title="Trigger Recurring Transaction Now"
+        description="This will create a transaction immediately and update the next occurrence date. Continue?"
+        confirmLabel="Trigger Now"
+        confirmColor="yellow-500"
+        loading={false}
+        onConfirm={() => handleTriggerNow(triggerConfirm!)}
+        onClose={() => setTriggerConfirm(null)}
       />
     </Layout>
   );

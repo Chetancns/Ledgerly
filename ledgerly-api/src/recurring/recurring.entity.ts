@@ -6,10 +6,13 @@ import {
   ManyToOne,
   CreateDateColumn,
   Index,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
+import { Tag } from '../tags/tag.entity';
 import type { TxType } from '../transactions/transaction.entity';
 
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -54,8 +57,20 @@ export class RecurringTransaction {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  toAccountId: string | null; // for transfers/savings, the destination account
+
   @Column({ type: 'varchar', length: 10, default: 'active' })
   status: RecurringStatus; // ✅ new column
+
+  @ManyToMany(() => Tag, { cascade: true })
+  @JoinTable({
+    name: 'recurring_transaction_tags',
+    schema: 'dbo',
+    joinColumn: { name: 'recurringTransactionId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
+  })
+  tags: Tag[];
 
   @CreateDateColumn()
   createdAt: Date;

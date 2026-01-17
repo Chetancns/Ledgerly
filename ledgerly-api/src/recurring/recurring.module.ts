@@ -9,8 +9,9 @@ import { RecurringService } from "./recurring.service";
 import { RecurringController } from "./recurring.controller";
 import { RecurringTransaction } from "./recurring.entity";
 import { Account } from "src/accounts/account.entity";
+import { Tag } from "src/tags/tag.entity";
 @Module({
-  imports: [TypeOrmModule.forFeature([RecurringTransaction,Transaction,Account,Category]),
+  imports: [TypeOrmModule.forFeature([RecurringTransaction,Transaction,Account,Category,Tag]),
             TransactionsModule, AuthModule],
   providers: [RecurringService],
   controllers: [RecurringController],

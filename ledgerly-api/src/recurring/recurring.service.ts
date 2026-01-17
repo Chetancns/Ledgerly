@@ -6,18 +6,32 @@ import { Repository } from 'typeorm';
 import { RecurringTransaction } from './recurring.entity';
 import dayjs from 'dayjs';
 import { TransactionsService } from 'src/transactions/transaction.service';
+import { Tag } from 'src/tags/tag.entity';
 
 @Injectable()
 export class RecurringService {
   constructor(
     @InjectRepository(RecurringTransaction)
     private recRepo: Repository<RecurringTransaction>,
+    @InjectRepository(Tag)
+    private tagRepo: Repository<Tag>,
     private txService: TransactionsService
   ) {}
 
   // 🧩 CREATE
   async create(data: Partial<RecurringTransaction>) {
-    const rec = this.recRepo.create(data);
+    // Handle tags if provided
+    let tags: Tag[] = [];
+    if (data.tagIds && data.tagIds.length > 0) {
+      tags = await this.tagRepo.find({
+        where: { id: data.tagIds as any, userId: data.userId },
+      });
+      if (tags.length !== data.tagIds.length) {
+        throw new NotFoundException('One or more tags not found');
+      }
+    }
+
+    const rec = this.recRepo.create({ ...data, tags });
     return await this.recRepo.save(rec);
   }
 
@@ -25,13 +39,17 @@ export class RecurringService {
   async findAll(userId: string) {
     return await this.recRepo.find({
       where: { userId },
+      relations: ['tags'],
       order: { createdAt: 'DESC' },
     });
   }
 
   // 🔍 GET ONE
   async findOne(id: string, userId: string) {
-    const rec = await this.recRepo.findOne({ where: { id, userId } });
+    const rec = await this.recRepo.findOne({ 
+      where: { id, userId },
+      relations: ['tags'],
+    });
     if (!rec) throw new NotFoundException('Recurring transaction not found');
     return rec;
   }
@@ -39,6 +57,23 @@ export class RecurringService {
   // ✏️ UPDATE
   async update(id: string, userId: string, data: Partial<RecurringTransaction>) {
     const rec = await this.findOne(id, userId);
+    
+    // Handle tags update if provided
+    if (data.tagIds !== undefined) {
+      if (data.tagIds && data.tagIds.length > 0) {
+        const tags = await this.tagRepo.find({
+          where: { id: data.tagIds as any, userId },
+        });
+        if (tags.length !== data.tagIds.length) {
+          throw new NotFoundException('One or more tags not found');
+        }
+        rec.tags = tags;
+      } else {
+        rec.tags = [];
+      }
+      delete data.tagIds; // Remove tagIds from data as we've handled it
+    }
+    
     Object.assign(rec, data);
     return await this.recRepo.save(rec);
   }
@@ -60,30 +95,55 @@ export class RecurringService {
 
     const due = await this.recRepo.find({
       where: { nextOccurrence: today, status: 'active' }, // ✅ skip paused
+      relations: ['tags'],
     });
 
     for (const r of due) {
-      await this.txService.create({
-        userId: r.userId,
-        accountId: r.accountId,
-        categoryId: r.categoryId,
-        amount: r.amount,
-        type: r.type,
-        transactionDate: today,
-        description: r.description,
-      });
-
-      // bump nextOccurrence
-      let next = dayjs(today);
-      if (r.frequency === 'daily') next = next.add(1, 'day');
-      if (r.frequency === 'weekly') next = next.add(1, 'week');
-      if (r.frequency === 'monthly') next = next.add(1, 'month');
-      if (r.frequency === 'yearly') next = next.add(1, 'year');
-
-      await this.recRepo.update(r.id, {
-        nextOccurrence: next.format('YYYY-MM-DD'),
-      });
+      await this.createTransactionFromRecurring(r, today);
     }
     console.log(`Processed ${due.length} recurring transactions.`); 
+  }
+
+  // 🎯 MANUAL TRIGGER - Process a recurring transaction immediately
+  async triggerRecurring(id: string, userId: string) {
+    const rec = await this.findOne(id, userId);
+    
+    if (rec.status !== 'active') {
+      throw new NotFoundException('Cannot trigger a paused recurring transaction');
+    }
+
+    const today = dayjs().format('YYYY-MM-DD');
+    await this.createTransactionFromRecurring(rec, today);
+    
+    return { message: 'Recurring transaction triggered successfully' };
+  }
+
+  // 🔧 HELPER - Create a transaction from recurring settings
+  private async createTransactionFromRecurring(r: RecurringTransaction, date: string) {
+    // Extract tag IDs
+    const tagIds = r.tags?.map(t => t.id) || [];
+
+    await this.txService.create({
+      userId: r.userId,
+      accountId: r.accountId,
+      categoryId: r.categoryId,
+      amount: r.amount,
+      type: r.type,
+      transactionDate: date,
+      description: r.description,
+      toAccountId: r.toAccountId, // for transfers/savings
+      tagIds: tagIds.length > 0 ? tagIds : undefined,
+    });
+
+    // bump nextOccurrence
+    let next = dayjs(date);
+    if (r.frequency === 'daily') next = next.add(1, 'day');
+    if (r.frequency === 'weekly') next = next.add(1, 'week');
+    if (r.frequency === 'monthly') next = next.add(1, 'month');
+    if (r.frequency === 'yearly') next = next.add(1, 'year');
+
+    await this.recRepo.update(r.id, {
+      nextOccurrence: next.format('YYYY-MM-DD'),
+    });
   }
 }
