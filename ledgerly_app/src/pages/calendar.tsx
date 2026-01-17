@@ -179,16 +179,19 @@ export default function CalendarPage() {
 
   // Calculate monthly totals
   const monthlyTotals = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    let savings = 0;
-    Object.values(daily).forEach((d) => {
-      income += d.income;
-      expense += d.expense;
-      if (typeof d.savings === 'number') savings += d.savings;
-    });
-    return { income, expense, savings, net: income - expense };
+    return Object.values(daily).reduce(
+      (acc, d) => ({
+        income: acc.income + d.income,
+        expense: acc.expense + d.expense,
+        savings: acc.savings + (typeof d.savings === 'number' ? d.savings : 0),
+        net: acc.net + d.netCashflow,
+      }),
+      { income: 0, expense: 0, savings: 0, net: 0 }
+    );
   }, [daily]);
+
+  // Memoize today's date string for comparison
+  const todayStr = useMemo(() => today.format("YYYY-MM-DD"), [today]);
 
   return (
     <Layout>
@@ -375,7 +378,7 @@ export default function CalendarPage() {
                 const agg = c.date ? daily[c.date] : undefined;
                 const net = agg?.netCashflow ?? 0;
                 const heat = c.date ? Math.min(1, Math.abs(net) / 500) : 0;
-                const isToday = c.date === today.format("YYYY-MM-DD");
+                const isToday = c.date === todayStr;
                 const hasRecurring = c.date && recurringMarks[c.date] && recurringMarks[c.date].length > 0;
                 
                 return (
@@ -388,7 +391,7 @@ export default function CalendarPage() {
                     className={clsx(
                       "rounded-xl sm:rounded-2xl p-2 sm:p-3 h-32 sm:h-36 text-left overflow-hidden transition-all relative",
                       c.date ? "shadow-md hover:shadow-xl cursor-pointer" : "bg-transparent cursor-default",
-                      isToday ? "ring-2 ring-blue-500 ring-offset-2" : ""
+                      isToday ? "ring-2 ring-blue-500" : ""
                     )}
                     style={c.date ? {
                       background: "var(--bg-card-hover)",
@@ -660,7 +663,6 @@ export default function CalendarPage() {
                   className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin"
                   role="list"
                   aria-label="Transactions for selected day"
-                  tabIndex={0}
                 >
                   {dayTxns.length === 0 ? (
                     <div className="text-center py-8 rounded-xl" style={{ background: "var(--bg-card-hover)", color: "var(--text-muted)" }}>
