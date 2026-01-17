@@ -214,7 +214,7 @@ export default function CalendarPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-4 sm:mb-6"
+            className="shadow-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-4 sm:mb-6"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -253,7 +253,7 @@ export default function CalendarPage() {
         )}
 
         {/* Enhanced Navigation Controls */}
-        <div className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-4 sm:mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+        <div className="shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-4 sm:mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 flex-1">
               <select
@@ -315,7 +315,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Legend/Key */}
-        <div className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-4 mb-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+        <div className="shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-4 mb-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
           <div className="flex flex-wrap gap-3 sm:gap-4 items-center justify-center text-xs sm:text-sm">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-emerald-500/30 border border-emerald-400/50"></div>
@@ -341,7 +341,7 @@ export default function CalendarPage() {
         </div>
 
         {loading ? (
-          <div className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+          <div className="shadow-xl rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
             <div className="flex flex-col items-center gap-4">
               <div className="animate-spin text-4xl">⏳</div>
               <div className="text-lg sm:text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Loading calendar data...</div>
@@ -353,7 +353,7 @@ export default function CalendarPage() {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
-            className="backdrop-blur-2xl shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-5" 
+            className="shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-5" 
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
           >
             {/* Weekday headers */}
@@ -540,7 +540,7 @@ export default function CalendarPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl"
+              className="rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl"
               style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
               onClick={(e) => e.stopPropagation()}
             >
