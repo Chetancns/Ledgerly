@@ -29,7 +29,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message = (exceptionResponse as any).message || message;
         errors = (exceptionResponse as any).errors;
       } else {
-        message = exceptionResponse as string;
+        message = exceptionResponse;
       }
     } else if (exception instanceof Error) {
       message = exception.message;

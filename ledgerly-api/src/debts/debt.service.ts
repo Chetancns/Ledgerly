@@ -21,7 +21,7 @@ export class DebtService {
 
   /** Generate the next due date based on frequency */
   private getNextDueDate(start: string, frequency: string, last?: string) {
-    let base = last ? dayjs(last) : dayjs(start);
+    const base = last ? dayjs(last) : dayjs(start);
 
     switch (frequency) {
       case 'weekly':

@@ -11,18 +11,27 @@ import {
 } from "../services/recurring";
 import { getUserAccount } from "../services/accounts";
 import { getUserCategory } from "../services/category";
-import { Frequency, RecurringTransaction, TxType } from "../models/recurring";
+import { RecurringTransaction } from "../models/recurring";
 import { TrashIcon, PauseIcon, PlayIcon, BoltIcon } from "@heroicons/react/24/solid";
 import ConfirmModal from "@/components/ConfirmModal";
-import { useTheme } from "@/context/ThemeContext";
 import TagInput from "@/components/TagInput";
 
+interface Account {
+  id: string;
+  name: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  type: string;
+}
+
 export default function Recurring() {
-  const { theme } = useTheme();
   const { format } = useCurrencyFormatter();
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<Partial<RecurringTransaction>>({
     accountId: "",
     categoryId: "",
@@ -47,7 +56,7 @@ export default function Recurring() {
     try {
       const res = await getRecurringTransactions();
       setTransactions(res);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load recurring transactions");
     }
   };
@@ -59,7 +68,7 @@ export default function Recurring() {
         const [accRes, catRes] = await Promise.all([getUserAccount(), getUserCategory()]);
         setAccounts(accRes);
         setCategories(catRes);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load accounts or categories");
       }
     };

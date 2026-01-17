@@ -28,13 +28,14 @@ export class RecurringService {
     let tags: Tag[] = [];
     if (data.tagIds && data.tagIds.length > 0) {
       tags = await this.tagRepo.find({
-        where: { id: data.tagIds as any, userId: data.userId },
+        where: data.tagIds.map(id => ({ id, userId: data.userId })),
       });
       if (tags.length !== data.tagIds.length) {
         throw new NotFoundException('One or more tags not found');
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { tagIds, ...recData } = data;
     const rec = this.recRepo.create({ ...recData, tags });
     return await this.recRepo.save(rec);
@@ -67,7 +68,7 @@ export class RecurringService {
     if (data.tagIds !== undefined) {
       if (data.tagIds && data.tagIds.length > 0) {
         const tags = await this.tagRepo.find({
-          where: { id: data.tagIds as any, userId },
+          where: data.tagIds.map(tagId => ({ id: tagId, userId })),
         });
         if (tags.length !== data.tagIds.length) {
           throw new NotFoundException('One or more tags not found');
@@ -78,6 +79,7 @@ export class RecurringService {
       }
     }
     
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { tagIds, ...recData } = data;
     Object.assign(rec, recData);
     return await this.recRepo.save(rec);
