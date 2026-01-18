@@ -1,8 +1,11 @@
 // components/DebtForm.tsx
 import { useState, useEffect, FormEvent } from "react";
-import { createDebt } from "@/services/debts";
+import { createDebt, getPersonNameSuggestions } from "@/services/debts";
 import { getUserAccount } from "@/services/accounts";
+import { getCategories } from "@/services/category";
 import { Account } from "@/models/account";
+import { Category } from "@/models/category";
+import { DEBT_TYPES, DebtType } from "@/models/debt";
 
 // If you have a shared Frequency type, import instead.
 // For safety we define the const here:
@@ -14,10 +17,15 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
   const today = new Date().toISOString().split("T")[0];
 
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [personNameSuggestions, setPersonNameSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
+    debtType: "institutional" as DebtType,
+    personName: "",
     principalAmount: "",    // original loan amount
     currentBalance: "",     // remaining balance (defaults to principal)
     termMonths: "",         // optional term in months
@@ -27,20 +35,26 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
     startDate: today,
     nextDueDate: today,
     accountId: "",
+    createTransaction: false,
+    categoryId: "",
   });
 
   useEffect(() => {
-    const fetchAcc = async () => {
+    const fetchData = async () => {
       try {
-        const res = await getUserAccount();
-        setAccounts(res);
+        const [accountsRes, categoriesRes] = await Promise.all([
+          getUserAccount(),
+          getCategories(),
+        ]);
+        setAccounts(accountsRes);
+        setCategories(categoriesRes);
       } catch (err) {
-        console.error("Failed to load accounts", err);
+        console.error("Failed to load data", err);
       } finally {
         setLoadingAccounts(false);
       }
     };
-    fetchAcc();
+    fetchData();
   }, []);
 
   // auto-calc installment when principal/term/frequency/autoCalc change
@@ -64,12 +78,36 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
-    // checkbox handled differently below (none here)
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePersonNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setForm((prev) => ({ ...prev, personName: value }));
+
+    if (value.length >= 2) {
+      try {
+        const suggestions = await getPersonNameSuggestions(value);
+        setPersonNameSuggestions(suggestions);
+        setShowSuggestions(true);
+      } catch (err) {
+        console.error("Failed to fetch suggestions", err);
+      }
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectPersonName = (name: string) => {
+    setForm((prev) => ({ ...prev, personName: name }));
+    setShowSuggestions(false);
   };
 
   const toggleAutoCalc = () =>
     setForm((prev) => ({ ...prev, autoCalcInstallment: !prev.autoCalcInstallment }));
+
+  const toggleCreateTransaction = () =>
+    setForm((prev) => ({ ...prev, createTransaction: !prev.createTransaction }));
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -78,6 +116,12 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
     if (!form.name.trim()) return alert("Please enter a debt name");
     if (!form.accountId) return alert("Please select an Account");
     if (!form.principalAmount || Number(form.principalAmount) <= 0) return alert("Enter a valid principal amount");
+    if ((form.debtType === 'borrowed' || form.debtType === 'lent') && !form.personName.trim()) {
+      return alert("Please enter the person's name for borrowed/lent debts");
+    }
+    if (form.createTransaction && !form.categoryId) {
+      return alert("Please select a category for the transaction");
+    }
     if (!form.currentBalance) {
       setForm((prev) => ({ ...prev, currentBalance: prev.principalAmount }));
     }
@@ -85,9 +129,10 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
     if (!isFrequency(form.frequency)) return alert("Invalid frequency");
 
     // Map form fields to backend payload
-    // Backend expects numeric values; we send numbers.
     const payload: any = {
       name: form.name,
+      debtType: form.debtType,
+      personName: form.personName || undefined,
       accountId: form.accountId,
       frequency: form.frequency,
       installmentAmount: Number(form.installmentAmount) || 0,
@@ -96,6 +141,8 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
       term: form.termMonths ? Number(form.termMonths) : undefined,
       startDate: form.startDate,
       nextDueDate: form.nextDueDate,
+      createTransaction: form.createTransaction,
+      categoryId: form.categoryId || undefined,
     };
 
     try {
@@ -104,6 +151,8 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
       // reset
       setForm({
         name: "",
+        debtType: "institutional",
+        personName: "",
         principalAmount: "",
         currentBalance: "",
         termMonths: "",
@@ -113,6 +162,8 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
         startDate: today,
         nextDueDate: today,
         accountId: "",
+        createTransaction: false,
+        categoryId: "",
       });
     } catch (err) {
       console.error(err);
@@ -128,11 +179,66 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
       <h2 className="text-2xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Add Debt</h2>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Debt Type */}
+        <div className="md:col-span-2">
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Debt Type</label>
+          <select name="debtType" value={form.debtType} onChange={handleChange}
+            className="w-full px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}>
+            {DEBT_TYPES.map(t => (
+              <option key={t} value={t}>
+                {t === 'institutional' ? 'Institutional (Loan/Credit Card)' : 
+                 t === 'borrowed' ? 'Borrowed (I owe someone)' : 
+                 'Lent (Someone owes me)'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Person Name (shown for borrowed/lent) */}
+        {(form.debtType === 'borrowed' || form.debtType === 'lent') && (
+          <div className="md:col-span-2 relative">
+            <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+              Person Name
+            </label>
+            <input
+              name="personName"
+              value={form.personName}
+              onChange={handlePersonNameChange}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              placeholder="Enter person's name"
+              className="w-full px-3 py-2 rounded"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+            />
+            {showSuggestions && personNameSuggestions.length > 0 && (
+              <div
+                className="absolute z-10 w-full mt-1 rounded shadow-lg max-h-40 overflow-y-auto"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+              >
+                {personNameSuggestions.map((name, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => selectPersonName(name)}
+                    className="px-3 py-2 cursor-pointer hover:bg-opacity-80"
+                    style={{ color: "var(--text-primary)" }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-card-hover)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    {name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Debt name */}
         <div className="md:col-span-2">
-          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Debt Name</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+            Debt Description
+          </label>
           <input name="name" value={form.name} onChange={handleChange}
-            placeholder="e.g. Car Loan (Chase)"
+            placeholder={form.debtType === 'institutional' ? "e.g. Car Loan (Chase)" : "e.g. Emergency loan"}
             className="w-full px-3 py-2 rounded"
             style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
         </div>
@@ -221,6 +327,46 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
             style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Next scheduled payment date. Defaults to Start date but you can change it.</p>
         </div>
+
+        {/* Create Transaction */}
+        <div className="md:col-span-2 flex items-center gap-3">
+          <input
+            id="createTransaction"
+            type="checkbox"
+            checked={form.createTransaction}
+            onChange={toggleCreateTransaction}
+            className="accent-yellow-300"
+          />
+          <label htmlFor="createTransaction" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            Create transaction for {form.debtType === 'lent' ? 'lending' : 'borrowing'} this amount
+          </label>
+        </div>
+
+        {/* Category (shown when createTransaction is true) */}
+        {form.createTransaction && (
+          <div className="md:col-span-2">
+            <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+              Transaction Category
+            </label>
+            <select
+              name="categoryId"
+              value={form.categoryId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 rounded"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+            >
+              <option value="">Select Category</option>
+              {categories
+                .filter(c => c.type === (form.debtType === 'lent' ? 'income' : 'expense'))
+                .map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+            </select>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+              Category for the {form.debtType === 'lent' ? 'income' : 'expense'} transaction
+            </p>
+          </div>
+        )}
 
         {/* submit */}
         <div className="md:col-span-2">

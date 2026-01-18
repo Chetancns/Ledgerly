@@ -1,23 +1,51 @@
 // components/DebtList.tsx
 import { useEffect, useState } from "react";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
-import { Debt, DebtUpdate } from "@/models/debt";
-import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly } from "@/services/debts";
+import { Debt, DebtUpdate, DEBT_TYPES, DebtType } from "@/models/debt";
+import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, payInstallment } from "@/services/debts";
+import { getCategories } from "@/services/category";
+import { Category } from "@/models/category";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
 
 export default function DebtList() {
   const { format } = useCurrencyFormatter();
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [filteredDebts, setFilteredDebts] = useState<Debt[]>([]);
   const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
   const [updates, setUpdates] = useState<DebtUpdate[]>([]);
   const [showPopup, setShowPopup] = useState(false);
-const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
+  const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [debtTypeFilter, setDebtTypeFilter] = useState<DebtType | 'all'>('all');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentDebt, setPaymentDebt] = useState<Debt | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [paymentForm, setPaymentForm] = useState({
+    createTransaction: true,
+    categoryId: '',
+  });
+
   const loadDebts = async () => {
     const res = await getUserDebts();
     setDebts(res);
   };
+
+  useEffect(() => {
+    const filtered = debtTypeFilter === 'all' 
+      ? debts 
+      : debts.filter(d => d.debtType === debtTypeFilter);
+    setFilteredDebts(filtered);
+  }, [debts, debtTypeFilter]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await loadDebts();
+      const cats = await getCategories();
+      setCategories(cats);
+    };
+    fetchData();
+  }, []);
 
   const handleCatchUp = async () => {
     await catchUpDebts();
@@ -26,39 +54,88 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
   };
 
   const handleSelectDebt = async (debt: Debt) => {
-  setSelectedDebt(debt);
-  setActiveDebt(debt);
-  const res = await getDebtUpdates(debt.id);
-  setUpdates(Array.isArray(res) ? res : res ?? []);
-  setShowPopup(true);
-};
-  const handlepayDebtEarly = async (debt:Debt)=>{
-    const res = await payDebtEarly(debt.id);
-    alert("✅ Paid early!"+res.name);
-    loadDebts();
-  }
+    setSelectedDebt(debt);
+    setActiveDebt(debt);
+    const res = await getDebtUpdates(debt.id);
+    setUpdates(Array.isArray(res) ? res : res ?? []);
+    setShowPopup(true);
+  };
 
-  useEffect(() => {
+  const handlepayDebtEarly = async (debt: Debt) => {
+    const res = await payDebtEarly(debt.id);
+    toast.success("✅ Paid early! " + res.name);
     loadDebts();
-  }, []);
+  };
+
+  const handlePayInstallment = (debt: Debt) => {
+    setPaymentDebt(debt);
+    setPaymentForm({
+      createTransaction: true,
+      categoryId: '',
+    });
+    setShowPaymentModal(true);
+  };
+
+  const submitPayment = async () => {
+    if (!paymentDebt) return;
+
+    try {
+      await payInstallment(
+        paymentDebt.id,
+        paymentForm.createTransaction,
+        paymentForm.categoryId || undefined
+      );
+      toast.success("✅ Installment paid!");
+      setShowPaymentModal(false);
+      loadDebts();
+    } catch (err) {
+      console.error("Payment failed", err);
+      toast.error("Payment failed. Please try again.");
+    }
+  };
+
+  const getDebtTypeLabel = (type: DebtType) => {
+    switch (type) {
+      case 'institutional': return 'Loan/Credit';
+      case 'borrowed': return 'I Owe';
+      case 'lent': return 'Owed to Me';
+      default: return type;
+    }
+  };
 
  return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Your Debts</h2>
-        <button
-          onClick={handleCatchUp}
-          className="px-4 py-2 rounded transition"
-          style={{ background: "var(--color-success)", color: "#fff" }}
-        >
-          Catch Up All Debts
-        </button>
+        
+        <div className="flex gap-3 items-center flex-wrap">
+          {/* Filter */}
+          <select
+            value={debtTypeFilter}
+            onChange={(e) => setDebtTypeFilter(e.target.value as DebtType | 'all')}
+            className="px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+          >
+            <option value="all">All Debts</option>
+            <option value="institutional">Institutional</option>
+            <option value="borrowed">Borrowed</option>
+            <option value="lent">Lent</option>
+          </select>
+
+          <button
+            onClick={handleCatchUp}
+            className="px-4 py-2 rounded transition"
+            style={{ background: "var(--color-success)", color: "#fff" }}
+          >
+            Catch Up All Debts
+          </button>
+        </div>
       </div>
 
       {/* Debt Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {debts.map((debt) => {
+        {filteredDebts.map((debt) => {
           const progress =
             debt.principal > 0
               ? ((debt.principal - debt.currentBalance) / debt.principal) * 100
@@ -72,7 +149,27 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
             >
               {/* Title + Amount */}
               <div className="mb-3">
-                <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{debt.name}</h3>
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {debt.name}
+                  </h3>
+                  <span
+                    className="text-xs px-2 py-1 rounded"
+                    style={{
+                      background: debt.debtType === 'borrowed' ? 'var(--color-error)' : 
+                                  debt.debtType === 'lent' ? 'var(--color-success)' : 
+                                  'var(--color-info)',
+                      color: '#fff'
+                    }}
+                  >
+                    {getDebtTypeLabel(debt.debtType)}
+                  </span>
+                </div>
+                {debt.personName && (
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {debt.debtType === 'borrowed' ? 'Owed to: ' : 'Owed by: '}{debt.personName}
+                  </p>
+                )}
                 <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                   Installment: {format(debt.installmentAmount)}
                 </p>
@@ -112,19 +209,25 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
               </div>
 
               {/* Actions */}
-              <div className="flex justify-between items-center mt-4">
+              <div className="flex justify-between items-center mt-4 gap-2">
                 <button
-                  className="px-3 py-1 rounded transition"
+                  className="px-3 py-1 rounded transition text-xs"
                   onClick={() => handleSelectDebt(debt)}
                   style={{ background: "var(--accent-secondary)", color: "#fff" }}
                 >
-                  View Updates
+                  Updates
                 </button>
                 <button
-                  className="px-3 py-1 rounded transition"
-                  onClick={ () => {
-                    handlepayDebtEarly(debt) // service call
-                    
+                  className="px-3 py-1 rounded transition text-xs"
+                  onClick={() => handlePayInstallment(debt)}
+                  style={{ background: "var(--color-info)", color: "#fff" }}
+                >
+                  Pay Now
+                </button>
+                <button
+                  className="px-3 py-1 rounded transition text-xs"
+                  onClick={() => {
+                    handlepayDebtEarly(debt)
                   }}
                   style={{ background: "var(--color-warning)", color: "#fff" }}
                 >
@@ -222,6 +325,74 @@ const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
         }}
         onClose={() => setDeleteConfirm(null)}
       />
+
+      {/* Payment Modal */}
+      {showPaymentModal && paymentDebt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="rounded-xl p-6 w-full max-w-md shadow-xl" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+            <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+              Pay Installment: {paymentDebt.name}
+            </h3>
+            
+            <div className="space-y-4">
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Amount: {format(paymentDebt.installmentAmount)}
+              </p>
+
+              <div className="flex items-center gap-3">
+                <input
+                  id="createTransactionPayment"
+                  type="checkbox"
+                  checked={paymentForm.createTransaction}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, createTransaction: e.target.checked })}
+                  className="accent-yellow-300"
+                />
+                <label htmlFor="createTransactionPayment" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  Create transaction for this payment
+                </label>
+              </div>
+
+              {paymentForm.createTransaction && (
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                    Transaction Category
+                  </label>
+                  <select
+                    value={paymentForm.categoryId}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, categoryId: e.target.value })}
+                    className="w-full px-3 py-2 rounded"
+                    style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                  >
+                    <option value="">Select Category</option>
+                    {categories
+                      .filter(c => c.type === (paymentDebt.debtType === 'lent' ? 'income' : 'expense'))
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="px-4 py-2 rounded transition"
+                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitPayment}
+                className="px-4 py-2 rounded transition"
+                style={{ background: "var(--accent-primary)", color: "var(--text-inverse)" }}
+              >
+                Pay Installment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

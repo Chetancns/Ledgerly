@@ -2,12 +2,13 @@
 import { Debt, DebtUpdate } from "@/models/debt";
 import api from "./api"; // your axios/fetch wrapper
 
-export async function getUserDebts(): Promise<Debt[]> {
-  const res = await api.get("/debts");
+export async function getUserDebts(debtType?: string): Promise<Debt[]> {
+  const params = debtType ? { debtType } : {};
+  const res = await api.get("/debts", { params });
   return res.data;
 }
 
-export async function createDebt(debt: Omit<Debt, "id">): Promise<Debt> {
+export async function createDebt(debt: Omit<Debt, "id"> & { createTransaction?: boolean; categoryId?: string }): Promise<Debt> {
   const res = await api.post("/debts", debt);
   return res.data;
 }
@@ -31,7 +32,25 @@ export async function catchUpDebts(): Promise<{ message: string }> {
   return res.data;
 }
 
-export async function payDebtEarly(id:string):Promise<Debt> {
+export async function payDebtEarly(id: string): Promise<Debt> {
   const res = await api.get(`/debts/${id}/pay-early`);
+  return res.data;
+}
+
+export async function payInstallment(
+  id: string,
+  createTransaction?: boolean,
+  categoryId?: string
+): Promise<Debt> {
+  const res = await api.post(`/debts/${id}/pay-installment`, {
+    createTransaction,
+    categoryId,
+  });
+  return res.data;
+}
+
+export async function getPersonNameSuggestions(search?: string): Promise<string[]> {
+  const params = search ? { search } : {};
+  const res = await api.get("/debts/person-names/suggestions", { params });
   return res.data;
 }
