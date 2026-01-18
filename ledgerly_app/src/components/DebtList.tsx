@@ -283,8 +283,8 @@ export default function DebtList() {
 
       {/* Popup for Updates */}
       {showPopup && selectedDebt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0, 0, 0, 0.7)" }}>
-          <div className="rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0, 0, 0, 0.85)" }}>
+          <div className="rounded-xl p-6 w-full max-w-lg shadow-2xl" style={{ background: "var(--bg-card)", border: "2px solid var(--accent-primary)", maxHeight: "85vh", overflowY: "auto" }}>
             <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
               {selectedDebt.name} Updates
             </h3>
@@ -374,8 +374,8 @@ export default function DebtList() {
 
       {/* Payment Modal */}
       {showPaymentModal && paymentDebt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0, 0, 0, 0.7)" }}>
-          <div className="rounded-xl p-6 w-full max-w-md shadow-xl max-h-[80vh] overflow-y-auto" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0, 0, 0, 0.85)" }}>
+          <div className="rounded-xl p-6 w-full max-w-md shadow-2xl" style={{ background: "var(--bg-card)", border: "2px solid var(--accent-primary)", maxHeight: "85vh", overflowY: "auto" }}>
             <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
               {paymentDebt.debtType === 'institutional' ? 'Pay Installment' : 'Make Payment'}: {paymentDebt.name}
             </h3>
