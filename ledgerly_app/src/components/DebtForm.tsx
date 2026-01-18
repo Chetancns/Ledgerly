@@ -370,7 +370,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
             className="accent-yellow-300"
           />
           <label htmlFor="createTransaction" className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Create transaction for {form.debtType === 'lent' ? 'lending' : 'borrowing'} this amount
+            Create transaction for this {form.debtType === 'lent' ? 'lending' : 'borrowing'} (expense)
           </label>
         </div>
 
@@ -389,13 +389,13 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
             >
               <option value="">Select Category</option>
               {categories
-                .filter(c => c.type === (form.debtType === 'lent' ? 'income' : 'expense'))
+                .filter(c => c.type === 'expense')
                 .map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
             </select>
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-              Category for the {form.debtType === 'lent' ? 'income' : 'expense'} transaction
+              Category for the expense transaction (money going out)
             </p>
           </div>
         )}

@@ -175,7 +175,11 @@ export class DebtService {
 
   // Create initial transaction if requested
   if (body.createTransaction && body.categoryId) {
-    const txType = body.debtType === 'lent' ? 'income' : 'expense';
+    // Transaction type logic:
+    // - borrowed debt creation: expense (money going out to repay someone)
+    // - lent debt creation: expense (money going out when lending to someone)
+    // Note: Payments on lent debts will be income (when they pay you back)
+    const txType = 'expense'; // Initial transaction is always expense (money going out)
     await this.transactionService.create({
       userId,
       type: txType,
@@ -259,6 +263,51 @@ export class DebtService {
     order: { updateDate: 'DESC' },
   });
  }
+
+ async deleteDebtUpdate(updateId: string, userId: string) {
+  // Find the update with its debt
+  const update = await this.updateRepo.findOne({
+    where: { id: updateId },
+    relations: ['debt'],
+  });
+
+  if (!update) {
+    throw new Error("Debt update not found");
+  }
+
+  // Verify the debt belongs to the user
+  const debt = await this.debtRepo.findOne({
+    where: { id: update.debtId, userId },
+  });
+
+  if (!debt) {
+    throw new Error("Unauthorized or debt not found");
+  }
+
+  // If there's an associated transaction, delete it
+  if (update.transactionId) {
+    try {
+      await this.txRepo.delete({ id: update.transactionId });
+    } catch (err) {
+      console.error("Error deleting transaction:", err);
+      // Continue with update deletion even if transaction deletion fails
+    }
+  }
+
+  // Restore the balance (add back the payment amount)
+  debt.currentBalance = (
+    parseFloat(debt.currentBalance.toString()) + 
+    parseFloat(update.amount.toString())
+  ).toFixed(2);
+
+  await this.debtRepo.save(debt);
+
+  // Delete the update
+  await this.updateRepo.delete({ id: updateId });
+
+  return { success: true, message: "Payment update deleted successfully" };
+ }
+
  async payEarly(debtId: string) {
   const debt = await this.debtRepo.findOne({ where: { id: debtId } });
   if (!debt) return null;

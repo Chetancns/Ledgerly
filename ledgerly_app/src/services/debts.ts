@@ -56,3 +56,8 @@ export async function getPersonNameSuggestions(search?: string): Promise<string[
   const res = await api.get("/debts/person-names/suggestions", { params });
   return res.data;
 }
+
+export async function deleteDebtUpdate(updateId: string): Promise<{ success: boolean; message: string }> {
+  const res = await api.post(`/debts/updates/${updateId}/delete`);
+  return res.data;
+}

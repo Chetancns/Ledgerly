@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Debt, DebtUpdate, DEBT_TYPES, DebtType } from "@/models/debt";
-import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, payInstallment } from "@/services/debts";
+import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, payInstallment, deleteDebtUpdate } from "@/services/debts";
 import { getCategories } from "@/services/category";
 import { Category } from "@/models/category";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -60,6 +60,23 @@ export default function DebtList() {
     const res = await getDebtUpdates(debt.id);
     setUpdates(Array.isArray(res) ? res : res ?? []);
     setShowPopup(true);
+  };
+
+  const handleDeleteUpdate = async (updateId: string) => {
+    if (!selectedDebt) return;
+    
+    try {
+      await deleteDebtUpdate(updateId);
+      toast.success("Payment update deleted successfully");
+      
+      // Refresh updates and debts
+      const res = await getDebtUpdates(selectedDebt.id);
+      setUpdates(Array.isArray(res) ? res : res ?? []);
+      await loadDebts();
+    } catch (err) {
+      console.error("Failed to delete update", err);
+      toast.error("Failed to delete payment update");
+    }
   };
 
   const handlepayDebtEarly = async (debt: Debt) => {
@@ -274,13 +291,25 @@ export default function DebtList() {
 
             <ul className="space-y-4">
               {updates.map((u) => (
-                <li key={u.id} className="p-4 rounded-lg shadow" style={{ background: "var(--bg-card-hover)" }}>
+                <li key={u.id} className="p-4 rounded-lg shadow relative" style={{ background: "var(--bg-card-hover)" }}>
+                  {/* Delete button */}
+                  <button
+                    onClick={() => handleDeleteUpdate(u.id)}
+                    className="absolute top-2 right-2 transition-transform hover:scale-110"
+                    title="Delete payment update"
+                    style={{ color: "var(--color-error)" }}
+                  >
+                    🗑️
+                  </button>
+
                   <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    <strong>Amount:</strong> {format(u.amount)}
+                    <br />
                     <strong>Status:</strong> {u.status}
                     <br />
                     <strong>Update Date:</strong> {u.updateDate}
                     <br />
-                    <strong>Transaction ID:</strong> {u.transactionId}
+                    <strong>Transaction ID:</strong> {u.transactionId || 'None'}
                   </p>
 
                   {u.transaction && (

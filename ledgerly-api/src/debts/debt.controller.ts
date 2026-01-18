@@ -37,6 +37,16 @@ export class DebtController {
   async getDebtUpdates(@Param('id') id: string) {
     return this.debtService.getDebtUpdates(id);
   }
+
+  /** 🗑️ Delete a debt update (payment) */
+  @Post('updates/:updateId/delete')
+  async deleteDebtUpdate(
+    @Param('updateId') updateId: string,
+    @GetUser() user: { userId: string },
+  ) {
+    const userId = user.userId;
+    return this.debtService.deleteDebtUpdate(updateId, userId);
+  }
   
   /** 🔄 Run catch-up for all debts */
   @Post('catch-up')
