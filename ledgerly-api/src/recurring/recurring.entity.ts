@@ -57,7 +57,7 @@ export class RecurringTransaction {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ name: 'toaccountid', type: 'uuid', nullable: true })
   toAccountId: string | null; // for transfers/savings, the destination account
 
   @Column({ type: 'varchar', length: 10, default: 'active' })
