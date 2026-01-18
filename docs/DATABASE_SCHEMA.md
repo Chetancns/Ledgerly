@@ -253,20 +253,23 @@ Budget allocation and tracking.
 
 ### debts
 
-Debt tracking and management.
+Debt tracking and management (institutional, borrowed, and lent).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | UUID | PRIMARY KEY | Unique debt identifier |
 | userId | UUID | NOT NULL, FOREIGN KEY | Owner user ID |
+| accountId | UUID | NOT NULL, FOREIGN KEY | Associated account |
+| debtType | VARCHAR(20) | NOT NULL, DEFAULT 'institutional' | Type of debt |
+| personName | VARCHAR(200) | NULLABLE | Person name (for borrowed/lent) |
 | name | VARCHAR(200) | NOT NULL | Debt name/description |
-| amount | NUMERIC(12,2) | NOT NULL | Current debt amount |
-| originalAmount | NUMERIC(12,2) | NULLABLE | Original debt amount |
-| interestRate | NUMERIC(5,2) | NULLABLE | Annual interest rate (%) |
-| dueDate | DATE | NULLABLE | Debt due date |
-| isPaidOff | BOOLEAN | DEFAULT FALSE | Whether debt is paid off |
-| createdAt | TIMESTAMP | NOT NULL | Debt creation timestamp |
-| updatedAt | TIMESTAMP | NOT NULL | Last update timestamp |
+| principal | NUMERIC(12,2) | NOT NULL | Original principal amount |
+| currentBalance | NUMERIC(12,2) | NOT NULL | Current remaining balance |
+| installmentAmount | NUMERIC(12,2) | NOT NULL | Amount due per period |
+| frequency | VARCHAR(20) | NOT NULL | Payment frequency |
+| startDate | DATE | NOT NULL | Debt start date |
+| nextDueDate | DATE | NOT NULL | Next payment due date |
+| term | INTEGER | NULLABLE | Number of payment periods |
 
 **Indexes:**
 - PRIMARY KEY on `id`
@@ -274,9 +277,86 @@ Debt tracking and management.
 
 **Foreign Keys:**
 - `userId` → `users.id` (CASCADE DELETE)
+- `accountId` → `accounts.id` (CASCADE DELETE)
+
+**Valid Debt Types:**
+- `institutional`: Loans, credit cards from banks/institutions
+- `borrowed`: Money I owe to a person
+- `lent`: Money someone owes to me
+
+**Valid Frequencies:**
+- `weekly`: Weekly payments
+- `biweekly`: Bi-weekly payments
+- `monthly`: Monthly payments
 
 **Relations:**
 - One-to-many with `debt_updates`
+
+**Business Rules:**
+- For `borrowed` or `lent` types, `personName` should be set
+- `currentBalance` tracks remaining amount and is updated with each payment
+- `principal` remains unchanged and represents the original amount
+- `nextDueDate` is automatically calculated based on frequency
+- Installment payments can optionally create transactions
+
+---
+
+### person_names
+
+Person names for P2P debt autocomplete suggestions.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| userId | UUID | NOT NULL, FOREIGN KEY | Owner user ID |
+| name | VARCHAR(200) | NOT NULL | Person name |
+| createdAt | TIMESTAMP | NOT NULL | Creation timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- INDEX on `userId`
+- INDEX on `name`
+
+**Foreign Keys:**
+- `userId` → `users.id` (CASCADE DELETE)
+
+**Business Rules:**
+- Names are stored when creating borrowed/lent debts
+- Used for autocomplete suggestions in debt forms
+- Unique per user (same person can appear multiple times for different users)
+
+---
+
+### debt_updates
+
+Payment history and updates for debts.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique update identifier |
+| debtId | UUID | NOT NULL, FOREIGN KEY | Associated debt |
+| updateDate | DATE | NOT NULL | Payment/update date |
+| transactionId | UUID | NULLABLE, FOREIGN KEY | Linked transaction (if any) |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | Payment status |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- INDEX on `debtId`
+
+**Foreign Keys:**
+- `debtId` → `debts.id` (CASCADE DELETE)
+- `transactionId` → `transactions.id` (SET NULL)
+
+**Valid Status:**
+- `paid`: Payment completed
+- `pending`: Payment scheduled but not yet made
+- `skipped`: Payment was skipped
+
+**Business Rules:**
+- Each update represents one installment payment
+- Transaction creation is optional (transactionId can be NULL)
+- Catch-up process creates updates for missed payment dates
+- Updates reduce currentBalance when applied
 
 ---
 
