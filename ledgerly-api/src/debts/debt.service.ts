@@ -1,10 +1,11 @@
 // debts/debt.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import dayjs from 'dayjs';
 import { Debt } from './debt.entity';
 import { DebtUpdate } from './debt-update.entity';
+import { PersonName } from './person-name.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import { Category } from 'src/categories/category.entity';
 import { TransactionsService } from 'src/transactions/transaction.service';
@@ -15,6 +16,7 @@ export class DebtService {
     private transactionService: TransactionsService,
     @InjectRepository(Debt) private debtRepo: Repository<Debt>,
     @InjectRepository(DebtUpdate) private updateRepo: Repository<DebtUpdate>,
+    @InjectRepository(PersonName) private personNameRepo: Repository<PersonName>,
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Category) private cxRepo: Repository<Category>,
   ) {}
@@ -36,22 +38,31 @@ export class DebtService {
   }
 
   /** Apply a debt update (create transaction + reduce balance) */
- private async applyDebtUpdate(debt: Debt, dueDate: string) {
-  const tx = this.transactionService.create({
-    userId: debt.userId,
-    type: 'expense',
-    accountId: debt.accountId,
-    categoryId: await this.GetCategoryId(debt.userId),
-    amount: debt.installmentAmount,
-    transactionDate: new Date(dueDate).toISOString(),
-    description: `${debt.name} Payment`,
-  });
+ private async applyDebtUpdate(debt: Debt, dueDate: string, createTransaction = true, categoryId?: string) {
+  let transactionId: string | null = null;
+
+  if (createTransaction) {
+    const txType = debt.debtType === 'lent' ? 'income' : 'expense';
+    const txCategoryId = categoryId || await this.GetCategoryId(debt.userId, debt.debtType);
+    
+    const tx = this.transactionService.create({
+      userId: debt.userId,
+      type: txType,
+      accountId: debt.accountId,
+      categoryId: txCategoryId,
+      amount: debt.installmentAmount,
+      transactionDate: new Date(dueDate).toISOString(),
+      description: `${debt.name} Payment${debt.personName ? ` - ${debt.personName}` : ''}`,
+    });
+
+    transactionId = (await tx).id;
+  }
 
   const update = this.updateRepo.create({
     debtId: debt.id,
     updateDate: dueDate,
-    transactionId: (await tx).id,
-    status: 'paid',
+    transactionId: transactionId || undefined,
+    status: createTransaction ? 'paid' : 'pending',
   });
   await this.updateRepo.save(update);
 
@@ -104,13 +115,16 @@ export class DebtService {
     return this.debtRepo.find({ where: { userId }, relations: ['updates'] });
   }
 
-  async GetCategoryId(userId: string): Promise<string> {
+  async GetCategoryId(userId: string, debtType?: string): Promise<string> {
   // Try to find the category
+  const categoryName = debtType === 'lent' ? 'Debt Collection' : 'Debt Payment';
+  const categoryType = debtType === 'lent' ? 'income' : 'expense';
+  
   const cat = await this.cxRepo.findOne({
     where: {
       userId: userId,
-      name: "Debt Payment",
-      type: "expense"
+      name: categoryName,
+      type: categoryType
     },
   });
 
@@ -120,9 +134,9 @@ export class DebtService {
 
   // Create a new category if not found
   const newCat = this.cxRepo.create({
-    name: "Debt Payment",
+    name: categoryName,
     userId: userId,
-    type: "expense"
+    type: categoryType
   });
 
   const savedCat = await this.cxRepo.save(newCat);
@@ -136,27 +150,95 @@ export class DebtService {
     startDate: body.startDate,
     frequency: body.frequency,
     installmentAmount: body.installmentAmount,
-    principal: body.principal, // 👈 original principal
-    currentBalance: body.currentBalance ?? body.principal, // default = principal
+    principal: body.principal,
+    currentBalance: body.currentBalance ?? body.principal,
     term: body.term ?? null,
     nextDueDate: body.startDate,
+    debtType: body.debtType || 'institutional',
+    personName: body.personName || null,
   });
 
-  return this.debtRepo.save(debt);
+  const savedDebt = await this.debtRepo.save(debt);
+
+  // Save person name if provided for borrowed/lent debts
+  if (body.personName && (body.debtType === 'borrowed' || body.debtType === 'lent')) {
+    await this.savePersonName(userId, body.personName);
+  }
+
+  // Create initial transaction if requested
+  if (body.createTransaction && body.categoryId) {
+    const txType = body.debtType === 'lent' ? 'income' : 'expense';
+    await this.transactionService.create({
+      userId,
+      type: txType,
+      accountId: body.accountId,
+      categoryId: body.categoryId,
+      amount: body.principal,
+      transactionDate: new Date(body.startDate).toISOString(),
+      description: `${body.name}${body.personName ? ` - ${body.personName}` : ''}`,
+    });
+  }
+
+  return savedDebt;
 }
 
  
- async getDebt(userId: string) {
+ async getDebt(userId: string, debtType?: string) {
+  const where: any = { userId };
+  if (debtType) {
+    where.debtType = debtType;
+  }
+  
   const debts = await this.debtRepo.find({
-    where: { userId },
+    where,
     relations: ['updates'],
+    order: { nextDueDate: 'ASC' },
   });
 
   return debts.map((d) => ({
     ...d,
-    progress: d.principal > 0 ? ((d.principal -Number( d.currentBalance)) / d.principal) * 100 : 0,
+    progress: d.principal > 0 ? ((d.principal - Number(d.currentBalance)) / d.principal) * 100 : 0,
   }));
 }
+
+  async savePersonName(userId: string, name: string) {
+    // Check if name already exists for this user
+    const existing = await this.personNameRepo.findOne({
+      where: { userId, name },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const personName = this.personNameRepo.create({ userId, name });
+    return this.personNameRepo.save(personName);
+  }
+
+  async getPersonNames(userId: string, search?: string) {
+    const where: any = { userId };
+    if (search) {
+      where.name = ILike(`%${search}%`);
+    }
+
+    const names = await this.personNameRepo.find({
+      where,
+      order: { name: 'ASC' },
+    });
+
+    return names.map(n => n.name);
+  }
+
+  async payInstallment(debtId: string, createTransaction = true, categoryId?: string) {
+    const debt = await this.debtRepo.findOne({ where: { id: debtId } });
+    if (!debt) return null;
+
+    const today = dayjs().format('YYYY-MM-DD');
+    await this.applyDebtUpdate(debt, today, createTransaction, categoryId);
+    
+    return this.debtRepo.findOne({ where: { id: debtId }, relations: ['updates'] });
+  }
+
  async getDebtUpdates(id:string){
   return this.updateRepo.find({
     where:{debtId:id},

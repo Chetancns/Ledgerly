@@ -4,6 +4,8 @@ import { User } from '../users/user.entity';
 import { Account } from '../accounts/account.entity';
 import { DebtUpdate } from './debt-update.entity';
 
+export type DebtType = 'institutional' | 'borrowed' | 'lent';
+
 @Entity('dbo.debts')
 export class Debt {
   @PrimaryGeneratedColumn('uuid')
@@ -21,8 +23,14 @@ export class Debt {
   @Column('uuid')
   accountId: string;
 
+  @Column({ type: 'enum', enum: ['institutional', 'borrowed', 'lent'], default: 'institutional' })
+  debtType: DebtType;
+
+  @Column({ nullable: true })
+  personName?: string; // For borrowed/lent debts: person's name
+
   @Column()
-  name: string; // "Chase Credit Card" or "Car Loan"
+  name: string; // "Chase Credit Card" or "Car Loan" or description
   @Column('decimal', { precision: 12, scale: 2 })
   principal: number;
   @Column('numeric', { precision: 12, scale: 2, default: 0 })

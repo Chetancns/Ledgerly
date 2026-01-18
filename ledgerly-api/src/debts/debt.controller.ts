@@ -1,5 +1,5 @@
 // debts/debt.controller.ts
-import { Body, Controller, Get, Param, Post ,Req,UseGuards} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { DebtService } from './debt.service';
 import { GetUser } from '../common/decorators/user.decorator'
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -14,14 +14,17 @@ export class DebtController {
   async createDebt(@GetUser() user: { userId: string }, @Body() body: any) {
     const userId = user.userId;
 
-    return this.debtService.createDebts(userId,body);
+    return this.debtService.createDebts(userId, body);
   }
 
-  /** 📋 List all debts + progress */
+  /** 📋 List all debts + progress (with optional filter) */
   @Get()
-  async getDebts(@GetUser() user: { userId: string }) {
+  async getDebts(
+    @GetUser() user: { userId: string },
+    @Query('debtType') debtType?: string,
+  ) {
     const userId = user.userId;
-    return this.debtService.getDebt(userId);
+    return this.debtService.getDebt(userId, debtType);
   }
 
   /** 🔄 Run catch-up for one debt */
@@ -29,8 +32,9 @@ export class DebtController {
   async catchUpOne(@Param('id') id: string) {
     return this.debtService.catchUpDebt(id);
   }
+
   @Get(':id/updates')
-  async getDebtUpdates(@Param('id') id: string){
+  async getDebtUpdates(@Param('id') id: string) {
     return this.debtService.getDebtUpdates(id);
   }
   
@@ -40,8 +44,32 @@ export class DebtController {
     const userId = user.userId;
     return this.debtService.catchUpAllDebts(userId);
   }
+
   @Get(':id/pay-early')
-  async payearly(@Param('id') id :string){
+  async payearly(@Param('id') id: string) {
     return this.debtService.payEarly(id);
+  }
+
+  /** 💰 Pay installment (optionally create transaction) */
+  @Post(':id/pay-installment')
+  async payInstallment(
+    @Param('id') id: string,
+    @Body() body: { createTransaction?: boolean; categoryId?: string },
+  ) {
+    return this.debtService.payInstallment(
+      id,
+      body.createTransaction !== false,
+      body.categoryId,
+    );
+  }
+
+  /** 👤 Get person name suggestions */
+  @Get('person-names/suggestions')
+  async getPersonNames(
+    @GetUser() user: { userId: string },
+    @Query('search') search?: string,
+  ) {
+    const userId = user.userId;
+    return this.debtService.getPersonNames(userId, search);
   }
 }
