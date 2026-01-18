@@ -20,3 +20,8 @@ export async function deleteRecurring(id: string) {
   const res = await api.delete(`/recurring/${id}`);
   return res.data;
 }
+
+export async function triggerRecurring(id: string) {
+  const res = await api.post(`/recurring/${id}/trigger`);
+  return res.data;
+}

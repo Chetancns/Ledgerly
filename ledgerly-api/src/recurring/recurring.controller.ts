@@ -33,4 +33,9 @@ export class RecurringController {
   async delete(@Param('id') id: string, @GetUser() user: { userId: string}) {
     return this.recurringService.delete(id, user.userId);
   }
+
+  @Post(':id/trigger')
+  async trigger(@Param('id') id: string, @GetUser() user: { userId: string}) {
+    return this.recurringService.triggerRecurring(id, user.userId);
+  }
 }
