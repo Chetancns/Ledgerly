@@ -6,6 +6,7 @@ import { useState } from "react";
 
 export default function DebtsPage() {
   const [refresh, setRefresh] = useState(0);
+  const [isFormCollapsed, setIsFormCollapsed] = useState(false);
 
   return (
     <Layout>
@@ -15,7 +16,27 @@ export default function DebtsPage() {
         >
           <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Debt Management</h1>
 
-          <DebtForm onCreated={() => setRefresh(refresh + 1)} />
+          {/* Collapsible Form Section */}
+          <div className="mb-6">
+            <button
+              onClick={() => setIsFormCollapsed(!isFormCollapsed)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all mb-4"
+              style={{ 
+                background: "var(--accent-secondary)", 
+                color: "#fff",
+                fontWeight: "600"
+              }}
+            >
+              <span>{isFormCollapsed ? '▶' : '▼'}</span>
+              <span>{isFormCollapsed ? 'Show' : 'Hide'} Debt Form</span>
+            </button>
+
+            {!isFormCollapsed && (
+              <div className="transition-all">
+                <DebtForm onCreated={() => setRefresh(refresh + 1)} />
+              </div>
+            )}
+          </div>
 
           <div 
             className="mt-8 rounded-2xl shadow-2xl p-6"

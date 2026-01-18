@@ -275,6 +275,18 @@ export class TransactionsService {
       const tx = await txRepo.findOne({ where: { id, userId } });
       if (!tx) throw new NotFoundException('Transaction not found');
 
+      // Check if this transaction is referenced by any debt_updates
+      const debtUpdateCheck = await manager.query(
+        `SELECT COUNT(*) as count FROM dbo.debt_updates WHERE "transactionId" = $1`,
+        [id]
+      );
+      
+      if (debtUpdateCheck[0]?.count > 0) {
+        throw new BadRequestException(
+          'Cannot delete transaction that is linked to debt payment updates. Please delete the debt payment update first.'
+        );
+      }
+
       const amount = Number(tx.amount);
       if (isNaN(amount)) throw new Error('Invalid amount in transaction');
 

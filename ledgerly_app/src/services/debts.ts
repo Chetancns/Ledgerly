@@ -19,7 +19,7 @@ export async function updateDebt(id: string, debt: Partial<Debt>): Promise<Debt>
 }
 
 export async function deleteDebt(id: string) {
-  await api.delete(`/debts/${id}`);
+  await api.post(`/debts/${id}/delete`);
 }
 
 export async function getDebtUpdates(id: string): Promise<DebtUpdate[]> {

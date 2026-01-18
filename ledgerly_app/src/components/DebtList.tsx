@@ -283,8 +283,8 @@ export default function DebtList() {
 
       {/* Popup for Updates */}
       {showPopup && selectedDebt && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 overflow-y-auto p-4">
+          <div className="rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto my-8" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
             <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
               {selectedDebt.name} Updates
             </h3>
@@ -374,8 +374,8 @@ export default function DebtList() {
 
       {/* Payment Modal */}
       {showPaymentModal && paymentDebt && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-xl p-6 w-full max-w-md shadow-xl" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 overflow-y-auto p-4">
+          <div className="rounded-xl p-6 w-full max-w-md shadow-xl my-8" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
             <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
               {paymentDebt.debtType === 'institutional' ? 'Pay Installment' : 'Make Payment'}: {paymentDebt.name}
             </h3>
