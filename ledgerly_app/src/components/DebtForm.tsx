@@ -88,12 +88,21 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
     if (value.length >= 2) {
       try {
         const suggestions = await getPersonNameSuggestions(value);
-        setPersonNameSuggestions(suggestions);
-        setShowSuggestions(true);
+        // Ensure suggestions is an array
+        if (Array.isArray(suggestions)) {
+          setPersonNameSuggestions(suggestions);
+          setShowSuggestions(suggestions.length > 0);
+        } else {
+          setPersonNameSuggestions([]);
+          setShowSuggestions(false);
+        }
       } catch (err) {
         console.error("Failed to fetch suggestions", err);
+        setPersonNameSuggestions([]);
+        setShowSuggestions(false);
       }
     } else {
+      setPersonNameSuggestions([]);
       setShowSuggestions(false);
     }
   };
