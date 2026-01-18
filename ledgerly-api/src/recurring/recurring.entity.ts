@@ -65,8 +65,7 @@ export class RecurringTransaction {
 
   @ManyToMany(() => Tag, { cascade: true })
   @JoinTable({
-    name: 'recurring_transaction_tags',
-    schema: 'dbo',
+    name: 'dbo.recurring_transaction_tags',
     joinColumn: { name: 'recurringTransactionId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
   })
