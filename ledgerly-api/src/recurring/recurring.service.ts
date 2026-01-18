@@ -22,7 +22,7 @@ export class RecurringService {
     private txService: TransactionsService
   ) {}
 
-  // 🧩 CREATE
+// 🧩 CREATE
   async create(data: CreateRecurringDto) {
     // Handle tags if provided
     let tags: Tag[] = [];
@@ -35,8 +35,11 @@ export class RecurringService {
       }
     }
 
+    // Convert empty strings to null for UUID fields
+    const toAccountId = data.toAccountId === '' ? null : data.toAccountId;
+
     const { tagIds: _, ...recData } = data;
-    const rec = this.recRepo.create({ ...recData, tags });
+    const rec = this.recRepo.create({ ...recData, toAccountId, tags });
     return await this.recRepo.save(rec);
   }
 
@@ -79,8 +82,11 @@ export class RecurringService {
       }
     }
     
+    // Convert empty strings to null for UUID fields
+    const toAccountId = data.toAccountId === '' ? null : data.toAccountId;
+    
     const { tagIds: _, ...recData } = data;
-    Object.assign(rec, recData);
+    Object.assign(rec, { ...recData, toAccountId });
     return await this.recRepo.save(rec);
   }
 
