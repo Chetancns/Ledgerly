@@ -126,13 +126,13 @@ export class RecurringService {
     }
 
     const today = dayjs().format('YYYY-MM-DD');
-    await this.createTransactionFromRecurring(rec, today);
+    await this.createTransactionFromRecurring(rec, today, true); // Pass true for manual trigger
     
     return { message: 'Recurring transaction triggered successfully' };
   }
 
   // 🔧 HELPER - Create a transaction from recurring settings
-  private async createTransactionFromRecurring(r: RecurringTransaction, date: string) {
+  private async createTransactionFromRecurring(r: RecurringTransaction, date: string, isManualTrigger = false) {
     // Load tags separately to avoid junction table query issues in findAll
     const recWithTags = await this.recRepo.findOne({
       where: { id: r.id },
@@ -154,7 +154,10 @@ export class RecurringService {
     });
 
     // bump nextOccurrence
-    let next = dayjs(date);
+    // For manual triggers, use the scheduled nextOccurrence to preserve the regular schedule
+    // For automatic processing, use the transaction date (which is the nextOccurrence date)
+    const baseDate = isManualTrigger ? r.nextOccurrence : date;
+    let next = dayjs(baseDate);
     if (r.frequency === 'daily') next = next.add(1, 'day');
     if (r.frequency === 'weekly') next = next.add(1, 'week');
     if (r.frequency === 'monthly') next = next.add(1, 'month');
