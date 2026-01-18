@@ -22,6 +22,7 @@ export default function DebtList() {
   const [paymentDebt, setPaymentDebt] = useState<Debt | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentForm, setPaymentForm] = useState({
+    amount: '',
     createTransaction: true,
     categoryId: '',
   });
@@ -70,6 +71,7 @@ export default function DebtList() {
   const handlePayInstallment = (debt: Debt) => {
     setPaymentDebt(debt);
     setPaymentForm({
+      amount: debt.installmentAmount?.toString() || '',
       createTransaction: true,
       categoryId: '',
     });
@@ -79,9 +81,17 @@ export default function DebtList() {
   const submitPayment = async () => {
     if (!paymentDebt) return;
 
+    // Validate amount for P2P debts
+    if ((paymentDebt.debtType === 'borrowed' || paymentDebt.debtType === 'lent') && !paymentForm.amount) {
+      toast.error("Please enter a payment amount");
+      return;
+    }
+
     try {
+      const amount = paymentForm.amount ? parseFloat(paymentForm.amount) : undefined;
       await payInstallment(
         paymentDebt.id,
+        amount,
         paymentForm.createTransaction,
         paymentForm.categoryId || undefined
       );
@@ -165,14 +175,16 @@ export default function DebtList() {
                     {getDebtTypeLabel(debt.debtType)}
                   </span>
                 </div>
-                {debt.personName && (
+                {(debt.personName) && (
                   <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                     {debt.debtType === 'borrowed' ? 'Owed to: ' : 'Owed by: '}{debt.personName}
                   </p>
                 )}
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  Installment: {format(debt.installmentAmount)}
-                </p>
+                {debt.installmentAmount && (
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                    Installment: {format(debt.installmentAmount)}
+                  </p>
+                )}
               </div>
 
               {/* Debt Info */}
@@ -188,10 +200,12 @@ export default function DebtList() {
                     <strong>Term:</strong> {debt.term} payments
                   </p>
                 )}
-                <p>
-                  <strong>Next Due:</strong>{" "}
-                  {new Date(debt.nextDueDate).toLocaleDateString()}
-                </p>
+                {debt.nextDueDate && (
+                  <p>
+                    <strong>Next Due:</strong>{" "}
+                    {new Date(debt.nextDueDate).toLocaleDateString()}
+                  </p>
+                )}
               </div>
 
               {/* Progress Bar */}
@@ -224,15 +238,18 @@ export default function DebtList() {
                 >
                   Pay Now
                 </button>
-                <button
-                  className="px-3 py-1 rounded transition text-xs"
-                  onClick={() => {
-                    handlepayDebtEarly(debt)
-                  }}
-                  style={{ background: "var(--color-warning)", color: "#fff" }}
-                >
-                  Pay Early
-                </button>
+                {/* Pay Early only for institutional debts */}
+                {debt.debtType === 'institutional' && debt.nextDueDate && (
+                  <button
+                    className="px-3 py-1 rounded transition text-xs"
+                    onClick={() => {
+                      handlepayDebtEarly(debt)
+                    }}
+                    style={{ background: "var(--color-warning)", color: "#fff" }}
+                  >
+                    Pay Early
+                  </button>
+                )}
                 <button
                   onClick={() => setDeleteConfirm(debt.id)}
                   className="transition-transform hover:scale-110"
@@ -331,13 +348,35 @@ export default function DebtList() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="rounded-xl p-6 w-full max-w-md shadow-xl" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
             <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-              Pay Installment: {paymentDebt.name}
+              {paymentDebt.debtType === 'institutional' ? 'Pay Installment' : 'Make Payment'}: {paymentDebt.name}
             </h3>
             
             <div className="space-y-4">
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                Amount: {format(paymentDebt.installmentAmount)}
-              </p>
+              {/* Amount input - editable for P2P debts, readonly for institutional */}
+              <div>
+                <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                  Payment Amount
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                  readOnly={paymentDebt.debtType === 'institutional'}
+                  placeholder="Enter amount"
+                  className="w-full px-3 py-2 rounded"
+                  style={{ 
+                    background: paymentDebt.debtType === 'institutional' ? "var(--bg-card-hover)" : "var(--input-bg)", 
+                    color: "var(--input-text)", 
+                    border: "1px solid var(--input-border)" 
+                  }}
+                />
+                {(paymentDebt.debtType === 'borrowed' || paymentDebt.debtType === 'lent') && (
+                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                    Current balance: {format(paymentDebt.currentBalance)}
+                  </p>
+                )}
+              </div>
 
               <div className="flex items-center gap-3">
                 <input

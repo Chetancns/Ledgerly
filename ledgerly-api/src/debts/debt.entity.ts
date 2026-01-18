@@ -38,16 +38,16 @@ export class Debt {
   currentBalance: string;
   @Column({ type: 'int', nullable: true })
   term: number; 
-  @Column('numeric', { precision: 12, scale: 2 })
-  installmentAmount: string; // amount due each cycle
+  @Column('numeric', { precision: 12, scale: 2, nullable: true })
+  installmentAmount: string; // amount due each cycle (optional for P2P debts)
 
-  @Column({ type: 'enum', enum: ['weekly', 'biweekly', 'monthly'] })
+  @Column({ type: 'enum', enum: ['weekly', 'biweekly', 'monthly'], nullable: true })
   frequency: 'weekly' | 'biweekly' | 'monthly';
 
   @Column('date')
   startDate: string; // when payments started
 
-  @Column('date')
+  @Column('date', { nullable: true })
   nextDueDate: string; 
 
   @OneToMany(() => DebtUpdate, update => update.debt)

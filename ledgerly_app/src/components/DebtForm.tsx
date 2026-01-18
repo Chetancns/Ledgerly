@@ -266,11 +266,17 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
 
         {/* Principal */}
         <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Principal (original amount)</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+            {form.debtType === 'institutional' ? 'Principal (original amount)' : 'Total Amount'}
+          </label>
           <input name="principalAmount" value={form.principalAmount} onChange={handleChange}
             inputMode="decimal" placeholder="5000.00" className="w-full px-3 py-2 rounded"
             style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Total loan amount when issued. Used to compute installments if Term is provided.</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+            {form.debtType === 'institutional' 
+              ? 'Total loan amount when issued. Used to compute installments if Term is provided.' 
+              : 'Total amount borrowed or lent. You can make flexible payments of any amount.'}
+          </p>
         </div>
 
         {/* Current balance */}
@@ -282,59 +288,77 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>What you still owe now. Defaults to Principal if empty.</p>
         </div>
 
-        {/* Term months */}
-        <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Term (months)</label>
-          <input name="termMonths" value={form.termMonths} onChange={handleChange}
-            inputMode="numeric" placeholder="e.g. 60" className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Optional. If provided and auto-calc is ON, installment is calculated as Principal / (term × frequency multiplier).</p>
-        </div>
+        {/* Institutional debt fields (term, frequency, installment) */}
+        {form.debtType === 'institutional' && (
+          <>
+            {/* Term months */}
+            <div>
+              <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Term (months)</label>
+              <input name="termMonths" value={form.termMonths} onChange={handleChange}
+                inputMode="numeric" placeholder="e.g. 60" className="w-full px-3 py-2 rounded"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Optional. If provided and auto-calc is ON, installment is calculated as Principal / (term × frequency multiplier).</p>
+            </div>
 
-        {/* Frequency */}
-        <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Frequency</label>
-          <select name="frequency" value={form.frequency} onChange={handleChange}
-            className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}>
-            {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Payment cadence (weekly / biweekly / monthly).</p>
-        </div>
+            {/* Frequency */}
+            <div>
+              <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Frequency</label>
+              <select name="frequency" value={form.frequency} onChange={handleChange}
+                className="w-full px-3 py-2 rounded"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}>
+                {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Payment cadence (weekly / biweekly / monthly).</p>
+            </div>
 
-        {/* Auto-calc toggle */}
-        <div className="flex items-center gap-3">
-          <input id="autocalc" type="checkbox" checked={form.autoCalcInstallment} onChange={toggleAutoCalc}
-            className="accent-yellow-300" />
-          <label htmlFor="autocalc" className="text-sm" style={{ color: "var(--text-secondary)" }}>Auto-calc installment from Principal & Term</label>
-        </div>
+            {/* Auto-calc toggle */}
+            <div className="flex items-center gap-3">
+              <input id="autocalc" type="checkbox" checked={form.autoCalcInstallment} onChange={toggleAutoCalc}
+                className="accent-yellow-300" />
+              <label htmlFor="autocalc" className="text-sm" style={{ color: "var(--text-secondary)" }}>Auto-calc installment from Principal & Term</label>
+            </div>
 
-        {/* Installment amount */}
-        <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Installment amount</label>
-          <input name="installmentAmount" value={form.installmentAmount} onChange={handleChange}
-            inputMode="decimal" placeholder="e.g. 250.00" className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Amount to pay each period. Auto-filled when Auto-calc is on and Term is provided.</p>
-        </div>
+            {/* Installment amount */}
+            <div>
+              <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Installment amount</label>
+              <input name="installmentAmount" value={form.installmentAmount} onChange={handleChange}
+                inputMode="decimal" placeholder="e.g. 250.00" className="w-full px-3 py-2 rounded"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Amount to pay each period. Auto-filled when Auto-calc is on and Term is provided.</p>
+            </div>
+          </>
+        )}
+
+        {/* P2P debt note */}
+        {(form.debtType === 'borrowed' || form.debtType === 'lent') && (
+          <div className="md:col-span-2 p-3 rounded" style={{ background: "var(--bg-card-hover)" }}>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              💡 For {form.debtType} debts, you can make flexible payments of any amount at any time. No need to set installments or frequency.
+            </p>
+          </div>
+        )}
 
         {/* Start Date */}
         <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Start date (loan start)</label>
+          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Start date</label>
           <input type="date" name="startDate" value={form.startDate} onChange={handleChange}
             className="w-full px-3 py-2 rounded"
             style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>The date loan started or when payments begin.</p>
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+            {form.debtType === 'institutional' ? 'The date loan started or when payments begin.' : 'The date this debt was created.'}
+          </p>
         </div>
 
-        {/* Next Due Date */}
-        <div>
-          <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Next due date</label>
-          <input type="date" name="nextDueDate" value={form.nextDueDate} onChange={handleChange}
-            className="w-full px-3 py-2 rounded"
-            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Next scheduled payment date. Defaults to Start date but you can change it.</p>
-        </div>
+        {/* Next Due Date - only for institutional */}
+        {form.debtType === 'institutional' && (
+          <div>
+            <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Next due date</label>
+            <input type="date" name="nextDueDate" value={form.nextDueDate} onChange={handleChange}
+              className="w-full px-3 py-2 rounded"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Next scheduled payment date. Defaults to Start date but you can change it.</p>
+          </div>
+        )}
 
         {/* Create Transaction */}
         <div className="md:col-span-2 flex items-center gap-3">

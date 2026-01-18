@@ -13,14 +13,14 @@ export interface Debt {
   name: string;
   accountId: string;
   // store amounts as numbers client-side to make UI math easy
-  installmentAmount: number;
+  installmentAmount?: number; // Optional for P2P debts with flexible payments
   currentBalance: number;
-  frequency: Frequency;
+  frequency?: Frequency; // Optional for P2P debts
   startDate: string; // ISO date (YYYY-MM-DD)
-  nextDueDate: string;
+  nextDueDate?: string; // Optional for P2P debts
   createdAt?: string;
   principal: number;
-  term: number;
+  term?: number;
   debtType: DebtType;
   personName?: string;
 }
@@ -31,6 +31,7 @@ export interface DebtUpdate {
   id: string;
   debtId: string;
   updateDate: string;
+  amount: number; // Amount paid in this update
   transactionId: string;
   transaction: Transaction;
   status: "paid" | "pending" | "skipped";

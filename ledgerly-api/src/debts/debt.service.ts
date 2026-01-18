@@ -38,7 +38,7 @@ export class DebtService {
   }
 
   /** Apply a debt update (create transaction + reduce balance) */
- private async applyDebtUpdate(debt: Debt, dueDate: string, createTransaction = true, categoryId?: string) {
+ private async applyDebtUpdate(debt: Debt, dueDate: string, amount: string, createTransaction = true, categoryId?: string) {
   let transactionId: string | null = null;
 
   if (createTransaction) {
@@ -50,7 +50,7 @@ export class DebtService {
       type: txType,
       accountId: debt.accountId,
       categoryId: txCategoryId,
-      amount: debt.installmentAmount,
+      amount: amount,
       transactionDate: new Date(dueDate).toISOString(),
       description: `${debt.name} Payment${debt.personName ? ` - ${debt.personName}` : ''}`,
     });
@@ -61,23 +61,31 @@ export class DebtService {
   const update = this.updateRepo.create({
     debtId: debt.id,
     updateDate: dueDate,
+    amount: amount,
     transactionId: transactionId || undefined,
     status: createTransaction ? 'paid' : 'pending',
   });
   await this.updateRepo.save(update);
 
   // reduce balance (but not principal)
-  debt.currentBalance = (parseFloat(debt.currentBalance.toString()) - parseFloat(debt.installmentAmount.toString())).toFixed(2);
+  debt.currentBalance = (parseFloat(debt.currentBalance.toString()) - parseFloat(amount.toString())).toFixed(2);
 
-  // next due date
-  debt.nextDueDate = this.getNextDueDate(debt.startDate, debt.frequency, dueDate).format('YYYY-MM-DD');
+  // Update next due date only for institutional debts with fixed frequency
+  if (debt.debtType === 'institutional' && debt.frequency && debt.nextDueDate) {
+    debt.nextDueDate = this.getNextDueDate(debt.startDate, debt.frequency, dueDate).format('YYYY-MM-DD');
+  }
 
   await this.debtRepo.save(debt);
 }
-  /** Catch-up process: find missed due dates and apply them */
+  /** Catch-up process: find missed due dates and apply them (only for institutional debts with fixed installments) */
   async catchUpDebt(debtId: string) {
     const debt = await this.debtRepo.findOne({ where: { id: debtId } });
     if (!debt) return null;
+
+    // Catch-up only makes sense for institutional debts with fixed installments
+    if (debt.debtType !== 'institutional' || !debt.frequency || !debt.installmentAmount) {
+      return debt;
+    }
 
     let nextDue = dayjs(debt.startDate);
     const today = dayjs();
@@ -97,7 +105,7 @@ export class DebtService {
 
       const alreadyApplied = await this.updateRepo.findOne({ where: { debtId: debt.id, updateDate: dueStr } });
       if (!alreadyApplied) {
-        await this.applyDebtUpdate(debt, dueStr);
+        await this.applyDebtUpdate(debt, dueStr, debt.installmentAmount);
       }
 
       nextDue = this.getNextDueDate(debt.startDate, debt.frequency, dueStr);
@@ -148,12 +156,12 @@ export class DebtService {
     name: body.name,
     accountId: body.accountId,
     startDate: body.startDate,
-    frequency: body.frequency,
-    installmentAmount: body.installmentAmount,
+    frequency: body.frequency || null,
+    installmentAmount: body.installmentAmount || null,
     principal: body.principal,
     currentBalance: body.currentBalance ?? body.principal,
     term: body.term ?? null,
-    nextDueDate: body.startDate,
+    nextDueDate: body.nextDueDate || body.startDate || null,
     debtType: body.debtType || 'institutional',
     personName: body.personName || null,
   });
@@ -229,12 +237,17 @@ export class DebtService {
     return names.map(n => n.name);
   }
 
-  async payInstallment(debtId: string, createTransaction = true, categoryId?: string) {
+  async payInstallment(debtId: string, amount?: number, createTransaction = true, categoryId?: string) {
     const debt = await this.debtRepo.findOne({ where: { id: debtId } });
     if (!debt) return null;
 
+    // For institutional debts, use the fixed installment amount if not provided
+    const paymentAmount = amount 
+      ? amount.toString() 
+      : (debt.installmentAmount || debt.currentBalance);
+
     const today = dayjs().format('YYYY-MM-DD');
-    await this.applyDebtUpdate(debt, today, createTransaction, categoryId);
+    await this.applyDebtUpdate(debt, today, paymentAmount, createTransaction, categoryId);
     
     return this.debtRepo.findOne({ where: { id: debtId }, relations: ['updates'] });
   }
@@ -243,18 +256,24 @@ export class DebtService {
   return this.updateRepo.find({
     where:{debtId:id},
     relations:['transaction'],
+    order: { updateDate: 'DESC' },
   });
  }
  async payEarly(debtId: string) {
   const debt = await this.debtRepo.findOne({ where: { id: debtId } });
   if (!debt) return null;
 
+  // Only institutional debts with fixed schedules support early payment
+  if (debt.debtType !== 'institutional' || !debt.nextDueDate || !debt.installmentAmount) {
+    throw new Error("❌ Early payment only applies to institutional debts with fixed schedules.");
+  }
+
   const due = dayjs(debt.nextDueDate);
   const payDay = dayjs(new Date());
 
   // allow early payment only before next due
   if (payDay.isBefore(due, 'day')) {
-    await this.applyDebtUpdate(debt, payDay.format('YYYY-MM-DD')); // convert back to native Date if needed
+    await this.applyDebtUpdate(debt, payDay.format('YYYY-MM-DD'), debt.installmentAmount);
     return debt;
   }
 

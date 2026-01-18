@@ -39,10 +39,12 @@ export async function payDebtEarly(id: string): Promise<Debt> {
 
 export async function payInstallment(
   id: string,
+  amount?: number,
   createTransaction?: boolean,
   categoryId?: string
 ): Promise<Debt> {
   const res = await api.post(`/debts/${id}/pay-installment`, {
+    amount,
     createTransaction,
     categoryId,
   });
