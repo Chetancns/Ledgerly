@@ -42,9 +42,11 @@ export class RecurringService {
 
   // 🔍 GET ALL by user
   async findAll(userId: string) {
+    // Note: Tags relation temporarily disabled due to TypeORM junction table query issues
+    // with PostgreSQL schemas. Tags functionality works for create/update/trigger operations.
+    // UI will handle missing tags gracefully.
     return await this.recRepo.find({
       where: { userId },
-      relations: ['tags'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -53,7 +55,6 @@ export class RecurringService {
   async findOne(id: string, userId: string) {
     const rec = await this.recRepo.findOne({ 
       where: { id, userId },
-      relations: ['tags'],
     });
     if (!rec) throw new NotFoundException('Recurring transaction not found');
     return rec;
@@ -100,7 +101,6 @@ export class RecurringService {
 
     const due = await this.recRepo.find({
       where: { nextOccurrence: today, status: 'active' }, // ✅ skip paused
-      relations: ['tags'],
     });
 
     for (const r of due) {
@@ -125,8 +125,13 @@ export class RecurringService {
 
   // 🔧 HELPER - Create a transaction from recurring settings
   private async createTransactionFromRecurring(r: RecurringTransaction, date: string) {
-    // Extract tag IDs
-    const tagIds = r.tags?.map(t => t.id) || [];
+    // Load tags separately to avoid junction table query issues in findAll
+    const recWithTags = await this.recRepo.findOne({
+      where: { id: r.id },
+      relations: ['tags'],
+    });
+    
+    const tagIds = recWithTags?.tags?.map(t => t.id) || [];
 
     await this.txService.create({
       userId: r.userId,
