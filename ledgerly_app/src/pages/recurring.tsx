@@ -39,6 +39,31 @@ export default function Recurring() {
     if (type === "transfer" || type === "savings") return "var(--color-info)";
     return "var(--color-error)";
   };
+
+  // Helper to check if transaction is due soon (within 7 days)
+  const isDueSoon = (nextOccurrence: string) => {
+    const next = new Date(nextOccurrence);
+    const today = new Date();
+    const diffTime = next.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 7;
+  };
+
+  // Helper to check if transaction is overdue
+  const isOverdue = (nextOccurrence: string) => {
+    const next = new Date(nextOccurrence);
+    const today = new Date();
+    return next < today;
+  };
+
+  // Helper to get days until next occurrence
+  const getDaysUntil = (nextOccurrence: string) => {
+    const next = new Date(nextOccurrence);
+    const today = new Date();
+    const diffTime = next.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
   const [form, setForm] = useState<Partial<RecurringTransaction>>({
     accountId: "",
     categoryId: "",
@@ -240,68 +265,122 @@ export default function Recurring() {
               const account = accounts.find(a => a.id === tx.accountId);
               const toAccount = accounts.find(a => a.id === tx.toAccountId);
               const category = categories.find(c => c.id === tx.categoryId);
+              const daysUntil = getDaysUntil(tx.nextOccurrence);
+              const dueSoon = isDueSoon(tx.nextOccurrence);
+              const overdue = isOverdue(tx.nextOccurrence);
+              
               return (
   <li
     key={tx.id}
     className="group relative rounded-2xl p-5 shadow-md transition-all duration-300 flex justify-between items-start gap-4"
     style={{
       background: "var(--bg-card-hover)",
-      border: "1px solid var(--border-secondary)",
+      border: `2px solid ${
+        tx.status === "paused" 
+          ? "var(--color-warning)" 
+          : overdue 
+          ? "var(--color-error)" 
+          : dueSoon 
+          ? "var(--accent-primary)" 
+          : "var(--border-secondary)"
+      }`,
     }}
   >
-    {/* Left side: transaction details */}
-    <div className="space-y-1.5">
-      <p className="text-base font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
-        {tx.description || "(No description)"}{" "}
-        <span style={{ color: "var(--color-info)" }} className="font-bold">{format(tx.amount)}</span>
-      </p>
+    {/* Status Badge - Top Right Corner */}
+    <div className="absolute top-3 right-3 flex gap-2">
+      {tx.status === "paused" && (
+        <span 
+          className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+          style={{ 
+            background: "var(--color-warning)20", 
+            color: "var(--color-warning)",
+            border: "1px solid var(--color-warning)"
+          }}
+        >
+          ⏸ Paused
+        </span>
+      )}
+      {tx.status === "active" && overdue && (
+        <span 
+          className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+          style={{ 
+            background: "var(--color-error)20", 
+            color: "var(--color-error)",
+            border: "1px solid var(--color-error)"
+          }}
+        >
+          ⚠ Overdue
+        </span>
+      )}
+      {tx.status === "active" && dueSoon && !overdue && (
+        <span 
+          className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+          style={{ 
+            background: "var(--accent-primary)20", 
+            color: "var(--accent-primary)",
+            border: "1px solid var(--accent-primary)"
+          }}
+        >
+          🔔 Due in {daysUntil} {daysUntil === 1 ? 'day' : 'days'}
+        </span>
+      )}
+    </div>
 
-      <div className="text-sm flex flex-wrap gap-2" style={{ color: "var(--text-muted)" }}>
-        <span>
-          Frequency: <span style={{ color: "var(--text-secondary)" }}>{tx.frequency}</span>
+    {/* Left side: transaction details */}
+    <div className="space-y-2 flex-1 pr-20">
+      <div className="flex items-center gap-2">
+        <p className="text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
+          {tx.description || "(No description)"}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span style={{ color: getTypeColor(tx.type) }} className="text-2xl font-bold">
+          {format(tx.amount)}
+        </span>
+        <span 
+          className="px-2 py-0.5 rounded text-xs font-semibold uppercase"
+          style={{ 
+            background: getTypeColor(tx.type) + "20",
+            color: getTypeColor(tx.type)
+          }}
+        >
+          {tx.type}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-3 text-sm" style={{ color: "var(--text-muted)" }}>
+        <span className="flex items-center gap-1">
+          <span className="font-medium">📅</span>
+          <span style={{ color: "var(--text-secondary)" }}>{tx.frequency}</span>
         </span>
         <span>•</span>
-        <span>
-          Type:{" "}
-          <span
-            style={{ color: getTypeColor(tx.type) }}
-            className="font-medium"
-          >
-            {tx.type}
-          </span>
-        </span>
-        <span>•</span>
-        <span>
-          Status:{" "}
-          <span
-            className="font-semibold"
-            style={{ color: tx.status === "active" ? "var(--color-success)" : "var(--color-warning)" }}
-          >
-            {tx.status}
+        <span className="flex items-center gap-1">
+          <span className="font-medium">📆</span>
+          Next: <span style={{ color: overdue ? "var(--color-error)" : "var(--text-secondary)" }} className="font-medium">
+            {tx.nextOccurrence}
           </span>
         </span>
       </div>
 
-      <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-        Next Occurrence:{" "}
-        <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
-          {tx.nextOccurrence}
-        </span>
-      </p>
-
-      <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-        Account: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{account?.name}</span>
-      </p>
-
-      {(tx.type === "transfer" || tx.type === "savings") && toAccount && (
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          To Account: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{toAccount.name}</span>
+      <div className="text-sm space-y-1" style={{ color: "var(--text-muted)" }}>
+        <p>
+          <span className="font-medium">From:</span>{" "}
+          <span style={{ color: "var(--text-secondary)" }}>{account?.name || 'N/A'}</span>
         </p>
-      )}
 
-      <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-        Category: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{category?.name}</span>
-      </p>
+        {(tx.type === "transfer" || tx.type === "savings") && (
+          <p>
+            <span className="font-medium">To:</span>{" "}
+            <span style={{ color: "var(--text-secondary)" }}>{toAccount?.name || 'N/A'}</span>
+          </p>
+        )}
+
+        <p>
+          <span className="font-medium">Category:</span>{" "}
+          <span style={{ color: "var(--text-secondary)" }}>{category?.name || 'N/A'}</span>
+        </p>
+      </div>
 
       {/* Display tags */}
       {tx.tags && tx.tags.length > 0 && (
@@ -324,11 +403,11 @@ export default function Recurring() {
     </div>
 
     {/* Right side: action buttons */}
-    <div className="flex items-center gap-1">
+    <div className="flex flex-col gap-2 absolute bottom-3 right-3">
       <button
         onClick={() => openModal(tx)}
-        className="p-2 rounded-full transition-transform hover:scale-110"
-        style={{ color: "var(--accent-primary)" }}
+        className="p-2 rounded-lg transition-all hover:scale-110 hover:shadow-lg"
+        style={{ background: "var(--accent-primary)20", color: "var(--accent-primary)" }}
         title="Edit"
       >
         ✏️
@@ -336,8 +415,8 @@ export default function Recurring() {
 
       <button
         onClick={() => setTriggerConfirm(tx.id)}
-        className="p-2 rounded-full transition-transform hover:scale-110"
-        style={{ color: "var(--color-warning)" }}
+        className="p-2 rounded-lg transition-all hover:scale-110 hover:shadow-lg"
+        style={{ background: "var(--color-warning)20", color: "var(--color-warning)" }}
         title="Trigger Now"
       >
         <BoltIcon className="h-5 w-5" />
@@ -345,8 +424,8 @@ export default function Recurring() {
 
       <button
         onClick={() => setPauseResumeConfirm({ id: tx.id, status: tx.status })}
-        className="p-2 rounded-full transition-transform hover:scale-110"
-        style={{ color: "var(--color-info)" }}
+        className="p-2 rounded-lg transition-all hover:scale-110 hover:shadow-lg"
+        style={{ background: "var(--color-info)20", color: "var(--color-info)" }}
         title={tx.status === "active" ? "Pause" : "Resume"}
       >
         {tx.status === "active" ? (
@@ -358,8 +437,8 @@ export default function Recurring() {
 
       <button
         onClick={() => setDeleteConfirm(tx.id)}
-        className="p-2 rounded-full transition-transform hover:scale-110"
-        style={{ color: "var(--color-error)" }}
+        className="p-2 rounded-lg transition-all hover:scale-110 hover:shadow-lg"
+        style={{ background: "var(--color-error)20", color: "var(--color-error)" }}
         title="Delete"
       >
         <TrashIcon className="h-5 w-5" />
@@ -367,7 +446,7 @@ export default function Recurring() {
     </div>
 
     {/* Glow border on hover */}
-    <div className="absolute inset-0 rounded-2xl ring-1 ring-transparent group-hover:ring-blue-500/30 
+    <div className="absolute inset-0 rounded-2xl ring-2 ring-transparent group-hover:ring-blue-500/30 
      transition-all duration-300 pointer-events-none" />
   </li>
 );              })}
