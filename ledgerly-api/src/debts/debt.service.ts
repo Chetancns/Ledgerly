@@ -284,15 +284,8 @@ export class DebtService {
     throw new Error("Unauthorized or debt not found");
   }
 
-  // If there's an associated transaction, delete it
-  if (update.transactionId) {
-    try {
-      await this.txRepo.delete({ id: update.transactionId });
-    } catch (err) {
-      console.error("Error deleting transaction:", err);
-      // Continue with update deletion even if transaction deletion fails
-    }
-  }
+  // Save transaction ID for deletion after removing the debt_update
+  const transactionIdToDelete = update.transactionId;
 
   // Restore the balance (add back the payment amount)
   debt.currentBalance = (
@@ -302,8 +295,19 @@ export class DebtService {
 
   await this.debtRepo.save(debt);
 
-  // Delete the update
+  // Delete the update first (to remove the foreign key reference)
   await this.updateRepo.delete({ id: updateId });
+
+  // Now delete the transaction if it exists
+  if (transactionIdToDelete) {
+    try {
+      await this.txRepo.delete({ id: transactionIdToDelete });
+    } catch (err) {
+      console.error("Error deleting transaction:", err);
+      // Transaction deletion failed, but debt_update is already deleted
+      // This is acceptable as the main operation succeeded
+    }
+  }
 
   return { success: true, message: "Payment update deleted successfully" };
  }
