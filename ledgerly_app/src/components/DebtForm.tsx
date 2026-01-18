@@ -205,7 +205,11 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
               name="personName"
               value={form.personName}
               onChange={handlePersonNameChange}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              onBlur={() => {
+                // Delay hiding suggestions to allow click events to register
+                const timeoutId = setTimeout(() => setShowSuggestions(false), 200);
+                return () => clearTimeout(timeoutId);
+              }}
               placeholder="Enter person's name"
               className="w-full px-3 py-2 rounded"
               style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
@@ -218,7 +222,11 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
                 {personNameSuggestions.map((name, idx) => (
                   <div
                     key={idx}
-                    onClick={() => selectPersonName(name)}
+                    onMouseDown={(e) => {
+                      // Use onMouseDown instead of onClick to fire before onBlur
+                      e.preventDefault();
+                      selectPersonName(name);
+                    }}
                     className="px-3 py-2 cursor-pointer hover:bg-opacity-80"
                     style={{ color: "var(--text-primary)" }}
                     onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-card-hover)"}

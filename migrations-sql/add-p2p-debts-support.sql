@@ -11,8 +11,10 @@ ALTER TABLE dbo.debts
 ADD personName VARCHAR;
 
 -- Create person_names table for storing person name suggestions
+-- Note: Requires uuid-ossp extension for uuid_generate_v4()
+-- Run: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE dbo.person_names (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "userId" UUID NOT NULL,
     name VARCHAR NOT NULL,
     "createdAt" TIMESTAMP NOT NULL DEFAULT now(),

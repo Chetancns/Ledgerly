@@ -63,7 +63,7 @@ export default function DebtList() {
 
   const handlepayDebtEarly = async (debt: Debt) => {
     const res = await payDebtEarly(debt.id);
-    toast.success("✅ Paid early! " + res.name);
+    toast.success(`✅ Paid early! ${res.name}`);
     loadDebts();
   };
 

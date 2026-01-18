@@ -5,6 +5,7 @@ import { Account } from '../accounts/account.entity';
 import { DebtUpdate } from './debt-update.entity';
 
 export type DebtType = 'institutional' | 'borrowed' | 'lent';
+export const DEBT_TYPES: DebtType[] = ['institutional', 'borrowed', 'lent'];
 
 @Entity('dbo.debts')
 export class Debt {
@@ -23,7 +24,7 @@ export class Debt {
   @Column('uuid')
   accountId: string;
 
-  @Column({ type: 'enum', enum: ['institutional', 'borrowed', 'lent'], default: 'institutional' })
+  @Column({ type: 'enum', enum: DEBT_TYPES, default: 'institutional' })
   debtType: DebtType;
 
   @Column({ nullable: true })
