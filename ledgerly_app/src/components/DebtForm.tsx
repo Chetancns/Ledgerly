@@ -81,30 +81,33 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePersonNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setForm((prev) => ({ ...prev, personName: value }));
-
-    if (value.length >= 2) {
-      try {
-        const suggestions = await getPersonNameSuggestions(value);
-        // Ensure suggestions is an array
-        if (Array.isArray(suggestions)) {
-          setPersonNameSuggestions(suggestions);
-          setShowSuggestions(suggestions.length > 0);
-        } else {
-          setPersonNameSuggestions([]);
-          setShowSuggestions(false);
-        }
-      } catch (err) {
-        console.error("Failed to fetch suggestions", err);
+  const loadPersonNameSuggestions = async (search?: string) => {
+    try {
+      const suggestions = await getPersonNameSuggestions(search);
+      // Ensure suggestions is an array
+      if (Array.isArray(suggestions)) {
+        setPersonNameSuggestions(suggestions);
+        setShowSuggestions(suggestions.length > 0);
+      } else {
         setPersonNameSuggestions([]);
         setShowSuggestions(false);
       }
-    } else {
+    } catch (err) {
+      console.error("Failed to fetch suggestions", err);
       setPersonNameSuggestions([]);
       setShowSuggestions(false);
     }
+  };
+
+  const handlePersonNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setForm((prev) => ({ ...prev, personName: value }));
+    await loadPersonNameSuggestions(value || undefined);
+  };
+
+  const handlePersonNameFocus = async () => {
+    // Load all suggestions when focused
+    await loadPersonNameSuggestions();
   };
 
   const selectPersonName = (name: string) => {
@@ -214,10 +217,10 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
               name="personName"
               value={form.personName}
               onChange={handlePersonNameChange}
+              onFocus={handlePersonNameFocus}
               onBlur={() => {
                 // Delay hiding suggestions to allow click events to register
-                const timeoutId = setTimeout(() => setShowSuggestions(false), 200);
-                return () => clearTimeout(timeoutId);
+                setTimeout(() => setShowSuggestions(false), 200);
               }}
               placeholder="Enter person's name"
               className="w-full px-3 py-2 rounded"
@@ -226,7 +229,11 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
             {showSuggestions && personNameSuggestions.length > 0 && (
               <div
                 className="absolute z-10 w-full mt-1 rounded shadow-lg max-h-40 overflow-y-auto"
-                style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+                style={{ 
+                  background: "var(--input-bg)", 
+                  border: "2px solid var(--border-primary)",
+                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)"
+                }}
               >
                 {personNameSuggestions.map((name, idx) => (
                   <div
@@ -236,8 +243,11 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
                       e.preventDefault();
                       selectPersonName(name);
                     }}
-                    className="px-3 py-2 cursor-pointer hover:bg-opacity-80"
-                    style={{ color: "var(--text-primary)" }}
+                    className="px-3 py-2 cursor-pointer transition-colors"
+                    style={{ 
+                      color: "var(--text-primary)",
+                      background: "transparent"
+                    }}
                     onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-card-hover)"}
                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                   >
