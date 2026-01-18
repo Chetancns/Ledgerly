@@ -333,4 +333,29 @@ export class DebtService {
   throw new Error("❌ Cannot use early payment on or after due date, use normal process.");
 }
 
+ async deleteDebt(debtId: string, userId: string) {
+  // Find the debt
+  const debt = await this.debtRepo.findOne({
+    where: { id: debtId, userId },
+  });
+
+  if (!debt) {
+    throw new Error("Debt not found or unauthorized");
+  }
+
+  // Check if there are any payment updates
+  const updates = await this.updateRepo.find({
+    where: { debtId: debtId },
+  });
+
+  if (updates.length > 0) {
+    throw new Error("Cannot delete debt with existing payment updates. Please delete all payment updates first.");
+  }
+
+  // Delete the debt
+  await this.debtRepo.delete({ id: debtId });
+
+  return { success: true, message: "Debt deleted successfully" };
+ }
+
 }
