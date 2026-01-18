@@ -45,13 +45,15 @@ export class RecurringService {
 
   // 🔍 GET ALL by user
   async findAll(userId: string) {
-    // Note: Tags relation temporarily disabled due to TypeORM junction table query issues
-    // with PostgreSQL schemas. Tags functionality works for create/update/trigger operations.
-    // UI will handle missing tags gracefully.
-    return await this.recRepo.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+    // Load recurring transactions with tags using QueryBuilder to avoid junction table alias issues
+    const recurrings = await this.recRepo
+      .createQueryBuilder('recurring')
+      .leftJoinAndSelect('recurring.tags', 'tags')
+      .where('recurring.userId = :userId', { userId })
+      .orderBy('recurring.createdAt', 'DESC')
+      .getMany();
+    
+    return recurrings;
   }
 
   // 🔍 GET ONE

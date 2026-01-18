@@ -56,6 +56,22 @@ export default function Recurring() {
     return next < today;
   };
 
+  // Helper to check if transaction was completed this month
+  const isCompletedThisMonth = (nextOccurrence: string, frequency: string) => {
+    const next = new Date(nextOccurrence);
+    const today = new Date();
+    
+    if (frequency === 'monthly') {
+      // If next occurrence is in the future and it's a different month, transaction was done this month
+      return next > today && next.getMonth() !== today.getMonth();
+    } else if (frequency === 'weekly') {
+      // For weekly, check if next occurrence is in the future
+      const daysDiff = getDaysUntil(nextOccurrence);
+      return daysDiff > 0 && daysDiff < 7;
+    }
+    return false;
+  };
+
   // Helper to get days until next occurrence
   const getDaysUntil = (nextOccurrence: string) => {
     const next = new Date(nextOccurrence);
@@ -268,6 +284,7 @@ export default function Recurring() {
               const daysUntil = getDaysUntil(tx.nextOccurrence);
               const dueSoon = isDueSoon(tx.nextOccurrence);
               const overdue = isOverdue(tx.nextOccurrence);
+              const completedThisMonth = tx.status === "active" && isCompletedThisMonth(tx.nextOccurrence, tx.frequency);
               
               return (
   <li
@@ -282,12 +299,14 @@ export default function Recurring() {
           ? "var(--color-error)" 
           : dueSoon 
           ? "var(--accent-primary)" 
+          : completedThisMonth
+          ? "var(--color-success)"
           : "var(--border-secondary)"
       }`,
     }}
   >
-    {/* Status Badge - Top Right Corner */}
-    <div className="absolute top-3 right-3 flex gap-2">
+    {/* Status Badge - Top Left Corner (moved to avoid overlap) */}
+    <div className="absolute top-3 left-3 flex flex-wrap gap-2 max-w-[50%]">
       {tx.status === "paused" && (
         <span 
           className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
@@ -312,7 +331,19 @@ export default function Recurring() {
           ⚠ Overdue
         </span>
       )}
-      {tx.status === "active" && dueSoon && !overdue && (
+      {tx.status === "active" && completedThisMonth && !overdue && (
+        <span 
+          className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+          style={{ 
+            background: "var(--color-success)20", 
+            color: "var(--color-success)",
+            border: "1px solid var(--color-success)"
+          }}
+        >
+          ✓ Completed
+        </span>
+      )}
+      {tx.status === "active" && dueSoon && !overdue && !completedThisMonth && (
         <span 
           className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
           style={{ 
@@ -327,7 +358,7 @@ export default function Recurring() {
     </div>
 
     {/* Left side: transaction details */}
-    <div className="space-y-2 flex-1 pr-20">
+    <div className="space-y-2 flex-1 pr-20 mt-10">{/* Added mt-10 for spacing from top badges */}
       <div className="flex items-center gap-2">
         <p className="text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
           {tx.description || "(No description)"}
