@@ -23,6 +23,8 @@ export interface Debt {
   term?: number;
   debtType: DebtType;
   personName?: string;
+  status: 'active' | 'completed';
+  reminderDate?: string; // For P2P debts - when to remind about payment
 }
 
 

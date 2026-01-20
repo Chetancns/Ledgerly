@@ -34,6 +34,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
     frequency: "monthly" as Frequency,
     startDate: today,
     nextDueDate: today,
+    reminderDate: "",       // When to remind about payment (for P2P debts)
     accountId: "",
     createTransaction: false,
     categoryId: "",
@@ -153,6 +154,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
       term: form.termMonths ? Number(form.termMonths) : undefined,
       startDate: form.startDate,
       nextDueDate: form.nextDueDate,
+      reminderDate: form.reminderDate || undefined,
       createTransaction: form.createTransaction,
       categoryId: form.categoryId || undefined,
     };
@@ -173,6 +175,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
         frequency: "monthly",
         startDate: today,
         nextDueDate: today,
+        reminderDate: "",
         accountId: "",
         createTransaction: false,
         categoryId: "",
@@ -377,6 +380,23 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
               className="w-full px-3 py-2 rounded"
               style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Next scheduled payment date. Defaults to Start date but you can change it.</p>
+          </div>
+        )}
+
+        {/* Reminder Date - only for P2P debts */}
+        {(form.debtType === 'borrowed' || form.debtType === 'lent') && (
+          <div>
+            <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+              {form.debtType === 'borrowed' ? 'Payment Reminder Date' : 'Collection Reminder Date'}
+            </label>
+            <input type="date" name="reminderDate" value={form.reminderDate} onChange={handleChange}
+              className="w-full px-3 py-2 rounded"
+              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }} />
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+              {form.debtType === 'borrowed' 
+                ? 'When to remind yourself to send payment.' 
+                : 'When to remind yourself to collect payment.'}
+            </p>
           </div>
         )}
 
