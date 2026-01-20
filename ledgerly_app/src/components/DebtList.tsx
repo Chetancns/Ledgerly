@@ -8,9 +8,13 @@ import { getCategories } from "@/services/category";
 import { Category } from "@/models/category";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
+import { useNotifications } from "@/context/NotificationContext";
+
+type StatusFilter = 'all' | 'active' | 'completed' | 'overdue' | 'active+overdue';
 
 export default function DebtList() {
   const { format } = useCurrencyFormatter();
+  const { addNotification } = useNotifications();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [filteredDebts, setFilteredDebts] = useState<Debt[]>([]);
   const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
@@ -19,6 +23,7 @@ export default function DebtList() {
   const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [debtTypeFilter, setDebtTypeFilter] = useState<DebtType | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active+overdue');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentDebt, setPaymentDebt] = useState<Debt | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -28,6 +33,7 @@ export default function DebtList() {
     categoryId: '',
   });
   const [mounted, setMounted] = useState(false);
+  const [notifiedDebts, setNotifiedDebts] = useState<Set<string>>(new Set());
 
   const loadDebts = async () => {
     const res = await getUserDebts();
@@ -35,11 +41,32 @@ export default function DebtList() {
   };
 
   useEffect(() => {
-    const filtered = debtTypeFilter === 'all' 
+    let filtered = debtTypeFilter === 'all' 
       ? debts 
       : debts.filter(d => d.debtType === debtTypeFilter);
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(debt => {
+        const isCompleted = debt.status === 'completed';
+        const isOverdue = debt.reminderDate && new Date(debt.reminderDate) < new Date() && !isCompleted;
+        
+        if (statusFilter === 'active+overdue') {
+          // Default: show active and overdue (hide completed)
+          return !isCompleted;
+        } else if (statusFilter === 'active') {
+          return !isCompleted && !isOverdue;
+        } else if (statusFilter === 'completed') {
+          return isCompleted;
+        } else if (statusFilter === 'overdue') {
+          return isOverdue;
+        }
+        return true;
+      });
+    }
+    
     setFilteredDebts(filtered);
-  }, [debts, debtTypeFilter]);
+  }, [debts, debtTypeFilter, statusFilter]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,6 +76,41 @@ export default function DebtList() {
     };
     fetchData();
   }, []);
+
+  // Check for overdue reminders and create notifications
+  useEffect(() => {
+    if (debts.length === 0) return;
+
+    const today = new Date();
+    debts.forEach(debt => {
+      // Only check active debts with reminder dates
+      if (debt.reminderDate && debt.status === 'active' && !notifiedDebts.has(debt.id)) {
+        const reminderDate = new Date(debt.reminderDate);
+        if (reminderDate < today) {
+          const isOverdue = true;
+          const debtTypeLabel = debt.debtType === 'borrowed' ? 'Payment Reminder' : 'Collection Reminder';
+          const message = `Reminder for ${debt.name} is overdue (due: ${reminderDate.toLocaleDateString()})`;
+          
+          // Add notification to notification center
+          addNotification({
+            type: 'debt_reminder',
+            title: debtTypeLabel,
+            message,
+            actionUrl: '/debts',
+          });
+
+          // Show toast
+          toast(message, {
+            icon: '⚖️',
+            duration: 5000,
+          });
+
+          // Mark as notified
+          setNotifiedDebts(prev => new Set(prev).add(debt.id));
+        }
+      }
+    });
+  }, [debts, addNotification, notifiedDebts]);
 
   // Ensure portal renders only after mount (avoids SSR document undefined)
   useEffect(() => {
@@ -144,7 +206,7 @@ export default function DebtList() {
         <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Your Debts</h2>
         
         <div className="flex gap-3 items-center flex-wrap">
-          {/* Filter */}
+          {/* Debt Type Filter */}
           <select
             value={debtTypeFilter}
             onChange={(e) => setDebtTypeFilter(e.target.value as DebtType | 'all')}
@@ -155,6 +217,20 @@ export default function DebtList() {
             <option value="institutional">Institutional</option>
             <option value="borrowed">Borrowed</option>
             <option value="lent">Lent</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+          >
+            <option value="active+overdue">Active + Overdue</option>
+            <option value="active">Active Only</option>
+            <option value="completed">Completed Only</option>
+            <option value="overdue">Overdue Only</option>
+            <option value="all">All Status</option>
           </select>
 
           <button
