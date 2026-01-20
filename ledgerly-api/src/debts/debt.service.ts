@@ -371,4 +371,22 @@ export class DebtService {
   return { success: true, message: "Debt deleted successfully" };
  }
 
+ /** Update debt (e.g., reminder date, name, etc.) */
+ async updateDebt(debtId: string, userId: string, updates: Partial<Debt>): Promise<Debt> {
+   // Find the debt
+   const debt = await this.debtRepo.findOne({
+     where: { id: debtId, userId },
+   });
+
+   if (!debt) {
+     throw new Error("Debt not found or unauthorized");
+   }
+
+   // Update the debt with provided fields
+   Object.assign(debt, updates);
+   
+   // Save the updated debt
+   return await this.debtRepo.save(debt);
+ }
+
 }

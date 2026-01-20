@@ -1,5 +1,5 @@
 // debts/debt.controller.ts
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { DebtService } from './debt.service';
 import { GetUser } from '../common/decorators/user.decorator'
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -56,6 +56,17 @@ export class DebtController {
   ) {
     const userId = user.userId;
     return this.debtService.deleteDebt(id, userId);
+  }
+
+  /** ✏️ Update a debt (e.g., reminder date, name) */
+  @Put(':id')
+  async updateDebt(
+    @Param('id') id: string,
+    @GetUser() user: { userId: string },
+    @Body() body: Partial<any>,
+  ) {
+    const userId = user.userId;
+    return this.debtService.updateDebt(id, userId, body);
   }
   
   /** 🔄 Run catch-up for all debts */

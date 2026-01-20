@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Debt, DebtUpdate, DEBT_TYPES, DebtType } from "@/models/debt";
-import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, payInstallment, deleteDebtUpdate } from "@/services/debts";
+import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, payInstallment, deleteDebtUpdate, updateDebt } from "@/services/debts";
 import { getCategories } from "@/services/category";
 import { Category } from "@/models/category";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -34,6 +34,8 @@ export default function DebtList() {
   });
   const [mounted, setMounted] = useState(false);
   const [notifiedDebts, setNotifiedDebts] = useState<Set<string>>(new Set());
+  const [editingReminder, setEditingReminder] = useState<string | null>(null);
+  const [editReminderDate, setEditReminderDate] = useState<string>('');
 
   const loadDebts = async () => {
     const res = await getUserDebts();
@@ -121,6 +123,30 @@ export default function DebtList() {
     await catchUpDebts();
     alert("✅ Catch-up processed!");
     loadDebts();
+  };
+
+  const handleSaveReminderDate = async (debtId: string) => {
+    try {
+      await updateDebt(debtId, { reminderDate: editReminderDate || undefined });
+      toast.success("Reminder date updated successfully");
+      await loadDebts();
+      setEditingReminder(null);
+      setEditReminderDate('');
+    } catch (err: any) {
+      console.error("Failed to update reminder date", err);
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to update reminder date";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleStartEditReminder = (debt: Debt) => {
+    setEditingReminder(debt.id);
+    setEditReminderDate(debt.reminderDate || '');
+  };
+
+  const handleCancelEditReminder = () => {
+    setEditingReminder(null);
+    setEditReminderDate('');
   };
 
   const handleSelectDebt = async (debt: Debt) => {
@@ -319,11 +345,92 @@ export default function DebtList() {
                   </p>
                 )}
                 {debt.reminderDate && (debt.debtType === 'borrowed' || debt.debtType === 'lent') && !isCompleted && (
-                  <p style={{ color: isOverdue ? "var(--color-warning)" : "var(--text-secondary)" }}>
-                    <strong>{isOverdue ? '⚠️ ' : ''}Reminder:</strong>{" "}
-                    {new Date(debt.reminderDate).toLocaleDateString()}
-                    {isOverdue && ' (Overdue)'}
-                  </p>
+                  <div style={{ color: isOverdue ? "var(--color-warning)" : "var(--text-secondary)" }}>
+                    {editingReminder === debt.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={editReminderDate}
+                          onChange={(e) => setEditReminderDate(e.target.value)}
+                          className="px-2 py-1 rounded text-xs"
+                          style={{ 
+                            background: "var(--input-bg)", 
+                            color: "var(--input-text)", 
+                            border: "1px solid var(--input-border)" 
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSaveReminderDate(debt.id)}
+                          className="px-2 py-1 rounded text-xs"
+                          style={{ background: "var(--color-success)", color: "#fff" }}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={handleCancelEditReminder}
+                          className="px-2 py-1 rounded text-xs"
+                          style={{ background: "var(--color-error)", color: "#fff" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="flex items-center gap-2">
+                        <strong>{isOverdue ? '⚠️ ' : ''}Reminder:</strong>{" "}
+                        {new Date(debt.reminderDate).toLocaleDateString()}
+                        {isOverdue && ' (Overdue)'}
+                        <button
+                          onClick={() => handleStartEditReminder(debt)}
+                          className="text-xs px-2 py-0.5 rounded hover:opacity-80"
+                          style={{ background: "var(--accent-primary)", color: "#fff" }}
+                          title="Edit reminder date"
+                        >
+                          ✏️
+                        </button>
+                      </p>
+                    )}
+                  </div>
+                )}
+                {!debt.reminderDate && (debt.debtType === 'borrowed' || debt.debtType === 'lent') && !isCompleted && (
+                  <div>
+                    {editingReminder === debt.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={editReminderDate}
+                          onChange={(e) => setEditReminderDate(e.target.value)}
+                          className="px-2 py-1 rounded text-xs"
+                          style={{ 
+                            background: "var(--input-bg)", 
+                            color: "var(--input-text)", 
+                            border: "1px solid var(--input-border)" 
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSaveReminderDate(debt.id)}
+                          className="px-2 py-1 rounded text-xs"
+                          style={{ background: "var(--color-success)", color: "#fff" }}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={handleCancelEditReminder}
+                          className="px-2 py-1 rounded text-xs"
+                          style={{ background: "var(--color-error)", color: "#fff" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleStartEditReminder(debt)}
+                        className="text-xs px-2 py-1 rounded hover:opacity-80"
+                        style={{ background: "var(--accent-secondary)", color: "#fff" }}
+                      >
+                        + Add Reminder
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -493,9 +600,11 @@ export default function DebtList() {
             await deleteDebt(deleteConfirm);
             toast.success("Debt deleted.");
             await loadDebts();
-          } catch (err) {
+          } catch (err: any) {
             console.error("Debt delete failed", err);
-            toast.error("Delete failed. Please try again.");
+            // Display the actual error message from backend
+            const errorMessage = err?.response?.data?.message || err?.message || "Delete failed. Please try again.";
+            toast.error(errorMessage);
           } finally {
             setDeleteConfirm(null);
           }
