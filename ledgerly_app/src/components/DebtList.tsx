@@ -167,18 +167,25 @@ export default function DebtList() {
             debt.principal > 0
               ? ((debt.principal - debt.currentBalance) / debt.principal) * 100
               : 0;
+          const isCompleted = debt.status === 'completed' || progress >= 100;
+          const isOverdue = debt.reminderDate && new Date(debt.reminderDate) < new Date() && !isCompleted;
 
           return (
             <div
               key={debt.id}
               className="backdrop-blur-lg rounded-lg shadow-lg p-5 flex flex-col transition hover:scale-[1.02]"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+              style={{ 
+                background: isCompleted ? "var(--bg-card-hover)" : "var(--bg-card)", 
+                border: `2px solid ${isCompleted ? 'var(--color-success)' : isOverdue ? 'var(--color-warning)' : 'var(--border-primary)'}`,
+                opacity: isCompleted ? 0.7 : 1
+              }}
             >
               {/* Title + Amount */}
               <div className="mb-3">
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                     {debt.name}
+                    {isCompleted && <span className="ml-2 text-xs">✅</span>}
                   </h3>
                   <span
                     className="text-xs px-2 py-1 rounded"
@@ -192,6 +199,11 @@ export default function DebtList() {
                     {getDebtTypeLabel(debt.debtType)}
                   </span>
                 </div>
+                {isCompleted && (
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-success)" }}>
+                    Completed 🎉
+                  </p>
+                )}
                 {(debt.personName) && (
                   <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                     {debt.debtType === 'borrowed' ? 'Owed to: ' : 'Owed by: '}{debt.personName}
@@ -217,10 +229,17 @@ export default function DebtList() {
                     <strong>Term:</strong> {debt.term} payments
                   </p>
                 )}
-                {debt.nextDueDate && (
+                {debt.nextDueDate && debt.debtType === 'institutional' && (
                   <p>
                     <strong>Next Due:</strong>{" "}
                     {new Date(debt.nextDueDate).toLocaleDateString()}
+                  </p>
+                )}
+                {debt.reminderDate && (debt.debtType === 'borrowed' || debt.debtType === 'lent') && !isCompleted && (
+                  <p style={{ color: isOverdue ? "var(--color-warning)" : "var(--text-secondary)" }}>
+                    <strong>{isOverdue ? '⚠️ ' : ''}Reminder:</strong>{" "}
+                    {new Date(debt.reminderDate).toLocaleDateString()}
+                    {isOverdue && ' (Overdue)'}
                   </p>
                 )}
               </div>
@@ -241,30 +260,43 @@ export default function DebtList() {
 
               {/* Actions */}
               <div className="flex justify-between items-center mt-4 gap-2">
-                <button
-                  className="px-3 py-1 rounded transition text-xs"
-                  onClick={() => handleSelectDebt(debt)}
-                  style={{ background: "var(--accent-secondary)", color: "#fff" }}
-                >
-                  Updates
-                </button>
-                <button
-                  className="px-3 py-1 rounded transition text-xs"
-                  onClick={() => handlePayInstallment(debt)}
-                  style={{ background: "var(--color-info)", color: "#fff" }}
-                >
-                  Pay Now
-                </button>
-                {/* Pay Early only for institutional debts */}
-                {debt.debtType === 'institutional' && debt.nextDueDate && (
+                {!isCompleted && (
+                  <>
+                    <button
+                      className="px-3 py-1 rounded transition text-xs"
+                      onClick={() => handleSelectDebt(debt)}
+                      style={{ background: "var(--accent-secondary)", color: "#fff" }}
+                    >
+                      Updates
+                    </button>
+                    <button
+                      className="px-3 py-1 rounded transition text-xs"
+                      onClick={() => handlePayInstallment(debt)}
+                      style={{ background: "var(--color-info)", color: "#fff" }}
+                    >
+                      Pay Now
+                    </button>
+                    {/* Pay Early only for institutional debts */}
+                    {debt.debtType === 'institutional' && debt.nextDueDate && (
+                      <button
+                        className="px-3 py-1 rounded transition text-xs"
+                        onClick={() => {
+                          handlepayDebtEarly(debt)
+                        }}
+                        style={{ background: "var(--color-warning)", color: "#fff" }}
+                      >
+                        Pay Early
+                      </button>
+                    )}
+                  </>
+                )}
+                {isCompleted && (
                   <button
                     className="px-3 py-1 rounded transition text-xs"
-                    onClick={() => {
-                      handlepayDebtEarly(debt)
-                    }}
-                    style={{ background: "var(--color-warning)", color: "#fff" }}
+                    onClick={() => handleSelectDebt(debt)}
+                    style={{ background: "var(--accent-secondary)", color: "#fff" }}
                   >
-                    Pay Early
+                    View History
                   </button>
                 )}
                 <button

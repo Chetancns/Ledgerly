@@ -70,6 +70,12 @@ export class DebtService {
   // reduce balance (but not principal)
   debt.currentBalance = (parseFloat(debt.currentBalance.toString()) - parseFloat(amount.toString())).toFixed(2);
 
+  // Mark debt as completed if balance reaches zero or below
+  if (parseFloat(debt.currentBalance) <= 0) {
+    debt.status = 'completed';
+    debt.currentBalance = '0.00'; // Ensure it's exactly 0
+  }
+
   // Update next due date only for institutional debts with fixed frequency
   if (debt.debtType === 'institutional' && debt.frequency && debt.nextDueDate) {
     debt.nextDueDate = this.getNextDueDate(debt.startDate, debt.frequency, dueDate).format('YYYY-MM-DD');
@@ -164,6 +170,8 @@ export class DebtService {
     nextDueDate: body.nextDueDate || body.startDate || null,
     debtType: body.debtType || 'institutional',
     personName: body.personName || null,
+    status: 'active',
+    reminderDate: body.reminderDate || null,
   });
 
   const savedDebt = await this.debtRepo.save(debt);
@@ -292,6 +300,11 @@ export class DebtService {
     parseFloat(debt.currentBalance.toString()) + 
     parseFloat(update.amount.toString())
   ).toFixed(2);
+
+  // If debt was completed and we're deleting a payment, mark it as active again
+  if (debt.status === 'completed' && parseFloat(debt.currentBalance) > 0) {
+    debt.status = 'active';
+  }
 
   await this.debtRepo.save(debt);
 

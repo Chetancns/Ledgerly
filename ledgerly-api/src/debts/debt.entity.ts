@@ -50,6 +50,12 @@ export class Debt {
   @Column('date', { nullable: true })
   nextDueDate: string; 
 
+  @Column({ type: 'varchar', default: 'active' })
+  status: 'active' | 'completed';
+
+  @Column('date', { nullable: true })
+  reminderDate: string; // For P2P debts - when to remind about sending/receiving payment
+
   @OneToMany(() => DebtUpdate, update => update.debt)
 updates: DebtUpdate[];
 }
