@@ -229,10 +229,11 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
             {showSuggestions && personNameSuggestions.length > 0 && (
               <div
                 className="absolute z-10 w-full mt-1 rounded shadow-lg max-h-40 overflow-y-auto"
-                style={{ 
-                  background: "var(--bg-card)", 
+                style={{
+                  // Use a denser backdrop so suggestions stay legible
+                  background: "var(--bg-card-solid, rgba(20,24,28,0.95))",
                   border: "2px solid var(--accent-primary)",
-                  boxShadow: "0 6px 12px rgba(0, 0, 0, 0.5)"
+                  boxShadow: "0 10px 24px rgba(0, 0, 0, 0.55)"
                 }}
               >
                 {personNameSuggestions.map((name, idx) => (

@@ -22,6 +22,7 @@ import {ReportsModule} from './reports/reports.module'
 import { AIModule } from './AIChat/AIChat.module';
 import { Debt } from './debts/debt.entity';
 import { DebtUpdate } from './debts/debt-update.entity';
+import { PersonName } from './debts/person-name.entity';
 import { DebtModule } from './debts/debt.module';
 import { AiInsight } from './reports/ai-insight.entity';
 import { TagsModule } from './tags/tags.module';
@@ -50,6 +51,7 @@ import { Notification } from './notifications/notification.entity';
           RecurringTransaction,
           Debt,
           DebtUpdate,
+          PersonName,
           AiInsight,
           Tag,
           Notification,

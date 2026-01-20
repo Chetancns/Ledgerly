@@ -24,10 +24,10 @@ export class Debt {
   @Column('uuid')
   accountId: string;
 
-  @Column({ type: 'enum', enum: DEBT_TYPES, default: 'institutional' })
+  @Column({ name: 'debttype', type: 'enum', enum: DEBT_TYPES, default: 'institutional' })
   debtType: DebtType;
 
-  @Column({ nullable: true })
+  @Column({ name: 'personname', type: 'varchar', length: 255, nullable: true })
   personName?: string; // For borrowed/lent debts: person's name
 
   @Column()

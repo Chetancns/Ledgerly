@@ -1,5 +1,6 @@
 // components/DebtList.tsx
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Debt, DebtUpdate, DEBT_TYPES, DebtType } from "@/models/debt";
 import { getUserDebts, deleteDebt, catchUpDebts, getDebtUpdates, payDebtEarly, payInstallment, deleteDebtUpdate } from "@/services/debts";
@@ -26,6 +27,7 @@ export default function DebtList() {
     createTransaction: true,
     categoryId: '',
   });
+  const [mounted, setMounted] = useState(false);
 
   const loadDebts = async () => {
     const res = await getUserDebts();
@@ -46,6 +48,11 @@ export default function DebtList() {
       setCategories(cats);
     };
     fetchData();
+  }, []);
+
+  // Ensure portal renders only after mount (avoids SSR document undefined)
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   const handleCatchUp = async () => {
@@ -282,77 +289,93 @@ export default function DebtList() {
       </div>
 
       {/* Popup for Updates */}
-      {showPopup && selectedDebt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0, 0, 0, 0.85)" }}>
-          <div className="rounded-xl p-6 w-full max-w-lg shadow-2xl" style={{ background: "var(--bg-card)", border: "2px solid var(--accent-primary)", maxHeight: "85vh", overflowY: "auto" }}>
-            <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-              {selectedDebt.name} Updates
-            </h3>
+      {mounted && showPopup && selectedDebt &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] p-4"
+            style={{
+              background: "rgba(0, 0, 0, 0.85)",
+              display: "grid",
+              placeItems: "center",
+              width: "100vw",
+              height: "100vh",
+              boxSizing: "border-box",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              className="rounded-xl p-6 w-full max-w-lg shadow-2xl"
+              style={{ background: "var(--bg-card)", border: "2px solid var(--accent-primary)", maxHeight: "85vh", overflowY: "auto" }}
+            >
+              <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+                {selectedDebt.name} Updates
+              </h3>
 
-            <ul className="space-y-4">
-              {updates.map((u) => (
-                <li key={u.id} className="p-4 rounded-lg shadow relative" style={{ background: "var(--bg-card-hover)" }}>
-                  {/* Delete button */}
-                  <button
-                    onClick={() => handleDeleteUpdate(u.id)}
-                    className="absolute top-2 right-2 transition-transform hover:scale-110"
-                    title="Delete payment update"
-                    style={{ color: "var(--color-error)" }}
-                  >
-                    🗑️
-                  </button>
+              <ul className="space-y-4">
+                {updates.map((u) => (
+                  <li key={u.id} className="p-4 rounded-lg shadow relative" style={{ background: "var(--bg-card-hover)" }}>
+                    {/* Delete button */}
+                    <button
+                      onClick={() => handleDeleteUpdate(u.id)}
+                      className="absolute top-2 right-2 transition-transform hover:scale-110"
+                      title="Delete payment update"
+                      style={{ color: "var(--color-error)" }}
+                    >
+                      🗑️
+                    </button>
 
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    <strong>Amount:</strong> {format(u.amount)}
-                    <br />
-                    <strong>Status:</strong> {u.status}
-                    <br />
-                    <strong>Update Date:</strong> {u.updateDate}
-                    <br />
-                    <strong>Transaction ID:</strong> {u.transactionId || 'None'}
-                  </p>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      <strong>Amount:</strong> {format(u.amount)}
+                      <br />
+                      <strong>Status:</strong> {u.status}
+                      <br />
+                      <strong>Update Date:</strong> {u.updateDate}
+                      <br />
+                      <strong>Transaction ID:</strong> {u.transactionId || 'None'}
+                    </p>
 
-                  {u.transaction && (
-                    <div className="mt-2 text-sm" style={{ color: "var(--text-primary)" }}>
-                      <p>
-                        <strong>Amount:</strong> {format(u.transaction.amount)}
-                      </p>
-                      <p>
-                        <strong>Description:</strong> {u.transaction.description}
-                      </p>
-                      <p>
-                        <strong>Type:</strong> {u.transaction.type}
-                      </p>
-                      <p>
-                        <strong>Date:</strong>{" "}
-                        {new Date(
-                          u.transaction.transactionDate
-                        ).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    {u.transaction && (
+                      <div className="mt-2 text-sm" style={{ color: "var(--text-primary)" }}>
+                        <p>
+                          <strong>Amount:</strong> {format(u.transaction.amount)}
+                        </p>
+                        <p>
+                          <strong>Description:</strong> {u.transaction.description}
+                        </p>
+                        <p>
+                          <strong>Type:</strong> {u.transaction.type}
+                        </p>
+                        <p>
+                          <strong>Date:</strong>{" "}
+                          {new Date(
+                            u.transaction.transactionDate
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
 
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setShowPopup(false)}
-                className="px-4 py-2 rounded transition"
-                style={{ background: "var(--accent-secondary)", color: "#fff" }}
-              >
-                Close
-              </button>
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setShowPopup(false)}
+                  className="px-4 py-2 rounded transition"
+                  style={{ background: "var(--accent-secondary)", color: "#fff" }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Reusable Delete Confirmation */}
       <ConfirmModal
         open={!!deleteConfirm}
         title="Delete Debt"
-        description="Delete this debt? This action cannot be undone."
+        description="Delete this debt? This action cannot be undone. Please make sure to delete any associated Transaction that may exist."
         confirmLabel="Delete"
         confirmColor="red-500"
         loading={false}
@@ -373,94 +396,110 @@ export default function DebtList() {
       />
 
       {/* Payment Modal */}
-      {showPaymentModal && paymentDebt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0, 0, 0, 0.85)" }}>
-          <div className="rounded-xl p-6 w-full max-w-md shadow-2xl" style={{ background: "var(--bg-card)", border: "2px solid var(--accent-primary)", maxHeight: "85vh", overflowY: "auto" }}>
-            <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-              {paymentDebt.debtType === 'institutional' ? 'Pay Installment' : 'Make Payment'}: {paymentDebt.name}
-            </h3>
-            
-            <div className="space-y-4">
-              {/* Amount input - editable for P2P debts, readonly for institutional */}
-              <div>
-                <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
-                  Payment Amount
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={paymentForm.amount}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  readOnly={paymentDebt.debtType === 'institutional'}
-                  placeholder="Enter amount"
-                  className="w-full px-3 py-2 rounded"
-                  style={{ 
-                    background: paymentDebt.debtType === 'institutional' ? "var(--bg-card-hover)" : "var(--input-bg)", 
-                    color: "var(--input-text)", 
-                    border: "1px solid var(--input-border)" 
-                  }}
-                />
-                {(paymentDebt.debtType === 'borrowed' || paymentDebt.debtType === 'lent') && (
-                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-                    Current balance: {format(paymentDebt.currentBalance)}
-                  </p>
+      {mounted && showPaymentModal && paymentDebt &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] p-4"
+            style={{
+              background: "rgba(0, 0, 0, 0.85)",
+              display: "grid",
+              placeItems: "center",
+              width: "100vw",
+              height: "100vh",
+              boxSizing: "border-box",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              className="rounded-xl p-6 w-full max-w-md shadow-2xl"
+              style={{ background: "var(--bg-card)", border: "2px solid var(--accent-primary)", maxHeight: "85vh", overflowY: "auto" }}
+            >
+              <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+                {paymentDebt.debtType === 'institutional' ? 'Pay Installment' : 'Make Payment'}: {paymentDebt.name}
+              </h3>
+              
+              <div className="space-y-4">
+                {/* Amount input - editable for P2P debts, readonly for institutional */}
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                    Payment Amount
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                    readOnly={paymentDebt.debtType === 'institutional'}
+                    placeholder="Enter amount"
+                    className="w-full px-3 py-2 rounded"
+                    style={{ 
+                      background: paymentDebt.debtType === 'institutional' ? "var(--bg-card-hover)" : "var(--input-bg)", 
+                      color: "var(--input-text)", 
+                      border: "1px solid var(--input-border)" 
+                    }}
+                  />
+                  {(paymentDebt.debtType === 'borrowed' || paymentDebt.debtType === 'lent') && (
+                    <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                      Current balance: {format(paymentDebt.currentBalance)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    id="createTransactionPayment"
+                    type="checkbox"
+                    checked={paymentForm.createTransaction}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, createTransaction: e.target.checked })}
+                    className="accent-yellow-300"
+                  />
+                  <label htmlFor="createTransactionPayment" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    Create transaction for this payment
+                  </label>
+                </div>
+
+                {paymentForm.createTransaction && (
+                  <div>
+                    <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                      Transaction Category
+                    </label>
+                    <select
+                      value={paymentForm.categoryId}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, categoryId: e.target.value })}
+                      className="w-full px-3 py-2 rounded"
+                      style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                    >
+                      <option value="">Select Category</option>
+                      {categories
+                        .filter(c => c.type === (paymentDebt.debtType === 'lent' ? 'income' : 'expense'))
+                        .map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                  </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <input
-                  id="createTransactionPayment"
-                  type="checkbox"
-                  checked={paymentForm.createTransaction}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, createTransaction: e.target.checked })}
-                  className="accent-yellow-300"
-                />
-                <label htmlFor="createTransactionPayment" className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  Create transaction for this payment
-                </label>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-4 py-2 rounded transition"
+                  style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitPayment}
+                  className="px-4 py-2 rounded transition"
+                  style={{ background: "var(--accent-primary)", color: "var(--text-inverse)" }}
+                >
+                  Pay Installment
+                </button>
               </div>
-
-              {paymentForm.createTransaction && (
-                <div>
-                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
-                    Transaction Category
-                  </label>
-                  <select
-                    value={paymentForm.categoryId}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, categoryId: e.target.value })}
-                    className="w-full px-3 py-2 rounded"
-                    style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-                  >
-                    <option value="">Select Category</option>
-                    {categories
-                      .filter(c => c.type === (paymentDebt.debtType === 'lent' ? 'income' : 'expense'))
-                      .map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                  </select>
-                </div>
-              )}
             </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="px-4 py-2 rounded transition"
-                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitPayment}
-                className="px-4 py-2 rounded transition"
-                style={{ background: "var(--accent-primary)", color: "var(--text-inverse)" }}
-              >
-                Pay Installment
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
