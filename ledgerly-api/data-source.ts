@@ -10,6 +10,7 @@ import { RecurringTransaction } from './src/recurring/recurring.entity';
 import { AiInsight } from './src/reports/ai-insight.entity';
 import { DebtUpdate } from './src/debts/debt-update.entity';
 import { Debt } from './src/debts/debt.entity';
+import { PersonName } from './src/debts/person-name.entity';
 import { Tag } from './src/tags/tag.entity';
 
 export default new DataSource({
@@ -30,6 +31,7 @@ export default new DataSource({
     AiInsight,
     DebtUpdate,
     Debt,
+    PersonName,
     Tag,
   ],
   migrations: ['dist/migrations/*.js'],

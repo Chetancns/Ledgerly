@@ -772,9 +772,12 @@ Delete a budget.
 ## Debt Endpoints
 
 ### GET /debts
-Get all debts for authenticated user.
+Get all debts for authenticated user with optional filtering.
 
 **Authentication:** Required
+
+**Query Parameters:**
+- `debtType` (optional): Filter by debt type (`institutional`, `borrowed`, `lent`)
 
 **Response (200):**
 ```json
@@ -782,18 +785,36 @@ Get all debts for authenticated user.
   {
     "id": "uuid",
     "userId": "uuid",
-    "name": "Credit Card",
-    "amount": "5000.00",
-    "interestRate": "15.99",
-    "dueDate": "2024-12-31",
-    "updates": [
-      {
-        "id": "uuid",
-        "amount": "500.00",
-        "date": "2024-01-15",
-        "note": "Monthly payment"
-      }
-    ]
+    "name": "Credit Card Payment",
+    "debtType": "institutional",
+    "personName": null,
+    "accountId": "uuid",
+    "principal": 5000.00,
+    "currentBalance": 3500.00,
+    "installmentAmount": 250.00,
+    "frequency": "monthly",
+    "startDate": "2024-01-01",
+    "nextDueDate": "2024-02-01",
+    "term": 20,
+    "progress": 30,
+    "updates": []
+  },
+  {
+    "id": "uuid",
+    "userId": "uuid",
+    "name": "Emergency loan",
+    "debtType": "borrowed",
+    "personName": "John Smith",
+    "accountId": "uuid",
+    "principal": 1000.00,
+    "currentBalance": 800.00,
+    "installmentAmount": 100.00,
+    "frequency": "monthly",
+    "startDate": "2024-01-15",
+    "nextDueDate": "2024-02-15",
+    "term": 10,
+    "progress": 20,
+    "updates": []
   }
 ]
 ```
@@ -801,17 +822,42 @@ Get all debts for authenticated user.
 ---
 
 ### POST /debts
-Create a new debt.
+Create a new debt with optional transaction creation.
 
 **Authentication:** Required
 
 **Request Body:**
 ```json
 {
-  "name": "Student Loan",
-  "amount": "10000.00",
-  "interestRate": "5.5",
-  "dueDate": "2025-12-31"
+  "name": "Car Loan",
+  "debtType": "institutional",
+  "personName": null,
+  "accountId": "uuid",
+  "principal": 15000.00,
+  "currentBalance": 15000.00,
+  "installmentAmount": 500.00,
+  "frequency": "monthly",
+  "startDate": "2024-01-01",
+  "nextDueDate": "2024-01-01",
+  "term": 30,
+  "createTransaction": false,
+  "categoryId": null
+}
+```
+
+**For borrowed/lent debts:**
+```json
+{
+  "name": "Personal loan",
+  "debtType": "borrowed",
+  "personName": "Jane Doe",
+  "accountId": "uuid",
+  "principal": 500.00,
+  "installmentAmount": 50.00,
+  "frequency": "monthly",
+  "startDate": "2024-01-18",
+  "createTransaction": true,
+  "categoryId": "category-uuid"
 }
 ```
 
@@ -820,24 +866,57 @@ Create a new debt.
 {
   "id": "uuid",
   "userId": "uuid",
-  "name": "Student Loan",
-  "amount": "10000.00",
-  "interestRate": "5.5",
-  "dueDate": "2025-12-31"
+  "name": "Car Loan",
+  "debtType": "institutional",
+  "accountId": "uuid",
+  "principal": 15000.00,
+  "currentBalance": 15000.00,
+  "installmentAmount": 500.00,
+  "frequency": "monthly",
+  "startDate": "2024-01-01",
+  "nextDueDate": "2024-01-01"
 }
 ```
 
 ---
 
-### PATCH /debts/:id
-Update a debt.
+### GET /debts/:id/updates
+Get payment history for a specific debt.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "debtId": "uuid",
+    "updateDate": "2024-01-15",
+    "transactionId": "uuid",
+    "status": "paid",
+    "transaction": {
+      "id": "uuid",
+      "amount": "250.00",
+      "type": "expense",
+      "description": "Credit Card Payment",
+      "transactionDate": "2024-01-15"
+    }
+  }
+]
+```
+
+---
+
+### POST /debts/:id/pay-installment
+Pay an installment with optional transaction creation.
 
 **Authentication:** Required
 
 **Request Body:**
 ```json
 {
-  "amount": "9500.00"
+  "createTransaction": true,
+  "categoryId": "category-uuid"
 }
 ```
 
@@ -845,9 +924,79 @@ Update a debt.
 ```json
 {
   "id": "uuid",
-  "amount": "9500.00",
-  ...
+  "name": "Car Loan",
+  "currentBalance": 14500.00,
+  "nextDueDate": "2024-02-01",
+  "updates": [...]
 }
+```
+
+---
+
+### POST /debts/:id/catch-up
+Process all missed payments for a debt.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "currentBalance": 13500.00,
+  "nextDueDate": "2024-03-01",
+  "updates": [...]
+}
+```
+
+---
+
+### POST /debts/catch-up
+Process all missed payments for all user debts.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "currentBalance": 3000.00,
+    "nextDueDate": "2024-02-01",
+    ...
+  }
+]
+```
+
+---
+
+### GET /debts/:id/pay-early
+Pay the next installment before the due date.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "name": "Car Loan",
+  "currentBalance": 14500.00,
+  "nextDueDate": "2024-02-01"
+}
+```
+
+---
+
+### GET /debts/person-names/suggestions
+Get person name suggestions for autocomplete.
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `search` (optional): Search term to filter suggestions
+
+**Response (200):**
+```json
+["John Smith", "Jane Doe", "Bob Wilson"]
 ```
 
 ---

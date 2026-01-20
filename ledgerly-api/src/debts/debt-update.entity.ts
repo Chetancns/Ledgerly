@@ -18,6 +18,9 @@ export class DebtUpdate {
   @Column({ type: 'date' })
   updateDate: string;
 
+  @Column('numeric', { precision: 12, scale: 2 })
+  amount: string; // Amount paid in this update
+
   @Column({ nullable: true })
   transactionId: string;
 

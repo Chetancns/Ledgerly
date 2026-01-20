@@ -4,6 +4,9 @@ import { User } from '../users/user.entity';
 import { Account } from '../accounts/account.entity';
 import { DebtUpdate } from './debt-update.entity';
 
+export type DebtType = 'institutional' | 'borrowed' | 'lent';
+export const DEBT_TYPES: DebtType[] = ['institutional', 'borrowed', 'lent'];
+
 @Entity('dbo.debts')
 export class Debt {
   @PrimaryGeneratedColumn('uuid')
@@ -21,25 +24,37 @@ export class Debt {
   @Column('uuid')
   accountId: string;
 
+  @Column({ name: 'debttype', type: 'enum', enum: DEBT_TYPES, default: 'institutional' })
+  debtType: DebtType;
+
+  @Column({ name: 'personname', type: 'varchar', length: 255, nullable: true })
+  personName?: string; // For borrowed/lent debts: person's name
+
   @Column()
-  name: string; // "Chase Credit Card" or "Car Loan"
+  name: string; // "Chase Credit Card" or "Car Loan" or description
   @Column('decimal', { precision: 12, scale: 2 })
   principal: number;
   @Column('numeric', { precision: 12, scale: 2, default: 0 })
   currentBalance: string;
   @Column({ type: 'int', nullable: true })
   term: number; 
-  @Column('numeric', { precision: 12, scale: 2 })
-  installmentAmount: string; // amount due each cycle
+  @Column('numeric', { precision: 12, scale: 2, nullable: true })
+  installmentAmount: string; // amount due each cycle (optional for P2P debts)
 
-  @Column({ type: 'enum', enum: ['weekly', 'biweekly', 'monthly'] })
+  @Column({ type: 'enum', enum: ['weekly', 'biweekly', 'monthly'], nullable: true })
   frequency: 'weekly' | 'biweekly' | 'monthly';
 
   @Column('date')
   startDate: string; // when payments started
 
-  @Column('date')
+  @Column('date', { nullable: true })
   nextDueDate: string; 
+
+  @Column({ type: 'varchar', default: 'active' })
+  status: 'active' | 'completed';
+
+  @Column('date', { nullable: true })
+  reminderDate: string; // For P2P debts - when to remind about sending/receiving payment
 
   @OneToMany(() => DebtUpdate, update => update.debt)
 updates: DebtUpdate[];
