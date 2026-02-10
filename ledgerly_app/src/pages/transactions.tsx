@@ -230,6 +230,21 @@ export default function Transactions() {
     load();
   }, []);
 
+  const shiftMonth = (delta: number) => {
+    const baseDate = new Date(selectedYear, selectedMonth - 1, 1);
+    baseDate.setMonth(baseDate.getMonth() + delta);
+    setSelectedMonth(baseDate.getMonth() + 1);
+    setSelectedYear(baseDate.getFullYear());
+  };
+
+  const quickMonthOptions = Array.from({ length: 48 }).map((_, i) => {
+    const date = new Date(today.getFullYear(), today.getMonth() - 36 + i, 1);
+    return {
+      label: `${months[date.getMonth()]} ${date.getFullYear()}`,
+      value: `${date.getFullYear()}-${date.getMonth() + 1}`,
+    };
+  });
+
   // useEffect(() => {
   //   fetchTransaction();
   // }, [selectedMonth, selectedYear, selectedAccount, selectedCategory]);
@@ -264,35 +279,55 @@ export default function Transactions() {
       >
         <div className="flex flex-wrap items-end gap-6">
 
-          {/* Filter Select Field */}
+          {/* Month/Year Navigation */}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Month</label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
+            <div
+              className="flex items-center gap-2 backdrop-blur-xl px-3 py-2 rounded-xl transition"
               style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
             >
-              {months.map((m, i) => (
-                <option key={i} value={i + 1}>{m}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Year */}
-          <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Year</label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
-              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-            >
-              {Array.from({ length: 5 }).map((_, i) => {
-                const year = today.getFullYear() - 2 + i;
-                return <option key={year} value={year}>{year}</option>;
-              })}
-            </select>
+              <button
+                type="button"
+                onClick={() => shiftMonth(-1)}
+                className="h-8 w-8 rounded-lg flex items-center justify-center hover:scale-105 transition"
+                style={{ background: "var(--bg-card)", color: "var(--text-primary)", border: "1px solid var(--border-primary)" }}
+                aria-label="Previous month"
+                title="Previous month"
+              >
+                ◀
+              </button>
+              <div className="min-w-[120px] text-center font-semibold" style={{ color: "var(--text-primary)" }}>
+                {months[selectedMonth - 1]} {selectedYear}
+              </div>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                className="h-8 w-8 rounded-lg flex items-center justify-center hover:scale-105 transition"
+                style={{ background: "var(--bg-card)", color: "var(--text-primary)", border: "1px solid var(--border-primary)" }}
+                aria-label="Next month"
+                title="Next month"
+              >
+                ▶
+              </button>
+              <select
+                value={`${selectedYear}-${selectedMonth}`}
+                onChange={(e) => {
+                  const [year, month] = e.target.value.split("-").map(Number);
+                  setSelectedYear(year);
+                  setSelectedMonth(month);
+                }}
+                className="backdrop-blur-xl px-2 py-1 rounded-lg transition text-sm"
+                style={{ background: "var(--bg-card)", color: "var(--input-text)", border: "1px solid var(--border-primary)" }}
+                aria-label="Jump to month"
+                title="Jump to month"
+              >
+                {quickMonthOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Account */}
