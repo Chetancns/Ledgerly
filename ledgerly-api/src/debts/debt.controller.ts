@@ -85,13 +85,14 @@ export class DebtController {
   @Post(':id/pay-installment')
   async payInstallment(
     @Param('id') id: string,
-    @Body() body: { amount?: number; createTransaction?: boolean; categoryId?: string },
+    @Body() body: { amount?: number; createTransaction?: boolean; categoryId?: string; notes?: string },
   ) {
     return this.debtService.payInstallment(
       id,
       body.amount,
       body.createTransaction !== false,
       body.categoryId,
+      body.notes,
     );
   }
 

@@ -37,4 +37,5 @@ export interface DebtUpdate {
   transactionId: string;
   transaction: Transaction;
   status: "paid" | "pending" | "skipped";
+  notes?: string;
 }

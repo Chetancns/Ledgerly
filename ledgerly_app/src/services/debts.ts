@@ -41,12 +41,14 @@ export async function payInstallment(
   id: string,
   amount?: number,
   createTransaction?: boolean,
-  categoryId?: string
+  categoryId?: string,
+  notes?: string,
 ): Promise<Debt> {
   const res = await api.post(`/debts/${id}/pay-installment`, {
     amount,
     createTransaction,
     categoryId,
+    notes,
   });
   return res.data;
 }

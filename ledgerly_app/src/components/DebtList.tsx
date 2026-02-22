@@ -1,5 +1,5 @@
 // components/DebtList.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { Debt, DebtUpdate, DEBT_TYPES, DebtType } from "@/models/debt";
@@ -31,11 +31,13 @@ export default function DebtList() {
     amount: '',
     createTransaction: true,
     categoryId: '',
+    notes: '',
   });
   const [mounted, setMounted] = useState(false);
   const [notifiedDebts, setNotifiedDebts] = useState<Set<string>>(new Set());
   const [editingReminder, setEditingReminder] = useState<string | null>(null);
   const [editReminderDate, setEditReminderDate] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'default' | 'balance-desc' | 'balance-asc' | 'name-asc' | 'progress-desc'>('default');
 
   const loadDebts = async () => {
     const res = await getUserDebts();
@@ -186,6 +188,7 @@ export default function DebtList() {
       amount: debt.installmentAmount?.toString() || '',
       createTransaction: true,
       categoryId: '',
+      notes: '',
     });
     setShowPaymentModal(true);
   };
@@ -205,7 +208,8 @@ export default function DebtList() {
         paymentDebt.id,
         amount,
         paymentForm.createTransaction,
-        paymentForm.categoryId || undefined
+        paymentForm.categoryId || undefined,
+        paymentForm.notes || undefined,
       );
       toast.success("✅ Installment paid!");
       setShowPaymentModal(false);
@@ -225,8 +229,100 @@ export default function DebtList() {
     }
   };
 
+  /** Aggregate stats based on ALL debts (not filtered), active only */
+  const stats = useMemo(() => {
+    const active = debts.filter(d => d.status !== 'completed');
+    const totalOwed = active
+      .filter(d => d.debtType !== 'lent')
+      .reduce((sum, d) => sum + Number(d.currentBalance), 0);
+    const totalLent = active
+      .filter(d => d.debtType === 'lent')
+      .reduce((sum, d) => sum + Number(d.currentBalance), 0);
+    const overdueCount = active.filter(d =>
+      d.reminderDate && new Date(d.reminderDate) < new Date()
+    ).length;
+    return {
+      totalOwed,
+      totalLent,
+      net: totalLent - totalOwed,
+      activeCount: active.length,
+      overdueCount,
+    };
+  }, [debts]);
+
+  /** Estimated payoff date for institutional debts */
+  const getEstimatedPayoff = (debt: Debt): string | null => {
+    if (debt.debtType !== 'institutional') return null;
+    if (!debt.installmentAmount || !debt.frequency) return null;
+    const balance = Number(debt.currentBalance);
+    const installment = Number(debt.installmentAmount);
+    if (installment <= 0 || balance <= 0) return null;
+
+    const paymentsLeft = Math.ceil(balance / installment);
+    const targetDate = new Date();
+    if (debt.frequency === 'monthly') {
+      targetDate.setMonth(targetDate.getMonth() + paymentsLeft);
+    } else if (debt.frequency === 'biweekly') {
+      targetDate.setDate(targetDate.getDate() + paymentsLeft * 14);
+    } else if (debt.frequency === 'weekly') {
+      targetDate.setDate(targetDate.getDate() + paymentsLeft * 7);
+    }
+    return targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  /** Apply sort to filtered debts */
+  const sortedDebts = useMemo(() => {
+    const list = [...filteredDebts];
+    switch (sortBy) {
+      case 'balance-desc':
+        return list.sort((a, b) => Number(b.currentBalance) - Number(a.currentBalance));
+      case 'balance-asc':
+        return list.sort((a, b) => Number(a.currentBalance) - Number(b.currentBalance));
+      case 'name-asc':
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      case 'progress-desc': {
+        const prog = (d: Debt) =>
+          d.principal > 0 ? ((d.principal - Number(d.currentBalance)) / d.principal) * 100 : 0;
+        return list.sort((a, b) => prog(b) - prog(a));
+      }
+      default:
+        return list;
+    }
+  }, [filteredDebts, sortBy]);
+
  return (
     <div className="space-y-6">
+      {/* Summary Statistics */}
+      {debts.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-lg text-center" style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-primary)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Total Owed</p>
+            <p className="text-base font-bold" style={{ color: "var(--color-error)" }}>{format(stats.totalOwed)}</p>
+          </div>
+          <div className="p-3 rounded-lg text-center" style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-primary)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Total Lent</p>
+            <p className="text-base font-bold" style={{ color: "var(--color-success)" }}>{format(stats.totalLent)}</p>
+          </div>
+          <div className="p-3 rounded-lg text-center" style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-primary)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Net Position</p>
+            <p className="text-base font-bold" style={{ color: stats.net >= 0 ? "var(--color-success)" : "var(--color-error)" }}>
+              {stats.net >= 0 ? '+' : '-'}{format(Math.abs(stats.net))}
+            </p>
+          </div>
+          <div className="p-3 rounded-lg text-center" style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-primary)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Active Debts</p>
+            <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+              {stats.activeCount}
+              {stats.overdueCount > 0 && (
+                <span className="text-xs ml-1" style={{ color: "var(--color-warning)" }}>
+                  ({stats.overdueCount} overdue)
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center flex-wrap gap-4">
         <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Your Debts</h2>
@@ -259,6 +355,20 @@ export default function DebtList() {
             <option value="all">All Status</option>
           </select>
 
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="px-3 py-2 rounded"
+            style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+          >
+            <option value="default">Sort: Default</option>
+            <option value="balance-desc">Balance: High → Low</option>
+            <option value="balance-asc">Balance: Low → High</option>
+            <option value="name-asc">Name: A → Z</option>
+            <option value="progress-desc">Progress: Most First</option>
+          </select>
+
           <button
             onClick={handleCatchUp}
             className="px-4 py-2 rounded transition"
@@ -271,13 +381,14 @@ export default function DebtList() {
 
       {/* Debt Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredDebts.map((debt) => {
+        {sortedDebts.map((debt) => {
           const progress =
             debt.principal > 0
               ? ((debt.principal - debt.currentBalance) / debt.principal) * 100
               : 0;
           const isCompleted = debt.status === 'completed' || progress >= 100;
           const isOverdue = debt.reminderDate && new Date(debt.reminderDate) < new Date() && !isCompleted;
+          const estimatedPayoff = !isCompleted ? getEstimatedPayoff(debt) : null;
 
           return (
             <div
@@ -342,6 +453,12 @@ export default function DebtList() {
                   <p>
                     <strong>Next Due:</strong>{" "}
                     {new Date(debt.nextDueDate).toLocaleDateString()}
+                  </p>
+                )}
+                {estimatedPayoff && (
+                  <p>
+                    <strong>Est. Payoff:</strong>{" "}
+                    <span style={{ color: "var(--color-info)" }}>{estimatedPayoff}</span>
                   </p>
                 )}
                 {debt.reminderDate && (debt.debtType === 'borrowed' || debt.debtType === 'lent') && !isCompleted && (
@@ -503,6 +620,19 @@ export default function DebtList() {
         })}
       </div>
 
+      {/* Empty state */}
+      {sortedDebts.length === 0 && (
+        <div className="text-center py-12" style={{ color: "var(--text-muted)" }}>
+          <p className="text-4xl mb-3">💳</p>
+          <p className="text-lg font-semibold mb-1" style={{ color: "var(--text-primary)" }}>No debts found</p>
+          <p className="text-sm">
+            {debts.length === 0
+              ? "You haven't added any debts yet. Use the form above to track loans, borrowed money, or money you've lent."
+              : "No debts match your current filters. Try adjusting the filters above."}
+          </p>
+        </div>
+      )}
+
       {/* Popup for Updates */}
       {mounted && showPopup && selectedDebt &&
         createPortal(
@@ -547,6 +677,12 @@ export default function DebtList() {
                       <strong>Update Date:</strong> {u.updateDate}
                       <br />
                       <strong>Transaction ID:</strong> {u.transactionId || 'None'}
+                      {u.notes && (
+                        <>
+                          <br />
+                          <strong>Notes:</strong> {u.notes}
+                        </>
+                      )}
                     </p>
 
                     {u.transaction && (
@@ -695,6 +831,21 @@ export default function DebtList() {
                     </select>
                   </div>
                 )}
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>
+                    Notes <span style={{ color: "var(--text-muted)" }}>(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                    placeholder="e.g. Bank transfer ref #1234"
+                    className="w-full px-3 py-2 rounded"
+                    style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-6">

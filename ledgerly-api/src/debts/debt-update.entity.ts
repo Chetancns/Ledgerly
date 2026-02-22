@@ -30,4 +30,7 @@ export class DebtUpdate {
 
   @Column({ type: 'enum', enum: ['paid', 'pending', 'skipped'], default: 'pending' })
   status: 'paid' | 'pending' | 'skipped';
+
+  @Column({ nullable: true, type: 'text' })
+  notes?: string;
 }

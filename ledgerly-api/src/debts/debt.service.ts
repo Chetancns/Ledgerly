@@ -38,7 +38,7 @@ export class DebtService {
   }
 
   /** Apply a debt update (create transaction + reduce balance) */
- private async applyDebtUpdate(debt: Debt, dueDate: string, amount: string, createTransaction = true, categoryId?: string) {
+ private async applyDebtUpdate(debt: Debt, dueDate: string, amount: string, createTransaction = true, categoryId?: string, notes?: string) {
   let transactionId: string | null = null;
 
   if (createTransaction) {
@@ -64,6 +64,7 @@ export class DebtService {
     amount: amount,
     transactionId: transactionId || undefined,
     status: createTransaction ? 'paid' : 'pending',
+    notes: notes || undefined,
   });
   await this.updateRepo.save(update);
 
@@ -249,7 +250,7 @@ export class DebtService {
     return names.map(n => n.name);
   }
 
-  async payInstallment(debtId: string, amount?: number, createTransaction = true, categoryId?: string) {
+  async payInstallment(debtId: string, amount?: number, createTransaction = true, categoryId?: string, notes?: string) {
     const debt = await this.debtRepo.findOne({ where: { id: debtId } });
     if (!debt) return null;
 
@@ -259,7 +260,7 @@ export class DebtService {
       : (debt.installmentAmount || debt.currentBalance);
 
     const today = dayjs().format('YYYY-MM-DD');
-    await this.applyDebtUpdate(debt, today, paymentAmount, createTransaction, categoryId);
+    await this.applyDebtUpdate(debt, today, paymentAmount, createTransaction, categoryId, notes);
     
     return this.debtRepo.findOne({ where: { id: debtId }, relations: ['updates'] });
   }
