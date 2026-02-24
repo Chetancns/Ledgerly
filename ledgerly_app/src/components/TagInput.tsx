@@ -18,6 +18,7 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
   const [inputValue, setInputValue] = useState("");
   const [showPanel, setShowPanel] = useState(false);
   const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -71,12 +72,26 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
 
   const loadTags = async () => {
     try {
+      setIsLoading(true);
       const res = await getAllTags(false);
-      setTags(res.data);
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray((res.data as { data?: Tag[] })?.data)
+        ? (res.data as { data: Tag[] }).data
+        : [];
+      setTags(data);
     } catch (error) {
       console.error("Failed to load tags:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (showPanel && tags.length === 0 && !isLoading) {
+      loadTags();
+    }
+  }, [showPanel, tags.length, isLoading]);
 
   const handleSelectTag = (tag: Tag) => {
     const newSelected = [...selectedTags, tag];
@@ -221,7 +236,14 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
             backdropFilter: 'blur(12px)'
           }}
         >
-          {filteredTags.length > 0 ? (
+          {isLoading ? (
+            <div className={`text-center py-6 text-sm ${
+              theme === "dark" ? "text-gray-400" : "text-gray-500"
+            }`}>
+              <TagIcon size={28} className="mx-auto mb-2 opacity-50" />
+              <p>Loading tags...</p>
+            </div>
+          ) : filteredTags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {filteredTags.map(tag => (
                 <button
