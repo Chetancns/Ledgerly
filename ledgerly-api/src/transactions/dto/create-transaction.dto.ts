@@ -61,6 +61,13 @@ export class TransferDto {
   tagIds?: string[];
 
   @IsOptional() @IsDateString() date: string;
+  @IsOptional()
+  @IsString()
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
-  description: string;
+  description?: string;
+
+  @IsOptional()
+  @IsDateString()
+  @Transform(({ value }) => value === '' || value === null || value === undefined ? undefined : value)
+  expectedPostDate?: string;
 }

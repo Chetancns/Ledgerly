@@ -1,6 +1,6 @@
 import { useState, ChangeEvent, FormEvent, useEffect, useCallback } from "react";
 import { Transaction } from "@/models/Transaction"; 
-import { createTransaction, onDelete, transfer, updateTransaction } from "@/services/transactions"; 
+import { createTransaction, onDelete, updateTransaction } from "@/services/transactions"; 
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
 import { Category } from "@/models/category";
@@ -145,16 +145,12 @@ export default function TransactionForm({
       }
 
       if (kind === "transfer" || kind === "savings") {
-        return transfer({
-          from: form.accountId,
-          to: toAccountId,
-          cat: form.categoryId,
-          amount: form.amount,
-          description: form.description || "",
-          date: toISOStringWithoutOffset(form.transactionDate),
+        return createTransaction({
+          ...form,
+          transactionDate: toISOStringWithoutOffset(form.transactionDate),
+          expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
+          toAccountId,
           type: kind,
-          status: form.status,
-          tagIds: form.tagIds,
         });
       }
 

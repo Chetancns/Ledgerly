@@ -164,7 +164,7 @@ useEffect(() => {
 
       const account = accounts.find(a => a.id === t.accountId);
 
-      if ((t.type === "income" || t.type === "savings") && account?.type !== "credit_card") {
+      if (t.type === "income" && account?.type !== "credit_card") {
         totals[date].income += parseFloat(String(t.amount));
       } else if (t.type === "expense") {
         totals[date].expense += parseFloat(String(t.amount));

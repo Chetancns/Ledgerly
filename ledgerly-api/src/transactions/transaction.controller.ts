@@ -30,6 +30,7 @@ async transfer(
     transactionDate: dto.date,
     status: dto.status, // Pass status from dto
     tagIds: dto.tagIds, // Pass tagIds from dto
+    expectedPostDate: dto.expectedPostDate,
   });
 }
   @Post()

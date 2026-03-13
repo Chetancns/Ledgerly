@@ -153,8 +153,25 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
     inputRef.current?.focus();
   };
 
+  const handleFocusWithin = () => {
+    setShowPanel(true);
+  };
+
+  const handleBlurWithin = (e: React.FocusEvent<HTMLDivElement>) => {
+    const nextFocused = e.relatedTarget;
+    if (nextFocused && e.currentTarget.contains(nextFocused as Node)) {
+      return;
+    }
+
+    setShowPanel(false);
+  };
+
   return (
-    <div className={`relative z-10 ${className}`}>
+    <div
+      className={`relative z-10 ${className}`}
+      onFocusCapture={handleFocusWithin}
+      onBlurCapture={handleBlurWithin}
+    >
       {/* Tag display and input container */}
       <div
         ref={containerRef}
