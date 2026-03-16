@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [hideBalances, setHideBalances] = useState<boolean>(true);
+  const [visibleAccountIds, setVisibleAccountIds] = useState<string[]>([]);
   const [budgetUtilizations, setBudgetUtilizations] = useState<BudgetUtilization[]>([]);
   const [budgetReports, setBudgetReports] = useState<BudgetReports | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -52,6 +54,41 @@ useEffect(() => {
 });
   }
 }, [filter]);
+
+  useEffect(() => {
+    try {
+      const storedHideBalances = localStorage.getItem("ledgerly:dashboard:hideBalances");
+      if (storedHideBalances !== null) {
+        setHideBalances(storedHideBalances === "true");
+      }
+
+      const storedVisibleAccounts = localStorage.getItem("ledgerly:dashboard:visibleAccounts");
+      if (storedVisibleAccounts) {
+        const parsed = JSON.parse(storedVisibleAccounts);
+        if (Array.isArray(parsed)) {
+          setVisibleAccountIds(parsed.filter((id): id is string => typeof id === "string"));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load balance visibility settings", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ledgerly:dashboard:hideBalances", String(hideBalances));
+    } catch (err) {
+      console.error("Failed to save balance visibility setting", err);
+    }
+  }, [hideBalances]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ledgerly:dashboard:visibleAccounts", JSON.stringify(visibleAccountIds));
+    } catch (err) {
+      console.error("Failed to save account visibility settings", err);
+    }
+  }, [visibleAccountIds]);
 
   useEffect(() => {
     let mounted = true;
@@ -141,6 +178,12 @@ useEffect(() => {
     return () => { mounted = false };
   },[selectedMonth,selectedYear]);
   // --- Account balances ---
+  const sortedAccounts = useMemo(() => {
+    return [...accounts].sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
+    );
+  }, [accounts]);
+
   const totalBalance = accounts.reduce(
     (sum, acc) => sum + parseFloat(acc.balance || "0"),
     0
@@ -203,6 +246,15 @@ useEffect(() => {
 
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+  const formatAccountType = (type?: string) => {
+    if (!type) return "Unknown";
+
+    return type
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -231,6 +283,12 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleAccountVisibility = (accountId: string) => {
+    setVisibleAccountIds((prev) =>
+      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]
+    );
   };
 
   return (
@@ -274,32 +332,68 @@ useEffect(() => {
           boxShadow: "var(--shadow-lg)",
         }}
       >
-        <h2 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-          💰 Total Balance
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+            💰 Total Balance
+          </h2>
+          <button
+            onClick={() => setHideBalances((prev) => !prev)}
+            className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium min-h-[36px]"
+            style={{
+              background: "var(--bg-card-hover)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border-primary)",
+            }}
+            aria-pressed={hideBalances}
+            aria-label={hideBalances ? "Show balances" : "Hide balances"}
+          >
+            {hideBalances ? "👁️ Show All" : "🙈 Hide All"}
+          </button>
+        </div>
         {/* Use user currency formatting */}
         <p className="text-xl sm:text-2xl font-bold mt-2" style={{ color: "var(--text-primary)" }}>
-          {format(totalBalance)}
+          {hideBalances ? "••••••" : format(totalBalance)}
         </p>
 
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-          {accounts.map((acc) => (
-            <div
-              key={acc.id}
-              className="rounded-xl p-3 sm:p-4 flex justify-between items-center"
-              style={{
-                background: "var(--bg-card-hover)",
-                border: "1px solid var(--border-secondary)",
-              }}
-            >
-              <span className="text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-                {acc.name} ({acc.type})
-              </span>
-              <span className="font-semibold text-sm sm:text-base" style={{ color: "var(--text-primary)" }}>
-                {format(parseFloat(acc.balance || '0'))}
-              </span>
-            </div>
-          ))}
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          {sortedAccounts.map((acc) => {
+            const isAccountVisible = !hideBalances || visibleAccountIds.includes(acc.id);
+
+            return (
+              <div
+                key={acc.id}
+                className="rounded-xl p-3 sm:p-4 flex justify-between items-center"
+                style={{
+                  background: "var(--bg-card-hover)",
+                  border: "1px solid var(--border-secondary)",
+                }}
+              >
+                <span className="text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
+                  <span className="font-semibold">{acc.name}</span> ({formatAccountType(acc.type)})
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm sm:text-base" style={{ color: "var(--text-primary)" }}>
+                    {isAccountVisible ? format(parseFloat(acc.balance || '0')) : "••••••"}
+                  </span>
+                  {hideBalances && (
+                    <button
+                      onClick={() => toggleAccountVisibility(acc.id)}
+                      className="px-2 py-1 rounded-md text-xs min-h-[32px]"
+                      style={{
+                        background: "var(--bg-card)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border-primary)",
+                      }}
+                      aria-pressed={isAccountVisible}
+                      aria-label={isAccountVisible ? `Hide ${acc.name} balance` : `Show ${acc.name} balance`}
+                    >
+                      {isAccountVisible ? "🙈" : "👁️"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -368,7 +462,7 @@ useEffect(() => {
             }}
           >
             <option value="all">All</option>
-            {accounts.map((a) => (
+            {sortedAccounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
               </option>
