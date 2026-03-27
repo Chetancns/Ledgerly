@@ -9,8 +9,8 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Get()
-  findAll(): Promise<Category[]> {
-    return this.categoryService.findAll();
+  findAll(@GetUser() user: { userId: string }): Promise<Category[] | null> {
+    return this.categoryService.findAllByUser(user.userId);
   }
   @Get('categoryuser')
   findAllByUser(@GetUser() user: { userId: string, email: string, name: string }): Promise<Category[] | null>{
@@ -18,8 +18,8 @@ export class CategoryController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Category | null> {
-    return this.categoryService.findOne(id);
+  findOne(@GetUser() user: { userId: string }, @Param('id') id: string): Promise<Category | null> {
+    return this.categoryService.findOne(user.userId, id);
   }
 
   @Post()
@@ -28,13 +28,12 @@ export class CategoryController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() category:Partial<Category>): Promise<Category |null> {
-    //console.log(category,id)
-    return this.categoryService.update(id, category);
+  update(@GetUser() user: { userId: string }, @Param('id') id: string, @Body() category:Partial<Category>): Promise<Category |null> {
+    return this.categoryService.update(user.userId, id, category);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.categoryService.remove(id);
+  remove(@GetUser() user: { userId: string }, @Param('id') id: string): Promise<void> {
+    return this.categoryService.remove(user.userId, id);
   }
 }

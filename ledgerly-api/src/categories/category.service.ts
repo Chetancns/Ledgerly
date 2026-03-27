@@ -24,16 +24,20 @@ export class CategoryService {
   async findAllByUser(userId: string): Promise<Category[] |null >{
     return this.repo.find({ where: { userId, IsDeleted: false } });
   }
-  async findOne(id: string): Promise<Category | null> {
-    return this.repo.findOne({ where: { id, IsDeleted: false } });
+  async findOne(userId: string, id: string): Promise<Category | null> {
+    return this.repo.findOne({ where: { id, userId, IsDeleted: false } });
   }
 
-  async update(id: string, category: Partial<Category>): Promise<Category |null> {
+  async update(userId: string, id: string, category: Partial<Category>): Promise<Category |null> {
+    const existing = await this.repo.findOne({ where: { id, userId, IsDeleted: false } });
+    if (!existing) return null;
     await this.repo.update(id, category);
-    return this.findOne(id);
+    return this.repo.findOne({ where: { id, userId, IsDeleted: false } });
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(userId: string, id: string): Promise<void> {
+    const existing = await this.repo.findOne({ where: { id, userId, IsDeleted: false } });
+    if (!existing) return;
     // Soft delete: set IsDeleted to true
     await this.repo.update(id, { IsDeleted: true });
   }

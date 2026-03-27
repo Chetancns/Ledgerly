@@ -29,13 +29,13 @@ export class DebtController {
 
   /** 🔄 Run catch-up for one debt */
   @Post(':id/catch-up')
-  async catchUpOne(@Param('id') id: string) {
-    return this.debtService.catchUpDebt(id);
+  async catchUpOne(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    return this.debtService.catchUpDebt(id, user.userId);
   }
 
   @Get(':id/updates')
-  async getDebtUpdates(@Param('id') id: string) {
-    return this.debtService.getDebtUpdates(id);
+  async getDebtUpdates(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    return this.debtService.getDebtUpdates(id, user.userId);
   }
 
   /** 🗑️ Delete a debt update (payment) */
@@ -77,18 +77,20 @@ export class DebtController {
   }
 
   @Get(':id/pay-early')
-  async payearly(@Param('id') id: string) {
-    return this.debtService.payEarly(id);
+  async payearly(@GetUser() user: { userId: string }, @Param('id') id: string) {
+    return this.debtService.payEarly(id, user.userId);
   }
 
   /** 💰 Pay installment (optionally create transaction) */
   @Post(':id/pay-installment')
   async payInstallment(
+    @GetUser() user: { userId: string },
     @Param('id') id: string,
     @Body() body: { amount?: number; createTransaction?: boolean; categoryId?: string },
   ) {
     return this.debtService.payInstallment(
       id,
+      user.userId,
       body.amount,
       body.createTransaction !== false,
       body.categoryId,

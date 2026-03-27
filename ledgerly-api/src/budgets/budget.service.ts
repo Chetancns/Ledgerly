@@ -126,7 +126,9 @@ export class BudgetsService {
   // console.log("new ",newBudgets);
   return this.budRepo.save(newBudgets);
 }
-async deletebugets(id:string){
+async deletebugets(userId: string, id: string){
+  const budget = await this.budRepo.findOne({ where: { id, userId } });
+  if (!budget) return;
   await this.budRepo.delete(id);
 }
 async allUtilizations(userId: string, period: 'monthly' | 'weekly' | 'bi-weekly' | 'yearly', date: string) {
