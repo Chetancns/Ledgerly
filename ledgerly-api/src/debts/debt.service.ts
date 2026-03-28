@@ -84,8 +84,8 @@ export class DebtService {
   await this.debtRepo.save(debt);
 }
   /** Catch-up process: find missed due dates and apply them (only for institutional debts with fixed installments) */
-  async catchUpDebt(debtId: string) {
-    const debt = await this.debtRepo.findOne({ where: { id: debtId } });
+  async catchUpDebt(debtId: string, userId: string) {
+    const debt = await this.debtRepo.findOne({ where: { id: debtId, userId } });
     if (!debt) return null;
 
     // Catch-up only makes sense for institutional debts with fixed installments
@@ -124,7 +124,7 @@ export class DebtService {
   async catchUpAllDebts(userId: string) {
     const debts = await this.debtRepo.find({ where: { userId } });
     for (const debt of debts) {
-      await this.catchUpDebt(debt.id);
+      await this.catchUpDebt(debt.id, userId);
     }
     return this.debtRepo.find({ where: { userId }, relations: ['updates'] });
   }
@@ -249,8 +249,8 @@ export class DebtService {
     return names.map(n => n.name);
   }
 
-  async payInstallment(debtId: string, amount?: number, createTransaction = true, categoryId?: string) {
-    const debt = await this.debtRepo.findOne({ where: { id: debtId } });
+  async payInstallment(debtId: string, userId: string, amount?: number, createTransaction = true, categoryId?: string) {
+    const debt = await this.debtRepo.findOne({ where: { id: debtId, userId } });
     if (!debt) return null;
 
     // For institutional debts, use the fixed installment amount if not provided
@@ -264,9 +264,11 @@ export class DebtService {
     return this.debtRepo.findOne({ where: { id: debtId }, relations: ['updates'] });
   }
 
- async getDebtUpdates(id:string){
+ async getDebtUpdates(debtId: string, userId: string){
+  const debt = await this.debtRepo.findOne({ where: { id: debtId, userId } });
+  if (!debt) return [];
   return this.updateRepo.find({
-    where:{debtId:id},
+    where:{debtId},
     relations:['transaction'],
     order: { updateDate: 'DESC' },
   });
@@ -325,8 +327,8 @@ export class DebtService {
   return { success: true, message: "Payment update deleted successfully" };
  }
 
- async payEarly(debtId: string) {
-  const debt = await this.debtRepo.findOne({ where: { id: debtId } });
+ async payEarly(debtId: string, userId: string) {
+  const debt = await this.debtRepo.findOne({ where: { id: debtId, userId } });
   if (!debt) return null;
 
   // Only institutional debts with fixed schedules support early payment

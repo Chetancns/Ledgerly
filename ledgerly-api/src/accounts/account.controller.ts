@@ -10,19 +10,13 @@ export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
   @Get()
-  findAll(): Promise<Account[]> {
-    return this.accountService.findAll();
-  }
-  @Get('/accountusers')
-  findAllbyuser(@GetUser() user: { userId: string, email: string, name: string }): Promise<Account[] | null>{
-    //console.log('[GET /accountuser] user:', user);
+  findAll(@GetUser() user: { userId: string }): Promise<Account[] | null> {
     return this.accountService.findAllByUser(user.userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Account | null> {
-    //console.log(id);
-    return this.accountService.findOne(id);
+  findOne(@GetUser() user: { userId: string }, @Param('id') id: string): Promise<Account | null> {
+    return this.accountService.findOne(user.userId, id);
   }
   
   @Post()
@@ -31,13 +25,13 @@ export class AccountController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() account: Partial<Account>): Promise<Account|null> {
-    return this.accountService.update(id, account);
+  update(@GetUser() user: { userId: string }, @Param('id') id: string, @Body() account: Partial<Account>): Promise<Account|null> {
+    return this.accountService.update(user.userId, id, account);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.accountService.remove(id);
+  remove(@GetUser() user: { userId: string }, @Param('id') id: string): Promise<void> {
+    return this.accountService.remove(user.userId, id);
   }
   
 }

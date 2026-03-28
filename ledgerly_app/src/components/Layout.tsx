@@ -19,6 +19,7 @@ import UploadAudio from "./UploadAudio";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotificationTriggers } from "@/hooks/useNotificationTriggers";
+import { useNotifications } from "@/context/NotificationContext";
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import NotificationCenter from "./NotificationCenter";
@@ -75,15 +76,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const accountsItem = navItems.find((item) => item.href === "/accounts");
   const budgetItem = navItems.find((item) => item.href === "/budgets");
   const { user, loading, logoutapi } = useAuth();
+  const { clearAll } = useNotifications();
   useAuthRedirect(user, loading);
   
-  // Enable notification triggers for budgets, debts, and recurring payments
-  useNotificationTriggers();
+  // Only enable notification triggers once auth is confirmed to prevent
+  // API calls (and resulting toasts) before the user is authenticated.
+  useNotificationTriggers(!!user && !loading);
   
   // Enable keyboard navigation for onboarding
   useOnboardingKeyboard();
  //console.log("Layout user:", user);
   const logout = async () => {
+    clearAll(); // Clear notification state and localStorage before logging out
     await logoutapi();
     router.push("/login");
   };

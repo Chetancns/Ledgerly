@@ -2,8 +2,7 @@ import api from "./api";
 import { Category, CategoryType } from "../models/category";
 
 export async function getUserCategory() {
-    const res = await api.get("categories/categoryuser");
-    //console.log(res);
+    const res = await api.get("categories");
   return res.data;
 }
 

@@ -27,16 +27,20 @@ export class AccountService {
     return this.repo.find({ where: { IsDeleted: false } });
   }
 
-  async findOne(id: string): Promise<Account | null> {
-    return this.repo.findOne({ where: { id, IsDeleted: false } });
+  async findOne(userId: string, id: string): Promise<Account | null> {
+    return this.repo.findOne({ where: { id, userId, IsDeleted: false } });
   }
 
-  async update(id: string, account: Partial<Account>): Promise<Account | null> {
+  async update(userId: string, id: string, account: Partial<Account>): Promise<Account | null> {
+    const existing = await this.repo.findOne({ where: { id, userId, IsDeleted: false } });
+    if (!existing) return null;
     await this.repo.update(id, account);
-    return this.findOne(id);
+    return this.repo.findOne({ where: { id, userId, IsDeleted: false } });
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(userId: string, id: string): Promise<void> {
+    const existing = await this.repo.findOne({ where: { id, userId, IsDeleted: false } });
+    if (!existing) return;
     // Soft delete: set IsDeleted to true
     await this.repo.update(id, { IsDeleted: true });
   }
