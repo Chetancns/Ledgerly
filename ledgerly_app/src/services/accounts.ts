@@ -1,8 +1,7 @@
 import api from "./api";
 import { Account } from "../models/account";
 export async function getUserAccount() {
-    const res = await api.get<Account[]>("/accounts/accountusers");
-    //console.log(res);
+    const res = await api.get<Account[]>("/accounts");
     return res.data;
 }
 

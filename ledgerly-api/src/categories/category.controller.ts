@@ -12,10 +12,6 @@ export class CategoryController {
   findAll(@GetUser() user: { userId: string }): Promise<Category[] | null> {
     return this.categoryService.findAllByUser(user.userId);
   }
-  @Get('categoryuser')
-  findAllByUser(@GetUser() user: { userId: string, email: string, name: string }): Promise<Category[] | null>{
-    return this.categoryService.findAllByUser(user.userId);
-  }
 
   @Get(':id')
   findOne(@GetUser() user: { userId: string }, @Param('id') id: string): Promise<Category | null> {

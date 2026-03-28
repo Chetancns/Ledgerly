@@ -13,11 +13,6 @@ export class AccountController {
   findAll(@GetUser() user: { userId: string }): Promise<Account[] | null> {
     return this.accountService.findAllByUser(user.userId);
   }
-  @Get('/accountusers')
-  findAllbyuser(@GetUser() user: { userId: string, email: string, name: string }): Promise<Account[] | null>{
-    //console.log('[GET /accountuser] user:', user);
-    return this.accountService.findAllByUser(user.userId);
-  }
 
   @Get(':id')
   findOne(@GetUser() user: { userId: string }, @Param('id') id: string): Promise<Account | null> {
