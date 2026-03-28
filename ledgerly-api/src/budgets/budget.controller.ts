@@ -42,7 +42,7 @@ getBudget(
  deleteBudget(
    @GetUser() user: { userId: string },
    @Param('id') id: string){
-      return this.budgetService.deletebugets(user.userId, id);
+      return this.budgetService.deleteBudgets(user.userId, id);
     }
     @Post('/copyPrevious')
     copyPrevious(@GetUser() user: { userId: string },@Body() body:CopyPreviousDto){

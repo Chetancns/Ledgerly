@@ -126,7 +126,7 @@ export class BudgetsService {
   // console.log("new ",newBudgets);
   return this.budRepo.save(newBudgets);
 }
-async deletebugets(userId: string, id: string){
+async deleteBudgets(userId: string, id: string){
   const budget = await this.budRepo.findOne({ where: { id, userId } });
   if (!budget) return;
   await this.budRepo.delete(id);

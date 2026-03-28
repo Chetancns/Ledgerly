@@ -140,14 +140,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [shownNotificationIds, saveShownIds]);
 
-  // Load notifications on mount and poll periodically
+  // Load notifications on mount and poll periodically.
+  // Skip entirely on unauthenticated pages (login, signup) to avoid leaking
+  // data from stale session cookies before the user has actively authenticated.
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      const isAuthRoute = ["/login", "/signup", "/auth"].some((r) =>
+        pathname.startsWith(r)
+      );
+      if (isAuthRoute) return;
+    }
+
     refreshNotifications();
-    
+
     // Use configurable polling interval to reduce server load
     // Set NOTIFICATION_CONFIG.POLLING_INTERVAL to 0 to disable auto-polling entirely
     const pollingInterval = NOTIFICATION_CONFIG.POLLING_INTERVAL;
-    
+
     if (pollingInterval > 0) {
       const interval = setInterval(refreshNotifications, pollingInterval);
       return () => clearInterval(interval);
@@ -237,12 +247,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [refreshNotifications]);
 
   const clearAll = useCallback(async () => {
-    // Clear local notifications
+    // Clear local notifications and reset the shown-IDs set so that a
+    // subsequent login starts with a clean slate (no cross-session state).
     setNotifications([]);
-    
-    // Note: Backend doesn't have a "delete all" endpoint
-    // So we keep backend notifications but clear the UI
-    // User can delete individual backend notifications via removeNotification
+    setShownNotificationIds(new Set());
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(SHOWN_NOTIFICATIONS_KEY);
+    }
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;

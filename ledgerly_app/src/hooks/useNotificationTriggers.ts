@@ -18,11 +18,16 @@ const NOTIFIED_RECURRING_KEY = "ledgerly-notified-recurring";
  * 
  * Now uses local notifications only (not persisted to backend) to avoid
  * duplicates with auto-posted transaction notifications from backend.
+ * 
+ * @param isAuthenticated - Only run checks when the user is confirmed authenticated.
+ *   Pass `!!user && !loading` from useAuth to avoid firing API calls before auth is known.
  */
-export function useNotificationTriggers() {
+export function useNotificationTriggers(isAuthenticated: boolean) {
   const { addNotification } = useNotifications();
 
   useEffect(() => {
+    // Do nothing until we know the user is authenticated
+    if (!isAuthenticated) return;
     // Load what we've already notified about
     const getNotifiedSet = (key: string): Set<string> => {
       if (typeof window !== "undefined") {
@@ -186,5 +191,5 @@ export function useNotificationTriggers() {
     const interval = setInterval(runChecks, CHECK_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [addNotification]);
+  }, [addNotification, isAuthenticated]);
 }
