@@ -3,6 +3,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { getBudgets } from "@/services/budget";
 import { getUserDebts } from "@/services/debts";
 import { getRecurringTransactions } from "@/services/recurring";
+import { getPendingTransactions } from "@/services/transactions";
 
 // Check interval: every 5 minutes
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -11,9 +12,11 @@ const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const NOTIFIED_BUDGETS_KEY = "ledgerly-notified-budgets";
 const NOTIFIED_DEBTS_KEY = "ledgerly-notified-debts";
 const NOTIFIED_RECURRING_KEY = "ledgerly-notified-recurring";
+const PENDING_WITHOUT_EXPECTED_DATE_KEY = "ledgerly-pending-without-expected-date-signature";
 
 /**
- * Hook to check for budget limits, debt reminders, and recurring payments
+ * Hook to check for budget limits, debt reminders, recurring payments,
+ * and pending transactions missing expected post dates
  * and trigger notifications when appropriate.
  * 
  * Now uses local notifications only (not persisted to backend) to avoid
@@ -177,11 +180,62 @@ export function useNotificationTriggers(isAuthenticated: boolean) {
       }
     };
 
+    const checkPendingTransactionsWithoutExpectedDate = async () => {
+      try {
+        const pendingTransactions = await getPendingTransactions();
+
+        if (!Array.isArray(pendingTransactions)) {
+          return;
+        }
+
+        const missingExpectedDate = pendingTransactions.filter(
+          (transaction: any) => transaction.status === "pending" && !transaction.expectedPostDate,
+        );
+
+        const currentSignature = missingExpectedDate
+          .map((transaction: any) => transaction.id)
+          .sort()
+          .join(",");
+
+        const previousSignature =
+          typeof window !== "undefined"
+            ? localStorage.getItem(PENDING_WITHOUT_EXPECTED_DATE_KEY)
+            : null;
+
+        if (missingExpectedDate.length === 0) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(PENDING_WITHOUT_EXPECTED_DATE_KEY);
+          }
+          return;
+        }
+
+        if (currentSignature === previousSignature) {
+          return;
+        }
+
+        const transactionLabel = missingExpectedDate.length === 1 ? "transaction" : "transactions";
+
+        addNotification({
+          type: "warning",
+          title: "Pending Transactions Need Expected Dates",
+          message: `${missingExpectedDate.length} pending ${transactionLabel} ${missingExpectedDate.length === 1 ? "is" : "are"} missing an expected post date. Add one to track when it should clear.`,
+          actionUrl: "/transactions",
+        });
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem(PENDING_WITHOUT_EXPECTED_DATE_KEY, currentSignature);
+        }
+      } catch (error) {
+        console.error("Error checking pending transactions without expected post dates:", error);
+      }
+    };
+
     // Run checks on mount and periodically
     const runChecks = () => {
       checkBudgetLimits();
       checkDebtReminders();
       checkRecurringPayments();
+      checkPendingTransactionsWithoutExpectedDate();
     };
 
     // Run immediately

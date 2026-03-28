@@ -92,6 +92,10 @@ export default function Transactions() {
     transfer: 'bg-blue-100 text-blue-600',
   };
 
+  const pendingWithoutExpectedDate = transactions.filter(
+    (transaction) => transaction.status === 'pending' && !transaction.expectedPostDate,
+  );
+
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
@@ -463,6 +467,82 @@ export default function Transactions() {
 
         </div>
       </div>
+
+      {pendingWithoutExpectedDate.length > 0 && (
+        <div
+          className="mb-4 rounded-2xl border px-3 py-2.5"
+          style={{
+            background: theme === 'dark'
+              ? 'rgba(120, 53, 15, 0.16)'
+              : 'rgba(255, 247, 237, 0.96)',
+            borderColor: 'rgba(245, 158, 11, 0.28)',
+          }}
+        >
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-sm">
+                <span aria-hidden="true">⚠️</span>
+                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {pendingWithoutExpectedDate.length} pending transaction{pendingWithoutExpectedDate.length === 1 ? '' : 's'} missing an expected date
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {pendingWithoutExpectedDate.slice(0, 3).map((transaction) => {
+                  const account = accounts.find((item) => item.id === transaction.accountId);
+                  const category = categories.find((item) => item.id === transaction.categoryId);
+
+                  return (
+                    <button
+                      key={transaction.id}
+                      type="button"
+                      onClick={() => handleEdit(transaction)}
+                      className="rounded-full border px-2.5 py-1 text-xs transition hover:opacity-90"
+                      style={{
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-secondary)',
+                        borderColor: 'rgba(245, 158, 11, 0.22)',
+                      }}
+                    >
+                      {transaction.description?.trim() || category?.name || 'Pending transaction'}
+                      {' • '}
+                      {account?.name || 'Unknown account'}
+                    </button>
+                  );
+                })}
+                {pendingWithoutExpectedDate.length > 3 && (
+                  <span
+                    className="rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    +{pendingWithoutExpectedDate.length - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 lg:flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedStatus('pending');
+                  setCurrentPage(1);
+                }}
+                className="rounded-full px-3 py-1.5 text-xs font-semibold transition hover:opacity-90"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.14)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid rgba(245, 158, 11, 0.28)',
+                }}
+              >
+                Show pending only
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination Controls */}
       {usePagination && totalTransactions > 0 && (
