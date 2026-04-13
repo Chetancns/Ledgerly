@@ -475,8 +475,8 @@ const stopRecording = () => {
               className="backdrop-blur-xl rounded-t-3xl md:rounded-3xl p-6 w-full md:max-w-md shadow-2xl animate-slideUp max-h-[80vh] overflow-y-auto"
               style={{
                 background: theme === 'dark' 
-                  ? "linear-gradient(135deg, rgba(49, 46, 129, 0.98), rgba(88, 28, 135, 0.98))"
-                  : "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98))",
+                  ? "linear-gradient(160deg, rgba(6, 25, 55, 0.98), rgba(2, 15, 40, 0.98))"
+                  : "linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(224, 242, 251, 0.98))",
                 border: "1px solid var(--border-primary)",
               }}
             >
@@ -515,7 +515,7 @@ const stopRecording = () => {
                         background: isActive ? "var(--accent-primary)" : "var(--bg-card)",
                         border: `2px solid ${isActive ? "var(--accent-primary)" : "var(--border-primary)"}`,
                         color: isActive ? "var(--text-inverse)" : "var(--text-primary)",
-                        boxShadow: isActive ? "0 8px 24px rgba(59, 130, 246, 0.3)" : "none",
+                        boxShadow: isActive ? "0 8px 24px rgba(56, 189, 248, 0.28)" : "none",
                       }}
                     >
                       <div className="text-4xl">{item.icon}</div>
@@ -624,8 +624,8 @@ const stopRecording = () => {
               className="backdrop-blur-xl rounded-2xl p-6 w-full max-w-md relative shadow-xl flex flex-col gap-6"
               style={{
                 background: theme === 'dark' 
-                  ? "rgba(49, 46, 129, 0.95)"
-                  : "rgba(255, 255, 255, 0.95)",
+                  ? "rgba(6, 20, 50, 0.97)"
+                  : "rgba(255, 255, 255, 0.97)",
                 border: "1px solid var(--border-primary)",
               }}
               onDragOver={(e) => e.preventDefault()}

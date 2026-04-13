@@ -19,12 +19,12 @@ export default function NeumorphicInput({
 
   const textColor = isDark ? "text-white" : "text-black";
   const softShadow = isDark
-    ? "shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33]"
-    : "shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff]";
+    ? "shadow-[6px_6px_14px_#020810,-6px_-6px_14px_#0c1a2e]"
+    : "shadow-[4px_4px_10px_#c8dded,-4px_-4px_10px_#ffffff]";
 
   const focusShadow = isDark
-    ? "shadow-[inset_4px_4px_10px_#0e0f11,inset_-4px_-4px_10px_#2c2f33]"
-    : "shadow-[inset_3px_3px_8px_#d1d1d4,inset_-3px_-3px_8px_#ffffff]";
+    ? "shadow-[inset_4px_4px_10px_#020810,inset_-4px_-4px_10px_#0c1a2e]"
+    : "shadow-[inset_3px_3px_8px_#c8dded,inset_-3px_-3px_8px_#ffffff]";
 
   return (
     <motion.div
@@ -52,7 +52,7 @@ export default function NeumorphicInput({
           transition-all duration-200
         `}
         style={{
-          background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
+          background: isDark ? 'rgba(148, 197, 233, 0.07)' : 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(12px)'
         }}
         whileFocus={{
