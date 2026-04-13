@@ -608,7 +608,7 @@ export default function Transactions() {
       <li
         key={t.id}
         className={clsx(`
-          relative flex flex-col backdrop-blur-xl shadow-md
+          relative flex flex-col shadow-md
           border rounded-2xl p-3 transition-all duration-300
           hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]
           min-h-[200px]
