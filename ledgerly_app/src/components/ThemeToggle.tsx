@@ -30,11 +30,11 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
       <div
         className="relative w-14 h-8 rounded-full p-1 transition-colors duration-300"
         style={{
-          backgroundColor: isDark ? "rgba(139, 92, 246, 0.3)" : "rgba(251, 191, 36, 0.3)",
-          border: `2px solid ${isDark ? "rgba(139, 92, 246, 0.5)" : "rgba(251, 191, 36, 0.5)"}`,
+          backgroundColor: isDark ? "rgba(56, 189, 248, 0.2)" : "rgba(2, 132, 199, 0.15)",
+          border: `2px solid ${isDark ? "rgba(56, 189, 248, 0.45)" : "rgba(2, 132, 199, 0.35)"}`,
         }}
       >
-        {/* Sun icon */}
+        {/* Sun / day icon */}
         <motion.div
           className="absolute left-1.5 top-1/2 -translate-y-1/2"
           animate={{
@@ -44,7 +44,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
           transition={{ duration: 0.2 }}
         >
           <svg
-            className="w-4 h-4 text-yellow-400"
+            className="w-4 h-4 text-sky-300"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -56,7 +56,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
           </svg>
         </motion.div>
 
-        {/* Moon icon */}
+        {/* Moon / night icon */}
         <motion.div
           className="absolute right-1.5 top-1/2 -translate-y-1/2"
           animate={{
@@ -66,7 +66,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
           transition={{ duration: 0.2 }}
         >
           <svg
-            className="w-4 h-4 text-purple-300"
+            className="w-4 h-4 text-sky-200"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -78,7 +78,7 @@ export default function ThemeToggle({ className = "", showLabel = false }: Theme
         <motion.div
           className="w-5 h-5 rounded-full shadow-md"
           style={{
-            backgroundColor: isDark ? "#8b5cf6" : "#fbbf24",
+            backgroundColor: isDark ? "#38bdf8" : "#0284c7",
           }}
           animate={{
             x: isDark ? 22 : 0,

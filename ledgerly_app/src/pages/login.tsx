@@ -80,12 +80,12 @@ export default function Login() {
     {/* Animated background elements */}
     <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20 blur-3xl animate-pulse"
       style={{
-        background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
+        background: "linear-gradient(135deg, #0284c7, #0ea5e9)",
       }}
     />
     <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full opacity-20 blur-3xl animate-pulse"
       style={{
-        background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+        background: "linear-gradient(135deg, #0ea5e9, #22d3ee)",
       }}
     />
 
@@ -109,8 +109,8 @@ export default function Login() {
         className="grid grid-cols-1 md:grid-cols-2 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden border"
         style={{
           background: theme === 'dark'
-            ? "rgba(17, 24, 39, 0.8)"
-            : "rgba(255, 255, 255, 0.9)",
+            ? "rgba(6, 14, 30, 0.85)"
+            : "rgba(255, 255, 255, 0.92)",
           borderColor: "var(--border-primary)",
         }}
       >
@@ -120,8 +120,8 @@ export default function Login() {
           className="hidden md:flex flex-col justify-center items-center p-8 lg:p-10 space-y-8 relative overflow-hidden"
           style={{
             background: theme === 'dark' 
-              ? "linear-gradient(135deg, rgba(88, 28, 135, 0.95), rgba(49, 46, 129, 0.95))"
-              : "linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(79, 70, 229, 0.95))",
+              ? "linear-gradient(160deg, rgba(5, 40, 80, 0.97), rgba(2, 20, 50, 0.97))"
+              : "linear-gradient(160deg, rgba(2, 132, 199, 0.92), rgba(14, 165, 233, 0.92))",
           }}
         >
           <div className="space-y-6 text-center">

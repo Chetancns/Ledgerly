@@ -34,7 +34,7 @@ export default function ModernButton({
   children,
   onClick,
   type = "button",
-  color = "indigo-600",
+  color = "sky-600",
   variant = "solid",
   size = "md",
   theme = "light",
