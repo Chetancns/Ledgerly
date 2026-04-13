@@ -179,10 +179,11 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
         className={`flex flex-wrap gap-2 p-3 rounded-2xl border cursor-text transition-all ${
           theme === "dark"
             ? "border-white/5 shadow-[6px_6px_14px_#0e0f11,-6px_-6px_14px_#2c2f33]"
-            : "border-black/10 shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff]"
+            : "shadow-[4px_4px_10px_#c0d4e6,-4px_-4px_10px_#f0f8ff]"
         } ${showPanel ? "ring-2 ring-blue-500" : ""}`}
         style={{
-          background: theme === "dark" ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
+          background: theme === "dark" ? 'rgba(255, 255, 255, 0.1)' : 'var(--input-bg)',
+          border: theme === "dark" ? undefined : '1px solid var(--input-border)',
           backdropFilter: 'blur(12px)'
         }}
       >
@@ -218,9 +219,8 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
           onChange={e => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={selectedTags.length === 0 ? placeholder : ""}
-          className={`flex-1 min-w-[120px] bg-transparent outline-none ${
-            theme === "dark" ? "text-white" : "text-gray-900"
-          }`}
+          className={`flex-1 min-w-[120px] bg-transparent outline-none`}
+          style={{ color: 'var(--input-text)' }}
         />
       </div>
 
@@ -230,11 +230,12 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
           ref={panelRef}
           className={`absolute left-0 top-full mt-2 w-full z-[9999] rounded-2xl border shadow-2xl p-4 max-h-80 overflow-auto ${
             theme === "dark"
-              ? "border-white/10 shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33]"
-              : "border-black/10 shadow-[4px_4px_10px_#d1d1d4,-4px_-4px_10px_#ffffff]"
+              ? "shadow-[8px_8px_18px_#0e0f11,-8px_-8px_18px_#2c2f33]"
+              : "shadow-[4px_4px_10px_#c0d4e6,-4px_-4px_10px_#f0f8ff]"
           }`}
           style={{
-            background: theme === "dark" ? 'rgba(29, 31, 36, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            background: theme === "dark" ? 'rgba(29, 31, 36, 0.95)' : 'var(--bg-secondary)',
+            border: `1px solid var(--border-primary)`,
             backdropFilter: 'blur(12px)'
           }}
         >
@@ -248,17 +249,19 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
                   className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
                     theme === "dark"
                       ? "border-gray-600 hover:bg-gray-700 hover:border-blue-500"
-                      : "border-gray-300 hover:bg-gray-100 hover:border-blue-500"
+                      : "hover:border-blue-500"
                   }`}
                   style={{
-                    backgroundColor: theme === "dark" ? `${tag.color}10` : `${tag.color}05`,
+                    backgroundColor: theme === "dark" ? `${tag.color}10` : `${tag.color}08`,
+                    borderColor: theme === "dark" ? undefined : 'var(--border-primary)',
                   }}
                 >
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: tag.color }}
                   />
-                  <span className={`text-sm font-medium whitespace-nowrap ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  <span className={`text-sm font-medium whitespace-nowrap ${theme === "dark" ? "text-white" : ""}`}
+                        style={theme === "dark" ? undefined : { color: 'var(--text-primary)' }}>
                     {tag.name}
                   </span>
                 </button>
@@ -279,8 +282,8 @@ export default function TagInput({ value, onChange, placeholder = "Add tags...",
             </button>
           ) : (
             <div className={`text-center py-8 text-sm ${
-              theme === "dark" ? "text-gray-400" : "text-gray-500"
-            }`}>
+              theme === "dark" ? "text-gray-400" : ""
+            }`} style={theme === "dark" ? undefined : { color: 'var(--text-muted)' }}>
               <TagIcon size={32} className="mx-auto mb-2 opacity-50" />
               <p>No tags available</p>
               <p className="text-xs mt-1">Type to create a new tag</p>

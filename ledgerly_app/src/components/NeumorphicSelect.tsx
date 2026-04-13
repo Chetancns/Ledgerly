@@ -41,11 +41,11 @@ export default function NeumorphicSelect({
 
   const triggerStyle = isDark
     ? "shadow-[6px_6px_14px_#020810,-6px_-6px_14px_#0c1a2e]"
-    : "shadow-[4px_4px_10px_#c8dded,-4px_-4px_10px_#ffffff]";
+    : "shadow-[4px_4px_10px_#c0d4e6,-4px_-4px_10px_#f0f8ff]";
 
   const dropdownStyle = isDark
     ? "shadow-[8px_8px_18px_#020810,-8px_-8px_18px_#0c1a2e]"
-    : "shadow-[4px_4px_10px_#c8dded,-4px_-4px_10px_#ffffff]";
+    : "shadow-[4px_4px_10px_#c0d4e6,-4px_-4px_10px_#f0f8ff]";
 
   const textMuted = "opacity-60";
   const textPrimary = "";

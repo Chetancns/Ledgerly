@@ -17,14 +17,13 @@ export default function NeumorphicInput({
 }: NeumorphicInputProps) {
   const isDark = theme === "dark";
 
-  const textColor = isDark ? "text-white" : "text-black";
   const softShadow = isDark
     ? "shadow-[6px_6px_14px_#020810,-6px_-6px_14px_#0c1a2e]"
-    : "shadow-[4px_4px_10px_#c8dded,-4px_-4px_10px_#ffffff]";
+    : "shadow-[4px_4px_10px_#c0d4e6,-4px_-4px_10px_#f0f8ff]";
 
   const focusShadow = isDark
     ? "shadow-[inset_4px_4px_10px_#020810,inset_-4px_-4px_10px_#0c1a2e]"
-    : "shadow-[inset_3px_3px_8px_#c8dded,inset_-3px_-3px_8px_#ffffff]";
+    : "shadow-[inset_3px_3px_8px_#c0d4e6,inset_-3px_-3px_8px_#f0f8ff]";
 
   return (
     <motion.div
@@ -47,12 +46,12 @@ export default function NeumorphicInput({
         placeholder={placeholder}
         className={`
           w-full px-4 py-3 rounded-2xl outline-none
-          ${textColor} ${softShadow}
-          placeholder:${isDark ? "text-white/40" : "text-black/40"}
+          ${softShadow}
           transition-all duration-200
         `}
         style={{
-          background: isDark ? 'rgba(148, 197, 233, 0.07)' : 'rgba(255, 255, 255, 0.95)',
+          background: isDark ? 'rgba(148, 197, 233, 0.07)' : 'var(--input-bg)',
+          color: 'var(--input-text)',
           backdropFilter: 'blur(12px)'
         }}
         whileFocus={{
