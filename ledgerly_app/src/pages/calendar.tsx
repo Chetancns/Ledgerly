@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import Layout from "../components/Layout";
 import dayjs from "dayjs";
 import toast from "react-hot-toast";
@@ -11,6 +11,8 @@ import { getRecurringTransactions } from "@/services/recurring";
 import { getUserAccount } from "@/services/accounts";
 import { getUserCategory } from "@/services/category";
 import { useTheme } from "@/context/ThemeContext";
+import { Skeleton } from "@/components/Skeleton";
+import SegmentedControl from "@/components/SegmentedControl";
 
 interface DailyAggregate {
   date: string; // YYYY-MM-DD
@@ -20,6 +22,8 @@ interface DailyAggregate {
   netCashflow: number;
   count?: number;
 }
+
+type TxnFilter = "all" | "income" | "expense" | "savings" | "transfer";
 
 export default function CalendarPage() {
   const { formatCompact } = useCurrencyFormatter();
@@ -32,6 +36,7 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [dayTxns, setDayTxns] = useState<any[]>([]);
   const [dayLoading, setDayLoading] = useState(false);
+  const [txnFilter, setTxnFilter] = useState<TxnFilter>("all");
   const [recurringMarks, setRecurringMarks] = useState<Record<string, Array<{ name: string; amount?: number; type?: string }>>>({});
   const [accountNames, setAccountNames] = useState<Record<string, string>>({});
   const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
@@ -149,6 +154,7 @@ export default function CalendarPage() {
 
   const onDayClick = async (date: string) => {
     setSelectedDay(date);
+    setTxnFilter("all");
     setDayLoading(true);
     try {
       const txnsRes = await getTransactionsWithPagination({ from: date, to: date, skip: 0, take: 50 });
@@ -177,6 +183,16 @@ export default function CalendarPage() {
 
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+  const handleMonthNavByKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const activeTag = (document.activeElement as HTMLElement | null)?.tagName;
+    if (activeTag === "INPUT" || activeTag === "TEXTAREA") return;
+    e.preventDefault();
+    const nextDate = e.key === "ArrowLeft" ? startOfMonth.subtract(1, "month") : startOfMonth.add(1, "month");
+    setMonth(nextDate.month() + 1);
+    setYear(nextDate.year());
+  };
+
   // Calculate monthly totals
   const monthlyTotals = useMemo(() => {
     return Object.values(daily).reduce(
@@ -192,6 +208,19 @@ export default function CalendarPage() {
 
   // Memoize today's date string for comparison
   const todayStr = useMemo(() => today.format("YYYY-MM-DD"), [today]);
+
+  const filteredDayTxns = useMemo(() => {
+    if (txnFilter === "all") return dayTxns;
+    return dayTxns.filter((t: any) => t?.type === txnFilter);
+  }, [dayTxns, txnFilter]);
+
+  const txnFilterOptions = [
+    { value: "all", label: `All (${dayTxns.length})`, icon: "🧾" },
+    { value: "income", label: "Income", icon: "💰" },
+    { value: "expense", label: "Expense", icon: "💸" },
+    { value: "savings", label: "Savings", icon: "🏦" },
+    { value: "transfer", label: "Transfer", icon: "🔀" },
+  ];
 
   return (
     <Layout>
@@ -214,32 +243,37 @@ export default function CalendarPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="shadow-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-4 sm:mb-6"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+            className="shadow-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 mb-4 sm:mb-6 backdrop-blur-xl"
+            style={{
+              background: theme === "dark"
+                ? "linear-gradient(160deg, rgba(148,197,233,0.08), rgba(148,197,233,0.03))"
+                : "linear-gradient(160deg, rgba(255,255,255,0.9), rgba(240,247,252,0.95))",
+              border: "1px solid var(--border-primary)",
+            }}
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              <div className="text-center p-3 sm:p-4 rounded-xl" style={{ background: "var(--bg-card-hover)" }}>
+              <div className="text-center p-3 sm:p-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5" style={{ background: "var(--bg-card-hover)" }}>
                 <div className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>Total Income</div>
                 <div className="text-xl sm:text-2xl font-bold text-emerald-400 flex items-center justify-center gap-1">
                   <span>💰</span>
                   {formatCompact(monthlyTotals.income)}
                 </div>
               </div>
-              <div className="text-center p-3 sm:p-4 rounded-xl" style={{ background: "var(--bg-card-hover)" }}>
+              <div className="text-center p-3 sm:p-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5" style={{ background: "var(--bg-card-hover)" }}>
                 <div className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>Total Expenses</div>
                 <div className="text-xl sm:text-2xl font-bold text-rose-400 flex items-center justify-center gap-1">
                   <span>💸</span>
                   {formatCompact(monthlyTotals.expense)}
                 </div>
               </div>
-              <div className="text-center p-3 sm:p-4 rounded-xl" style={{ background: "var(--bg-card-hover)" }}>
+              <div className="text-center p-3 sm:p-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5" style={{ background: "var(--bg-card-hover)" }}>
                 <div className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>Total Savings</div>
                 <div className="text-xl sm:text-2xl font-bold text-blue-400 flex items-center justify-center gap-1">
                   <span>🏦</span>
                   {formatCompact(monthlyTotals.savings)}
                 </div>
               </div>
-              <div className="text-center p-3 sm:p-4 rounded-xl" style={{ background: "var(--bg-card-hover)" }}>
+              <div className="text-center p-3 sm:p-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5" style={{ background: "var(--bg-card-hover)" }}>
                 <div className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>Net Cashflow</div>
                 <div className={clsx("text-xl sm:text-2xl font-bold flex items-center justify-center gap-1", 
                   monthlyTotals.net >= 0 ? "text-emerald-400" : "text-rose-400"
@@ -253,13 +287,17 @@ export default function CalendarPage() {
         )}
 
         {/* Enhanced Navigation Controls */}
-        <div className="shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-4 sm:mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+        <div
+          className="shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-4 sm:mb-6"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          onKeyDown={handleMonthNavByKey}
+        >
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 flex-1">
               <select
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 font-semibold transition-all hover:scale-105"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 font-semibold transition-all hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 {months.map((m, i) => (
@@ -269,7 +307,7 @@ export default function CalendarPage() {
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 font-semibold transition-all hover:scale-105"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 font-semibold transition-all hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
                 {Array.from({ length: 6 }).map((_, i) => {
@@ -283,8 +321,9 @@ export default function CalendarPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { const prev = startOfMonth.subtract(1, "month"); setMonth(prev.month() + 1); setYear(prev.year()); }}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 sm:flex-none font-semibold shadow-md hover:shadow-lg transition-all"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 sm:flex-none font-semibold shadow-md hover:shadow-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                aria-label="Go to previous month"
               >
                 ◀ Prev
               </motion.button>
@@ -292,12 +331,13 @@ export default function CalendarPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { setMonth(today.month() + 1); setYear(today.year()); }}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base font-semibold shadow-md hover:shadow-lg transition-all"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base font-semibold shadow-md hover:shadow-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 style={{ 
                   background: "linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3))", 
                   color: "var(--text-primary)",
                   border: "1px solid rgba(59, 130, 246, 0.5)"
                 }}
+                aria-label="Jump to current month"
               >
                 📍 Today
               </motion.button>
@@ -305,8 +345,9 @@ export default function CalendarPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { const next = startOfMonth.add(1, "month"); setMonth(next.month() + 1); setYear(next.year()); }}
-                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 sm:flex-none font-semibold shadow-md hover:shadow-lg transition-all"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base flex-1 sm:flex-none font-semibold shadow-md hover:shadow-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                aria-label="Go to next month"
               >
                 Next ▶
               </motion.button>
@@ -316,7 +357,7 @@ export default function CalendarPage() {
 
         {/* Legend/Key */}
         <div className="shadow-xl rounded-2xl sm:rounded-3xl p-3 sm:p-4 mb-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-          <div className="flex flex-wrap gap-3 sm:gap-4 items-center justify-center text-xs sm:text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 items-center text-xs sm:text-sm">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-emerald-500/30 border border-emerald-400/50"></div>
               <span style={{ color: "var(--text-muted)" }}>Income</span>
@@ -333,19 +374,39 @@ export default function CalendarPage() {
               <div className="w-3 h-3 rounded bg-gray-500/30 border border-gray-400/50"></div>
               <span style={{ color: "var(--text-muted)" }}>Transfer</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">Recurring</div>
+            <div className="flex items-center gap-1.5 col-span-2 md:col-span-1 justify-center md:justify-start">
+              <div className="px-2 py-0.5 rounded-full text-[10px] bg-violet-500/20 text-violet-200 border border-violet-400/40">Recurring</div>
               <span style={{ color: "var(--text-muted)" }}>Scheduled</span>
             </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="shadow-xl rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-            <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin text-4xl">⏳</div>
-              <div className="text-lg sm:text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Loading calendar data...</div>
-              <div className="text-sm" style={{ color: "var(--text-muted)" }}>Fetching your financial timeline</div>
+          <div className="shadow-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+              {[...Array(7)].map((_, idx) => (
+                <Skeleton key={`header-${idx}`} height="h-7" rounded="lg" className="w-full" />
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              {[...Array(35)].map((_, idx) => (
+                <div
+                  key={`cell-${idx}`}
+                  className="rounded-xl sm:rounded-2xl p-2 sm:p-3 h-32 sm:h-36"
+                  style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-primary)" }}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <Skeleton width="w-6" height="h-5" rounded="md" />
+                    <Skeleton width="w-8" height="h-4" rounded="md" />
+                  </div>
+                  <Skeleton width="w-full" height="h-2" rounded="full" className="mb-2" />
+                  <Skeleton width="w-3/4" height="h-4" rounded="lg" className="mb-1.5" />
+                  <Skeleton width="w-2/3" height="h-4" rounded="lg" />
+                </div>
+              ))}
+            </div>
+            <div className="text-center mt-4 text-sm" style={{ color: "var(--text-muted)" }}>
+              Preparing your monthly snapshot...
             </div>
           </div>
         ) : (
@@ -389,7 +450,7 @@ export default function CalendarPage() {
                     onClick={() => c.date && onDayClick(c.date)}
                     disabled={!c.date}
                     className={clsx(
-                      "rounded-xl sm:rounded-2xl p-2 sm:p-3 h-32 sm:h-36 text-left overflow-hidden transition-all relative",
+                      "rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5 h-32 sm:h-36 text-left overflow-hidden transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400",
                       c.date ? "shadow-md hover:shadow-xl cursor-pointer" : "bg-transparent cursor-default",
                       isToday ? "ring-2 ring-blue-500" : ""
                     )}
@@ -497,15 +558,14 @@ export default function CalendarPage() {
                         {recurringMarks[c.date].slice(0, 2).map((r, idx) => (
                           <span
                             key={idx}
-                            className={clsx(
-                              "text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full border font-semibold shadow-sm",
-                              r.type === "income"
-                                ? "bg-emerald-500/25 text-emerald-200 border-emerald-400/50"
-                                : "bg-rose-500/25 text-rose-200 border-rose-400/50"
-                            )}
-                            title={`Recurring ${r.type}: ${formatCompact(Number(r.amount || 0))}`}
+                            className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full border font-semibold shadow-sm bg-violet-500/25 text-violet-200 border-violet-400/50"
+                            title={`Scheduled recurring ${r.type}: ${formatCompact(Number(r.amount || 0))}`}
                           >
-                            {r.type === "income" ? "💰" : "💸"} {formatCompact(Number(r.amount || 0))}
+                            <span className="mr-0.5">🔁</span>
+                            <span className={r.type === "income" ? "text-emerald-200" : "text-rose-200"}>
+                              {r.type === "income" ? "+" : "-"}
+                            </span>
+                            {formatCompact(Number(r.amount || 0))}
                           </span>
                         ))}
                         {recurringMarks[c.date].length > 2 && (
@@ -654,23 +714,47 @@ export default function CalendarPage() {
               
               {/* Transactions List */}
               {dayLoading ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <div className="animate-spin text-3xl">⏳</div>
-                  <div className="text-base" style={{ color: "var(--text-primary)" }}>Loading transactions...</div>
+                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                  {[...Array(5)].map((_, idx) => (
+                    <div
+                      key={`txn-skeleton-${idx}`}
+                      className="p-3 sm:p-4 rounded-xl"
+                      style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-primary)" }}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <Skeleton width="w-32" height="h-5" rounded="md" />
+                        <Skeleton width="w-20" height="h-5" rounded="md" />
+                      </div>
+                      <Skeleton width="w-3/4" height="h-4" rounded="md" className="mb-1.5" />
+                      <Skeleton width="w-1/2" height="h-3" rounded="md" />
+                    </div>
+                  ))}
                 </div>
               ) : (
+                <>
+                  <div className="mb-3 sm:mb-4">
+                    <SegmentedControl
+                      options={txnFilterOptions}
+                      value={txnFilter}
+                      onChange={(value) => setTxnFilter(value as TxnFilter)}
+                      size="sm"
+                      className="w-full"
+                    />
+                  </div>
                 <div 
                   className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin"
                   role="list"
                   aria-label="Transactions for selected day"
                 >
-                  {dayTxns.length === 0 ? (
+                  {filteredDayTxns.length === 0 ? (
                     <div className="text-center py-8 rounded-xl" style={{ background: "var(--bg-card-hover)", color: "var(--text-muted)" }}>
                       <div className="text-3xl mb-2">📭</div>
-                      <div className="text-sm">No transactions for this day</div>
+                      <div className="text-sm">
+                        {txnFilter === "all" ? "No transactions for this day" : `No ${txnFilter} transactions found`}
+                      </div>
                     </div>
                   ) : (
-                    dayTxns.map((t: any) => {
+                    filteredDayTxns.map((t: any) => {
                       const typeColor = t.type === "income" ? "text-emerald-300" : t.type === "expense" ? "text-rose-300" : t.type === "savings" ? "text-blue-300" : t.type === "transfer" ? "text-gray-300" : "";
                       const typeBadge = t.type === "income" ? "Income" : t.type === "expense" ? "Expense" : t.type === "savings" ? "Savings" : t.type === "transfer" ? "Transfer" : "";
                       const typeIcon = t.type === "income" ? "💰" : t.type === "expense" ? "💸" : t.type === "savings" ? "🏦" : t.type === "transfer" ? "🔀" : "";
@@ -727,6 +811,7 @@ export default function CalendarPage() {
                     })
                   )}
                 </div>
+                </>
               )}
             </motion.div>
           </motion.div>

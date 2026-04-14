@@ -251,6 +251,15 @@ select option {
   animation: scale-in 0.2s ease-out;
 }
 
+/* Consistent keyboard focus treatment across interactive controls */
+button:focus-visible,
+select:focus-visible,
+[role="tab"]:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 /* Fix bottom white space for mobile safe area */
 nav.fixed.bottom-0 {
   padding-bottom: env(safe-area-inset-bottom);
