@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [cashflowData, setCashFlowData]  = useState<CashflowRow[]>([]);
   const [catHeatmap,setCatHeatmap] = useState<CategoryRow[]>([]);
   const [view, setView] = useState<"income" | "expense">("expense");
+  const [budgetView, setBudgetView] = useState<"income" | "expense">("expense");
   const [filter, setFilter] = useState<'all' | 'overspent' |'within_budget' | 'no_budget'>('all');
   const { format } = useCurrencyFormatter();
 
@@ -42,6 +43,17 @@ export default function Dashboard() {
       return c.status === filter;
     }) || []);
   }, [budgetReports, filter]);
+
+  const filteredBudgetByType = useMemo(() => {
+    const categoryTypeMap = new Map<string, string | undefined>(
+      categories.map((c) => [c.id, c.type])
+    );
+
+    return filteredCategories.filter((c) => {
+      const type = categoryTypeMap.get(c.categoryId);
+      return type === budgetView;
+    });
+  }, [filteredCategories, categories, budgetView]);
 
 useEffect(() => {
   if (filter === 'overspent') {
@@ -660,10 +672,42 @@ useEffect(() => {
             boxShadow: "var(--shadow-lg)",
             color: "var(--text-primary)",
           }}>
-        <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-          📦 Budget by Category
-        </h2>
-        <BarChartComponent data={filteredCategories} />
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h2 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+            📦 Budget by Category
+          </h2>
+          <button
+            onClick={() => setBudgetView(budgetView === "income" ? "expense" : "income")}
+            className="px-3 py-1.5 rounded-md text-xs sm:text-sm min-h-[36px]"
+            style={{
+              backgroundColor: "var(--bg-card-hover)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border-primary)",
+            }}
+          >
+            {budgetView === "income" ? "💸 Show Expense" : "💰 Show Income"}
+          </button>
+        </div>
+        {filteredBudgetByType.length === 0 ? (
+          <p style={{ color: "var(--text-muted)" }}>
+            No {budgetView} categories found for this period
+          </p>
+        ) : (
+          <>
+            <BarChartComponent data={filteredBudgetByType} />
+            <div
+              style={{
+                marginTop: "0.75rem",
+                textAlign: "center",
+                fontSize: "0.9rem",
+                fontWeight: 500,
+                color: "var(--text-muted)",
+              }}
+            >
+              {budgetView === "income" ? "💰 Viewing Budget vs Actual for Income Categories" : "💸 Viewing Budget vs Actual for Expense Categories"}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="rounded-2xl p-4 sm:p-6" style={{

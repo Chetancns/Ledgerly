@@ -63,11 +63,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     "/transactions",
     "/accounts",
     "/categories",
-    "/tags",
+    "/recurring",
     "/budgets",
     "/calendar",
     "/insights",
-    "/profile",
+    "/debts",
   ]);
   const primaryNavItems = navItems.filter((item) => primaryNavHrefs.has(item.href));
   const secondaryNavItems = navItems.filter((item) => !primaryNavHrefs.has(item.href));

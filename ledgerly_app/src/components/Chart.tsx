@@ -125,7 +125,7 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
     return `hsl(${hue}, 70%, 60%)`;
   }
 
-  const chartColors = useMemo(() => data.map((d) => stringToColor(d.name || d.category || "")), [data]);
+  const chartColors = useMemo(() => data.map((d) => stringToColor(d.name || "")), [data]);
   return (
     <ResponsiveContainer width="100%" height={250}>
       <PieChart>
