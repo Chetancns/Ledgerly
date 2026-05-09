@@ -94,6 +94,9 @@ NODE_ENV=development
 # OpenAI (optional for AI features)
 OPENAI_API_KEY=sk-your-api-key
 
+# Note: OCR_API_URL is no longer needed.
+# Receipt parsing now uses OpenAI Vision directly.
+
 # CORS
 CORS_ORIGIN=http://localhost:3000,http://192.168.1.50:3000
 ```

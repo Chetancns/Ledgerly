@@ -7,6 +7,8 @@ import {
   createOrUpdateBudget,
   deleteBudget,
   copyPreviousBudgets,
+  getAIBudgetSuggestions,
+  AIBudgetSuggestion,
 } from "@/services/budget";
 import { getBudgetUtilizations } from "@/services/budget";
 import { TrashIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, PlusIcon } from "@heroicons/react/24/solid";
@@ -193,6 +195,9 @@ export default function BudgetsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<AIBudgetSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [applyingSuggestions, setApplyingSuggestions] = useState(false);
   const mountedRef = useRef(false);
 
   const categoryMap = useMemo(() => {
@@ -372,6 +377,49 @@ export default function BudgetsPage() {
 
   const isEmpty = !loading && budgets.length === 0;
 
+  const handleLoadSuggestions = useCallback(async () => {
+    try {
+      setLoadingSuggestions(true);
+      const suggestions = await getAIBudgetSuggestions(3);
+      setAiSuggestions(suggestions || []);
+      if (!suggestions?.length) {
+        toast("No suggestions available yet. Add a few transactions first.");
+      }
+    } catch (err) {
+      console.error("Failed to fetch AI budget suggestions", err);
+      toast.error("Failed to fetch AI suggestions.");
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, []);
+
+  const handleApplySuggestions = useCallback(async () => {
+    if (!aiSuggestions.length) return;
+    try {
+      setApplyingSuggestions(true);
+      await Promise.all(
+        aiSuggestions.map((s) =>
+          createOrUpdateBudget({
+            categoryId: s.categoryId,
+            amount: s.amount,
+            period: "monthly",
+            startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
+            endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
+            carriedOver: false,
+          })
+        )
+      );
+      toast.success(`Applied ${aiSuggestions.length} AI budget suggestion(s).`);
+      setAiSuggestions([]);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to apply AI budget suggestions", err);
+      toast.error("Failed to apply AI suggestions.");
+    } finally {
+      setApplyingSuggestions(false);
+    }
+  }, [aiSuggestions, loadData]);
+
   return (
     <Layout>
       <div className="min-h-screen p-6" style={{ color: "var(--text-primary)" }}>
@@ -518,6 +566,62 @@ export default function BudgetsPage() {
         </div>
 
         <AnimatePresence mode="wait">
+          {isEmpty && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-5 rounded-2xl backdrop-blur-lg"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+            >
+              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+                First budget setup
+              </h2>
+              <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
+                Let AI suggest monthly budgets based on your last 1–3 months of spending.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <ModernButton
+                  onClick={handleLoadSuggestions}
+                  color="indigo-600"
+                  variant="solid"
+                  disabled={loadingSuggestions || applyingSuggestions}
+                >
+                  {loadingSuggestions ? "Loading AI Suggestions..." : "Let AI suggest budgets"}
+                </ModernButton>
+                {aiSuggestions.length > 0 && (
+                  <ModernButton
+                    onClick={handleApplySuggestions}
+                    color="green-400"
+                    variant="outline"
+                    disabled={applyingSuggestions}
+                  >
+                    {applyingSuggestions ? "Applying..." : `Apply ${aiSuggestions.length} suggestions`}
+                  </ModernButton>
+                )}
+              </div>
+
+              {aiSuggestions.length > 0 && (
+                <div className="space-y-2">
+                  {aiSuggestions.map((s) => (
+                    <div
+                      key={s.categoryId}
+                      className="rounded-xl p-3"
+                      style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-secondary)" }}
+                    >
+                      <div className="flex justify-between items-start gap-3">
+                        <div>
+                          <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{s.categoryName}</p>
+                          <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.reason}</p>
+                        </div>
+                        <p className="font-bold" style={{ color: "var(--text-primary)" }}>{format(Number(s.amount))}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {loading ? (
             <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
