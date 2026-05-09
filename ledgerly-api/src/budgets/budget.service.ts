@@ -17,6 +17,8 @@ export interface AIBudgetSuggestion {
   reason: string;
 }
 
+const VALID_BUDGET_PERIODS: BudgetPeriod[] = ['monthly', 'weekly', 'bi-weekly', 'yearly'];
+
 @Injectable()
 export class BudgetsService {
   private openai: OpenAI;
@@ -205,13 +207,20 @@ export class BudgetsService {
 
     return arr
       .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-      .map((item) => ({
-        categoryId: typeof item.categoryId === 'string' ? item.categoryId : '',
-        categoryName: typeof item.categoryName === 'string' ? item.categoryName : '',
-        amount: Number(item.amount ?? 0).toFixed(2),
-        period: 'monthly' as BudgetPeriod,
-        reason: typeof item.reason === 'string' ? item.reason : 'Based on recent spending trend.',
-      }))
+      .map((item) => {
+        const period =
+          typeof item.period === 'string' && VALID_BUDGET_PERIODS.includes(item.period as BudgetPeriod)
+            ? (item.period as BudgetPeriod)
+            : ('monthly' as BudgetPeriod);
+
+        return {
+          categoryId: typeof item.categoryId === 'string' ? item.categoryId : '',
+          categoryName: typeof item.categoryName === 'string' ? item.categoryName : '',
+          amount: Number(item.amount ?? 0).toFixed(2),
+          period,
+          reason: typeof item.reason === 'string' ? item.reason : 'Based on recent spending trend.',
+        };
+      })
       .filter((item) => item.categoryId && Number(item.amount) > 0);
   }
 
@@ -294,7 +303,6 @@ export class BudgetsService {
       if (parsed.length === 0) return fallback;
       return parsed
         .filter((s) => categories.some((c) => c.id === s.categoryId))
-        .map((s) => ({ ...s, period: 'monthly' as BudgetPeriod }))
         .slice(0, 10);
     } catch {
       return fallback;

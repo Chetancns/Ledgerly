@@ -341,7 +341,7 @@ Rules:
 
   async parseAudio(userId: string, file: UploadedAudioFile, options?: { save?: boolean }) {
     const tmpDir = os.tmpdir();
-    const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '')}`;
+    const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.webm`;
     const tmpPath = path.join(tmpDir, safeName);
     await fs.promises.writeFile(tmpPath, file.buffer);
 

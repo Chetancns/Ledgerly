@@ -398,16 +398,17 @@ export default function BudgetsPage() {
     try {
       setApplyingSuggestions(true);
       await Promise.all(
-        aiSuggestions.map((s) =>
-          createOrUpdateBudget({
+        aiSuggestions.map((s) => {
+          const startDate = dayjs().startOf("month").format("YYYY-MM-DD");
+          return createOrUpdateBudget({
             categoryId: s.categoryId,
             amount: s.amount,
-            period: "monthly",
-            startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
-            endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
+            period: s.period,
+            startDate,
+            endDate: getEndDateFor(s.period, startDate),
             carriedOver: false,
-          })
-        )
+          });
+        })
       );
       toast.success(`Applied ${aiSuggestions.length} AI budget suggestion(s).`);
       setAiSuggestions([]);
