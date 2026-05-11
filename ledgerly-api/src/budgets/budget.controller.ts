@@ -15,12 +15,12 @@ export class BudgetsController {
     return this.budgetService.createOrUpdate(user.userId, dto);
   }
 
-  @Post('/carry-over')
+  @Post('carry-over')
   carryOver(@GetUser() user: { userId: string }, @Body() body: { startDate: string; endDate: string }) {
     return this.budgetService.carryOverBudgets(user.userId, body.startDate, body.endDate);
   }
 
-  @Get('/utilization/:id')
+  @Get('utilization/:id')
   utilization(@GetUser() user: { userId: string }, @Param('id') id: string) {
     return this.budgetService.utilization(user.userId, id);
   }
@@ -40,12 +40,12 @@ export class BudgetsController {
     return this.budgetService.deleteBudgets(user.userId, id);
   }
 
-  @Post('/copyPrevious')
+  @Post('copyPrevious')
   copyPrevious(@GetUser() user: { userId: string }, @Body() body: CopyPreviousDto) {
     return this.budgetService.copyPrevious(user.userId, body.period, body.startDate, body.endDate);
   }
 
-  @Get('/allutilization')
+  @Get('allutilization')
   allUtilizations(
     @GetUser() user: { userId: string },
     @Query('month') month: string,
@@ -57,7 +57,7 @@ export class BudgetsController {
     return this.budgetService.allUtilizations(user.userId, period, date);
   }
 
-  @Get('/ai-suggestions')
+  @Get('ai-suggestions')
   aiSuggestions(
     @GetUser() user: { userId: string },
     @Query('months') months?: string,
