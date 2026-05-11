@@ -17,7 +17,7 @@ export class AiController {
   constructor(private aiService: AiService) {}
 
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @Post('/parse-transaction')
+  @Post('parse-transaction')
   async parseTransaction(
     @GetUser() user: { userId: string },
     @Body() body: { text: string; preview?: boolean },
