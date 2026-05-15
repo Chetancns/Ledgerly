@@ -57,6 +57,8 @@ type DuplicateCandidateGroup = {
   totalOutstanding: number;
 };
 
+const PAYMENT_TOLERANCE = 0.01;
+
 @Injectable()
 export class DebtService {
   constructor(
@@ -175,7 +177,9 @@ export class DebtService {
   private ensureDebtType(value?: string): DebtType {
     if (!value) return 'institutional';
     if (!DEBT_TYPES.includes(value as DebtType)) {
-      throw new BadRequestException(`Unsupported debt type: ${value}`);
+      throw new BadRequestException(
+        `Invalid debt type '${value}'. Must be one of: ${DEBT_TYPES.join(', ')}`,
+      );
     }
     return value as DebtType;
   }
@@ -340,7 +344,7 @@ export class DebtService {
       throw new BadRequestException('Payment amount must be greater than zero');
     }
 
-    if (requestedAmount - currentBalance > 0.009) {
+    if (requestedAmount - currentBalance >= PAYMENT_TOLERANCE) {
       throw new BadRequestException('Payment exceeds current balance. Use settle in full for the remaining balance.');
     }
 
@@ -719,11 +723,15 @@ export class DebtService {
 
     let nextDue = dayjs(debt.nextDueDate || debt.startDate);
     const today = dayjs();
+    const appliedDates = new Set(
+      debt.updates
+        .filter((update) => update.intent === 'payment')
+        .map((update) => update.updateDate),
+    );
 
     while (nextDue.isBefore(today, 'day') && this.toNumber(debt.currentBalance) > 0) {
       const dueStr = nextDue.format('YYYY-MM-DD');
-      const alreadyApplied = debt.updates.find((update) => update.intent === 'payment' && update.updateDate === dueStr);
-      if (!alreadyApplied) {
+      if (!appliedDates.has(dueStr)) {
         const updatedDebt = await this.applyPaymentUpdate(debt, {
           amount: this.toNumber(debt.installmentAmount),
           updateDate: dueStr,
@@ -732,16 +740,7 @@ export class DebtService {
         debt.currentBalance = this.toMoney(updatedDebt.currentBalance);
         debt.status = updatedDebt.status;
         debt.nextDueDate = updatedDebt.nextDueDate;
-        debt.updates = [...debt.updates, {
-          id: `generated-${dueStr}`,
-          debtId: debt.id,
-          updateDate: dueStr,
-          amount: this.toMoney(this.toNumber(debt.installmentAmount)),
-          transactionId: null,
-          status: 'paid',
-          intent: 'payment',
-          note: undefined,
-        } as unknown as DebtUpdate];
+        appliedDates.add(dueStr);
       }
       nextDue = this.getNextDueDate(debt.startDate, debt.frequency, dueStr);
     }

@@ -12,7 +12,7 @@ import { DEBT_TYPES, DebtType, PersonLedgerSummary } from "@/models/debt";
 const FREQUENCIES = ["weekly", "biweekly", "monthly"] as const;
 type Frequency = typeof FREQUENCIES[number];
 const isFrequency = (v: unknown): v is Frequency =>
-  typeof v === "string" && FREQUENCIES.includes(v as Frequency);
+  typeof v === "string" && (FREQUENCIES as readonly string[]).includes(v);
 
 export default function DebtForm({ onCreated }: { onCreated: () => void }) {
   const today = new Date().toISOString().split("T")[0];

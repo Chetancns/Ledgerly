@@ -30,7 +30,7 @@ type StatusFilter = "all" | "active" | "completed" | "overdue" | "active+overdue
 type ViewMode = "people" | "debts";
 type ActionType = "payment" | "promise" | "reminder" | "note" | "settle";
 
-const todayDate = () => new Date().toISOString().split("T")[0];
+const getTodayDate = () => new Date().toISOString().split("T")[0];
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === "object" && error && "response" in error) {
     const maybeResponse = (error as {
@@ -163,7 +163,7 @@ export default function DebtList() {
             ? debt.currentBalance.toString()
             : "",
       note: "",
-      reminderDate: debt.reminderDate || todayDate(),
+      reminderDate: debt.reminderDate || getTodayDate(),
       createTransaction: type === "payment" || type === "settle",
       categoryId: "",
     });
@@ -176,7 +176,7 @@ export default function DebtList() {
     setActionForm({
       amount: "",
       note: "",
-      reminderDate: todayDate(),
+      reminderDate: getTodayDate(),
       createTransaction: true,
       categoryId: "",
     });
@@ -776,7 +776,8 @@ export default function DebtList() {
                     type="checkbox"
                     checked={actionForm.createTransaction}
                     onChange={(e) => setActionForm((prev) => ({ ...prev, createTransaction: e.target.checked }))}
-                    className="accent-yellow-300"
+                    className="h-4 w-4"
+                    style={{ accentColor: "var(--accent-primary)" }}
                   />
                   <label htmlFor="createDebtTransaction" className="text-sm" style={{ color: "var(--text-secondary)" }}>
                     Create linked transaction
