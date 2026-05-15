@@ -57,6 +57,7 @@ type DuplicateCandidateGroup = {
   totalOutstanding: number;
 };
 
+// Allow sub-cent tolerance so serialized decimal values do not fail equality checks on repayment.
 const PAYMENT_TOLERANCE = 0.01;
 
 @Injectable()
@@ -344,9 +345,10 @@ export class DebtService {
       throw new BadRequestException('Payment amount must be greater than zero');
     }
 
-    if (requestedAmount - currentBalance >= PAYMENT_TOLERANCE) {
+    if (requestedAmount > currentBalance + PAYMENT_TOLERANCE) {
       throw new BadRequestException('Payment exceeds current balance. Use settle in full for the remaining balance.');
     }
+    const normalizedRequestedAmount = Math.min(requestedAmount, currentBalance);
 
     let transactionId: string | null = null;
     const shouldCreateTransaction = input.createTransaction !== false;
@@ -360,7 +362,7 @@ export class DebtService {
         type: txType,
         accountId: debt.accountId,
         categoryId: txCategoryId,
-        amount: this.toMoney(requestedAmount),
+        amount: this.toMoney(normalizedRequestedAmount),
         transactionDate: new Date(updateDate).toISOString(),
         description: `${debt.name} Payment${debt.personName ? ` - ${debt.personName}` : ''}`,
       });
@@ -370,7 +372,7 @@ export class DebtService {
     const update = this.updateRepo.create({
       debtId: debt.id,
       updateDate,
-      amount: this.toMoney(requestedAmount),
+      amount: this.toMoney(normalizedRequestedAmount),
       transactionId: transactionId || undefined,
       status: 'paid',
       intent: 'payment',
@@ -378,7 +380,7 @@ export class DebtService {
     });
     await this.updateRepo.save(update);
 
-    const remainingBalance = Math.max(0, currentBalance - requestedAmount);
+    const remainingBalance = Math.max(0, currentBalance - normalizedRequestedAmount);
     debt.currentBalance = this.toMoney(remainingBalance);
     debt.status = remainingBalance <= 0 ? 'completed' : 'active';
 
@@ -688,6 +690,8 @@ export class DebtService {
   async getDebtUpdates(debtId: string, userId: string) {
     const debt = await this.getDebtOrThrow(debtId, userId);
     const updates = [...debt.updates].sort((left, right) => left.updateDate.localeCompare(right.updateDate));
+    // Reconstruct the opening balance by adding completed payment amounts back to the current balance,
+    // then walk the timeline forward so each entry can expose its post-update running balance.
     const openingBalance = this.toNumber(debt.currentBalance)
       + updates
         .filter((update) => update.intent === 'payment')
@@ -836,7 +840,13 @@ export class DebtService {
     if (updates.nextDueDate !== undefined) debt.nextDueDate = updates.nextDueDate;
     if (updates.reminderDate !== undefined) debt.reminderDate = updates.reminderDate;
     if (updates.status !== undefined) debt.status = updates.status;
-    if (updates.personName !== undefined) debt.personName = updates.personName.trim();
+    if (updates.personName !== undefined) {
+      const trimmedPersonName = updates.personName.trim();
+      if (this.isP2P(debt.debtType) && !trimmedPersonName) {
+        throw new BadRequestException('Person name is required for borrowed and lent debts');
+      }
+      debt.personName = trimmedPersonName;
+    }
 
     this.validateUpdatedDebtState(debt);
     const savedDebt = await this.debtRepo.save(debt);

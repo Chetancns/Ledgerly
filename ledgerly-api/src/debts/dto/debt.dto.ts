@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsDateString,
   IsIn,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -51,6 +52,7 @@ export class CreateDebtDto {
   debtType?: DebtType;
 
   @ValidateIf((dto: CreateDebtDto) => dto.debtType === 'borrowed' || dto.debtType === 'lent')
+  @IsNotEmpty()
   @IsString()
   @Transform(toOptionalString)
   personName?: string;
