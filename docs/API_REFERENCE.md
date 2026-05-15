@@ -769,6 +769,29 @@ Delete a budget.
 
 ---
 
+### GET /budgets/ai-suggestions
+Get AI-powered monthly budget suggestions based on recent spending (1–3 months).
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `months` (optional): integer 1 to 3 (default: 3)
+
+**Response (200):**
+```json
+[
+  {
+    "categoryId": "uuid",
+    "categoryName": "Food",
+    "amount": "850.00",
+    "period": "monthly",
+    "reason": "Based on recent average spending with a safety buffer."
+  }
+]
+```
+
+---
+
 ## Debt Endpoints
 
 ### GET /debts
@@ -1201,7 +1224,7 @@ Get monthly spending trends.
 ## AI Endpoints
 
 ### POST /ai/parse-transaction
-Parse transaction from natural language text.
+Parse transaction drafts from natural language text, with optional preview mode.
 
 **Authentication:** Required
 
@@ -1215,18 +1238,32 @@ Parse transaction from natural language text.
 **Response (200):**
 ```json
 {
-  "amount": "50.00",
-  "type": "expense",
-  "description": "Whole Foods - groceries",
-  "transactionDate": "2024-01-14",
-  "suggestedCategory": "Groceries"
+  "success": true,
+  "recoverable": true,
+  "transactions": [
+    {
+      "accountId": "uuid",
+      "categoryId": "uuid",
+      "amount": "50.00",
+      "type": "expense",
+      "description": "Whole Foods - groceries",
+      "transactionDate": "2024-01-14",
+      "confidence": 0.88,
+      "needsReview": false,
+      "reviewReason": ""
+    }
+  ],
+  "savedTransactions": []
 }
 ```
+
+**Query Parameters:**
+- `preview` (optional): `true` to parse only (no auto-save), `false` to allow save attempt.
 
 ---
 
 ### POST /ai/image
-Parse transaction from receipt image.
+Parse receipt image with OpenAI Vision into transaction drafts.
 
 **Authentication:** Required
 
@@ -1238,15 +1275,19 @@ Parse transaction from receipt image.
 **Response (200):**
 ```json
 {
-  "amount": "45.67",
-  "type": "expense",
-  "description": "Target - receipt items",
-  "transactionDate": "2024-01-15",
-  "merchant": "Target",
-  "items": [
+  "success": true,
+  "recoverable": true,
+  "transactions": [
     {
-      "name": "Item 1",
-      "price": "10.00"
+      "accountId": "uuid",
+      "categoryId": "uuid",
+      "amount": "45.67",
+      "type": "expense",
+      "description": "Target purchase",
+      "transactionDate": "2024-01-15",
+      "confidence": 0.72,
+      "needsReview": true,
+      "reviewReason": "Category uncertain"
     }
   ]
 }
@@ -1255,7 +1296,7 @@ Parse transaction from receipt image.
 ---
 
 ### POST /ai/audio
-Parse transaction from voice recording.
+Parse voice recording into transaction drafts.
 
 **Authentication:** Required
 
@@ -1267,13 +1308,76 @@ Parse transaction from voice recording.
 **Response (200):**
 ```json
 {
-  "transcription": "I spent fifty dollars at the grocery store",
-  "parsedTransaction": {
-    "amount": "50.00",
-    "type": "expense",
-    "description": "Grocery store",
-    "suggestedCategory": "Groceries"
-  }
+  "success": true,
+  "recoverable": true,
+  "transactions": [
+    {
+      "accountId": "uuid",
+      "categoryId": "uuid",
+      "amount": "50.00",
+      "type": "expense",
+      "description": "Grocery store",
+      "transactionDate": "2024-01-15",
+      "confidence": 0.83,
+      "needsReview": false
+    }
+  ]
+}
+```
+
+---
+
+### POST /ai/save-transactions
+Save reviewed AI-parsed transaction drafts.
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "transactions": [
+    {
+      "accountId": "uuid",
+      "categoryId": "uuid",
+      "amount": "50.00",
+      "type": "expense",
+      "description": "Groceries",
+      "transactionDate": "2024-01-14",
+      "confidence": 0.9,
+      "needsReview": false
+    }
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "saved": [{ "id": "uuid" }],
+  "skipped": [],
+  "message": "1 transaction(s) saved."
+}
+```
+
+---
+
+### POST /ai/chat
+Ask conversational financial questions with user transaction/budget context.
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "question": "Am I on track with my budget?"
+}
+```
+
+**Response (200):**
+```json
+{
+  "question": "Am I on track with my budget?",
+  "answer": "Your budget utilization is..."
 }
 ```
 

@@ -148,9 +148,12 @@ Same CRUD pattern as above:
 
 ### AI Features
 ```bash
-POST /ai/parse-transaction  # Parse text to transaction
-POST /ai/image              # Parse receipt image
-POST /ai/audio              # Parse voice recording
+POST /ai/parse-transaction         # Parse text (use ?preview=true for review flow)
+POST /ai/image                     # Parse receipt image (use ?preview=true)
+POST /ai/audio                     # Parse voice recording (use ?preview=true)
+POST /ai/save-transactions         # Persist reviewed AI drafts
+POST /ai/chat                      # Conversational financial Q&A
+GET  /budgets/ai-suggestions       # AI budget suggestions (first setup)
 ```
 
 ### Reports

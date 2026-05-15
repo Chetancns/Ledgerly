@@ -51,6 +51,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/debts", label: "Debts", icon: "⚖️" },
     { href: "/calendar", label: "Calendar", icon: "📅" },
     { href: "/insights", label: "Insights", icon: "💡" },
+    { href: "/ai-chat", label: "AI Chat", icon: "💬" },
     { href: "/tag-insights", label: "Tag Insights", icon: "📈" },
     { href: "/profile", label: "Profile", icon: "👤" },
     { href: "/recurring", label: "Recurring", icon: "🔁"},
