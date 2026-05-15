@@ -57,7 +57,7 @@ type DuplicateCandidateGroup = {
   totalOutstanding: number;
 };
 
-// Allow sub-cent tolerance so serialized decimal values do not fail equality checks on repayment.
+// Allow a one-cent tolerance so serialized currency values do not fail repayment checks because of rounding drift.
 const PAYMENT_TOLERANCE = 0.01;
 
 @Injectable()
@@ -346,7 +346,9 @@ export class DebtService {
     }
 
     if (requestedAmount > currentBalance + PAYMENT_TOLERANCE) {
-      throw new BadRequestException('Payment exceeds current balance. Use settle in full for the remaining balance.');
+      throw new BadRequestException(
+        'Payment exceeds current balance. Set settleInFull=true to pay the remaining balance.',
+      );
     }
     const normalizedRequestedAmount = Math.min(requestedAmount, currentBalance);
 
@@ -690,8 +692,9 @@ export class DebtService {
   async getDebtUpdates(debtId: string, userId: string) {
     const debt = await this.getDebtOrThrow(debtId, userId);
     const updates = [...debt.updates].sort((left, right) => left.updateDate.localeCompare(right.updateDate));
-    // Reconstruct the opening balance by adding completed payment amounts back to the current balance,
-    // then walk the timeline forward so each entry can expose its post-update running balance.
+    // Reconstruct the opening balance by adding balance-affecting payment updates back to the current balance.
+    // This assumes payment-intent updates were applied to the debt balance when they were created, then walks
+    // the timeline forward so each entry can expose its post-update running balance.
     const openingBalance = this.toNumber(debt.currentBalance)
       + updates
         .filter((update) => update.intent === 'payment')

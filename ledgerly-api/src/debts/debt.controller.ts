@@ -114,11 +114,13 @@ export class DebtController {
     @Param('updateId') updateId: string,
     @GetUser() user: { userId: string },
   ) {
+    // Legacy route kept for backward compatibility; prefer DELETE /debts/updates/:updateId.
     return this.debtService.deleteDebtUpdate(updateId, user.userId);
   }
 
   @Post(':id/delete')
   async deleteDebtLegacy(@Param('id') id: string, @GetUser() user: { userId: string }) {
+    // Legacy route kept for backward compatibility; prefer DELETE /debts/:id.
     return this.debtService.deleteDebt(id, user.userId);
   }
 }
