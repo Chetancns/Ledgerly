@@ -397,10 +397,12 @@ export default function BudgetsPage() {
     if (!aiSuggestions.length) return;
     try {
       setApplyingSuggestions(true);
-      await Promise.all(
-        aiSuggestions.map((s) => {
-          const startDate = dayjs().startOf("month").format("YYYY-MM-DD");
-          return createOrUpdateBudget({
+      const failed: AIBudgetSuggestion[] = [];
+
+      for (const s of aiSuggestions) {
+        const startDate = dayjs().startOf("month").format("YYYY-MM-DD");
+        try {
+          await createOrUpdateBudget({
             categoryId: s.categoryId,
             amount: s.amount,
             period: s.period,
@@ -408,10 +410,24 @@ export default function BudgetsPage() {
             endDate: getEndDateFor(s.period, startDate),
             carriedOver: false,
           });
-        })
-      );
-      toast.success(`Applied ${aiSuggestions.length} AI budget suggestion(s).`);
-      setAiSuggestions([]);
+        } catch (err) {
+          console.error("Failed applying AI suggestion", s, err);
+          failed.push(s);
+        }
+      }
+
+      if (failed.length === 0) {
+        toast.success(`Applied ${aiSuggestions.length} AI budget suggestion(s).`);
+        setAiSuggestions([]);
+      } else {
+        const successCount = aiSuggestions.length - failed.length;
+        if (successCount > 0) {
+          toast.success(`Applied ${successCount} suggestion(s).`);
+        }
+        toast.error(`${failed.length} suggestion(s) failed. Please retry.`);
+        setAiSuggestions(failed);
+      }
+
       await loadData();
     } catch (err) {
       console.error("Failed to apply AI budget suggestions", err);
