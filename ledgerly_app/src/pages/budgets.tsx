@@ -398,9 +398,9 @@ export default function BudgetsPage() {
     try {
       setApplyingSuggestions(true);
       const failed: AIBudgetSuggestion[] = [];
+      const startDate = dayjs().startOf("month").format("YYYY-MM-DD");
 
       for (const s of aiSuggestions) {
-        const startDate = dayjs().startOf("month").format("YYYY-MM-DD");
         try {
           await createOrUpdateBudget({
             categoryId: s.categoryId,
