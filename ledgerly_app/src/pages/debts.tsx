@@ -14,7 +14,10 @@ export default function DebtsPage() {
           className="mx-auto backdrop-blur-lg rounded-2xl shadow-2xl p-8 w-full"
           style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
         >
-          <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Debt Management</h1>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Debt & Person Ledger</h1>
+          <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
+            Track institutional loans separately from borrowed/lent balances, with person-level summaries and follow-up actions.
+          </p>
 
           {/* Collapsible Form Section */}
           <div className="mb-6">

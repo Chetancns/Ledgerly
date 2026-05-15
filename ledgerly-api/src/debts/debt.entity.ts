@@ -28,7 +28,7 @@ export class Debt {
   debtType: DebtType;
 
   @Column({ name: 'personname', type: 'varchar', length: 255, nullable: true })
-  personName?: string; // For borrowed/lent debts: person's name
+  personName?: string | null; // For borrowed/lent debts: person's name
 
   @Column()
   name: string; // "Chase Credit Card" or "Car Loan" or description
@@ -37,24 +37,24 @@ export class Debt {
   @Column('numeric', { precision: 12, scale: 2, default: 0 })
   currentBalance: string;
   @Column({ type: 'int', nullable: true })
-  term: number; 
+  term: number | null; 
   @Column('numeric', { precision: 12, scale: 2, nullable: true })
-  installmentAmount: string; // amount due each cycle (optional for P2P debts)
+  installmentAmount: string | null; // amount due each cycle (optional for P2P debts)
 
   @Column({ type: 'enum', enum: ['weekly', 'biweekly', 'monthly'], nullable: true })
-  frequency: 'weekly' | 'biweekly' | 'monthly';
+  frequency: 'weekly' | 'biweekly' | 'monthly' | null;
 
   @Column('date')
   startDate: string; // when payments started
 
   @Column('date', { nullable: true })
-  nextDueDate: string; 
+  nextDueDate: string | null; 
 
   @Column({ type: 'varchar', default: 'active' })
   status: 'active' | 'completed';
 
   @Column('date', { nullable: true })
-  reminderDate: string; // For P2P debts - when to remind about sending/receiving payment
+  reminderDate: string | null; // For P2P debts - when to remind about sending/receiving payment
 
   @OneToMany(() => DebtUpdate, update => update.debt)
 updates: DebtUpdate[];

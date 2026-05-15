@@ -1,17 +1,18 @@
 // components/DebtForm.tsx
 import { useState, useEffect, FormEvent } from "react";
-import { createDebt, getPersonNameSuggestions } from "@/services/debts";
+import { createDebt, getPersonLedger, getPersonNameSuggestions } from "@/services/debts";
 import { getUserAccount } from "@/services/accounts";
 import { getCategories } from "@/services/category";
 import { Account } from "@/models/account";
 import { Category } from "@/models/category";
-import { DEBT_TYPES, DebtType } from "@/models/debt";
+import { DEBT_TYPES, DebtType, PersonLedgerSummary } from "@/models/debt";
 
 // If you have a shared Frequency type, import instead.
 // For safety we define the const here:
 const FREQUENCIES = ["weekly", "biweekly", "monthly"] as const;
 type Frequency = typeof FREQUENCIES[number];
-const isFrequency = (v: any): v is Frequency => FREQUENCIES.includes(v);
+const isFrequency = (v: unknown): v is Frequency =>
+  typeof v === "string" && FREQUENCIES.includes(v as Frequency);
 
 export default function DebtForm({ onCreated }: { onCreated: () => void }) {
   const today = new Date().toISOString().split("T")[0];
@@ -20,6 +21,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [personNameSuggestions, setPersonNameSuggestions] = useState<string[]>([]);
+  const [personLedger, setPersonLedger] = useState<PersonLedgerSummary[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [form, setForm] = useState({
@@ -49,6 +51,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
         ]);
         setAccounts(accountsRes);
         setCategories(categoriesRes);
+        setPersonLedger(await getPersonLedger());
       } catch (err) {
         console.error("Failed to load data", err);
       } finally {
@@ -78,7 +81,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
   }, [form.principalAmount, form.termMonths, form.frequency, form.autoCalcInstallment]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target as HTMLInputElement;
+    const { name, value } = e.target as HTMLInputElement;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -104,6 +107,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
     const value = e.target.value;
     setForm((prev) => ({ ...prev, personName: value }));
     await loadPersonNameSuggestions(value || undefined);
+    applyPersonDefaults(value);
   };
 
   const handlePersonNameFocus = async () => {
@@ -114,6 +118,24 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
   const selectPersonName = (name: string) => {
     setForm((prev) => ({ ...prev, personName: name }));
     setShowSuggestions(false);
+    applyPersonDefaults(name);
+  };
+
+  const applyPersonDefaults = (personName: string) => {
+    const match = personLedger.find(
+      (item) => item.personName.trim().toLowerCase() === personName.trim().toLowerCase()
+    );
+    if (!match) return;
+
+    setForm((prev) => ({
+      ...prev,
+      accountId: prev.accountId || match.defaultAccountId || "",
+      categoryId:
+        prev.categoryId ||
+        (prev.debtType === "lent"
+          ? match.preferredIncomeCategoryId || ""
+          : match.preferredExpenseCategoryId || ""),
+    }));
   };
 
   const toggleAutoCalc = () =>
@@ -139,25 +161,30 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
       setForm((prev) => ({ ...prev, currentBalance: prev.principalAmount }));
     }
 
-    if (!isFrequency(form.frequency)) return alert("Invalid frequency");
+    if (form.debtType === "institutional" && !isFrequency(form.frequency)) {
+      return alert("Invalid frequency");
+    }
 
     // Map form fields to backend payload
-    const payload: any = {
+    const payload: Record<string, string | number | boolean | undefined> = {
       name: form.name,
       debtType: form.debtType,
       personName: form.personName || undefined,
       accountId: form.accountId,
-      frequency: form.frequency,
-      installmentAmount: Number(form.installmentAmount) || 0,
       currentBalance: Number(form.currentBalance) || Number(form.principalAmount) || 0,
       principal: Number(form.principalAmount) || 0,
-      term: form.termMonths ? Number(form.termMonths) : undefined,
       startDate: form.startDate,
-      nextDueDate: form.nextDueDate,
       reminderDate: form.reminderDate || undefined,
       createTransaction: form.createTransaction,
       categoryId: form.categoryId || undefined,
     };
+
+    if (form.debtType === "institutional") {
+      payload.frequency = form.frequency;
+      payload.installmentAmount = Number(form.installmentAmount) || 0;
+      payload.term = form.termMonths ? Number(form.termMonths) : undefined;
+      payload.nextDueDate = form.nextDueDate;
+    }
 
     try {
       await createDebt(payload);
@@ -180,6 +207,7 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
         createTransaction: false,
         categoryId: "",
       });
+      setPersonLedger(await getPersonLedger());
     } catch (err) {
       console.error(err);
       alert("Failed to create debt: " + String(err));
@@ -357,6 +385,9 @@ export default function DebtForm({ onCreated }: { onCreated: () => void }) {
           <div className="md:col-span-2 p-3 rounded" style={{ background: "var(--bg-card-hover)" }}>
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               💡 For {form.debtType} debts, you can make flexible payments of any amount at any time. No need to set installments or frequency.
+            </p>
+            <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+              Existing entries for the same person will auto-fill recent account/category defaults when available.
             </p>
           </div>
         )}
