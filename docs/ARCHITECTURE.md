@@ -108,7 +108,10 @@ Ledgerly is a full-stack personal finance management application built with mode
 - **Entities**: 
   - `debt.entity.ts`: Main debt record
   - `debt-update.entity.ts`: Debt payment updates
-- **Features**: Track debt amounts, payments, and progress
+ - **Features**:
+   - Separate institutional loan workflow vs. person-to-person ledger workflow
+   - Person-level summaries, overdue heuristics, and quick follow-up actions
+   - Debt update timeline with payment intents, notes, and reconciliation state
 
 #### 8. Recurring Transactions Module (`src/recurring/`)
 - **Purpose**: Automated recurring transaction management
@@ -138,7 +141,7 @@ Ledgerly is a full-stack personal finance management application built with mode
 - `accounts.tsx`: Account management (bank, credit, cash, investments)
 - `budgets.tsx`: Budget planning and category allocation
 - `categories.tsx`: Transaction category management (expense/income types)
-- `debts.tsx`: Debt tracking with payment history
+- `debts.tsx`: Debt workspace with person ledger, analytics, and reconciliation timeline
 - `recurring.tsx`: Recurring transaction templates
 - `calendar.tsx`: Calendar view of transactions
 - `insights.tsx`: Analytics and spending trends

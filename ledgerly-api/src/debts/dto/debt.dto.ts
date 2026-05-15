@@ -50,7 +50,7 @@ export class CreateDebtDto {
   @IsIn(DEBT_TYPES)
   debtType?: DebtType;
 
-  @ValidateIf((dto) => dto.debtType === 'borrowed' || dto.debtType === 'lent')
+  @ValidateIf((dto: CreateDebtDto) => dto.debtType === 'borrowed' || dto.debtType === 'lent')
   @IsString()
   @Transform(toOptionalString)
   personName?: string;
@@ -66,13 +66,13 @@ export class CreateDebtDto {
   @IsPositive()
   currentBalance?: number;
 
-  @ValidateIf((dto) => dto.debtType === 'institutional')
+  @ValidateIf((dto: CreateDebtDto) => dto.debtType === 'institutional')
   @Transform(toNumber)
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
   installmentAmount?: number;
 
-  @ValidateIf((dto) => dto.debtType === 'institutional')
+  @ValidateIf((dto: CreateDebtDto) => dto.debtType === 'institutional')
   @IsIn(FREQUENCIES)
   frequency?: DebtFrequency;
 
@@ -98,7 +98,7 @@ export class CreateDebtDto {
   @IsBoolean()
   createTransaction?: boolean;
 
-  @ValidateIf((dto) => dto.createTransaction === true)
+  @ValidateIf((dto: CreateDebtDto) => dto.createTransaction === true)
   @IsUUID()
   categoryId?: string;
 }

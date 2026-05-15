@@ -820,6 +820,10 @@ Get all debts for authenticated user with optional filtering.
     "nextDueDate": "2024-02-01",
     "term": 20,
     "progress": 30,
+    "totalPaid": 1500,
+    "lastPaymentDate": "2024-01-15",
+    "overdue": false,
+    "overdueReason": null,
     "updates": []
   },
   {
@@ -831,12 +835,16 @@ Get all debts for authenticated user with optional filtering.
     "accountId": "uuid",
     "principal": 1000.00,
     "currentBalance": 800.00,
-    "installmentAmount": 100.00,
-    "frequency": "monthly",
+    "installmentAmount": null,
+    "frequency": null,
     "startDate": "2024-01-15",
-    "nextDueDate": "2024-02-15",
-    "term": 10,
+    "nextDueDate": null,
+    "term": null,
     "progress": 20,
+    "totalPaid": 200.00,
+    "lastPaymentDate": "2024-01-22",
+    "overdue": true,
+    "overdueReason": "follow-up",
     "updates": []
   }
 ]
@@ -868,7 +876,7 @@ Create a new debt with optional transaction creation.
 }
 ```
 
-**For borrowed/lent debts:**
+**For borrowed/lent debts (person ledger):**
 ```json
 {
   "name": "Personal loan",
@@ -876,9 +884,9 @@ Create a new debt with optional transaction creation.
   "personName": "Jane Doe",
   "accountId": "uuid",
   "principal": 500.00,
-  "installmentAmount": 50.00,
-  "frequency": "monthly",
+  "currentBalance": 500.00,
   "startDate": "2024-01-18",
+  "reminderDate": "2024-01-25",
   "createTransaction": true,
   "categoryId": "category-uuid"
 }
@@ -903,8 +911,61 @@ Create a new debt with optional transaction creation.
 
 ---
 
+### GET /debts/person-ledger
+Get person-level borrowed/lent summaries for the authenticated user.
+
+**Authentication:** Required
+
+**Response (200):**
+```json
+[
+  {
+    "personName": "Jane Doe",
+    "debtCount": 3,
+    "totalOutstanding": 2250.00,
+    "totalPaid": 900.00,
+    "totalBorrowedOutstanding": 250.00,
+    "totalLentOutstanding": 2000.00,
+    "lastPaymentDate": "2024-02-10",
+    "nextReminderDate": "2024-02-20",
+    "overdueCount": 1,
+    "defaultAccountId": "uuid",
+    "preferredExpenseCategoryId": "uuid",
+    "preferredIncomeCategoryId": "uuid",
+    "debts": [
+      {
+        "id": "uuid",
+        "name": "Emergency loan",
+        "debtType": "lent",
+        "status": "active",
+        "currentBalance": 500.00,
+        "principal": 800.00,
+        "reminderDate": "2024-02-20",
+        "overdue": false
+      }
+    ]
+  }
+]
+```
+
+---
+
+### GET /debts/analytics
+Get debt exposure analytics, aging buckets, duplicate suggestions, and overdue trend data.
+
+**Authentication:** Required
+
+### PATCH /debts/:id
+Update a debt record.
+
+**Authentication:** Required
+
+**Request Body:** Any subset of debt fields such as `name`, `currentBalance`, `reminderDate`, `status`, `installmentAmount`, or `nextDueDate`.
+
+---
+
 ### GET /debts/:id/updates
-Get payment history for a specific debt.
+Get the debt timeline for a specific debt, including running balance and reconciliation metadata.
 
 **Authentication:** Required
 
@@ -915,8 +976,13 @@ Get payment history for a specific debt.
     "id": "uuid",
     "debtId": "uuid",
     "updateDate": "2024-01-15",
+    "intent": "payment",
+    "amount": 250.00,
     "transactionId": "uuid",
     "status": "paid",
+    "runningBalanceAfter": 3250.00,
+    "balanceImpact": true,
+    "requiresReconciliation": false,
     "transaction": {
       "id": "uuid",
       "amount": "250.00",
@@ -931,15 +997,18 @@ Get payment history for a specific debt.
 ---
 
 ### POST /debts/:id/pay-installment
-Pay an installment with optional transaction creation.
+Pay an installment with optional transaction creation or settle the remaining balance in full.
 
 **Authentication:** Required
 
 **Request Body:**
 ```json
 {
+  "amount": 250.00,
   "createTransaction": true,
-  "categoryId": "category-uuid"
+  "categoryId": "category-uuid",
+  "settleInFull": false,
+  "note": "Collected partial repayment"
 }
 ```
 
@@ -951,6 +1020,22 @@ Pay an installment with optional transaction creation.
   "currentBalance": 14500.00,
   "nextDueDate": "2024-02-01",
   "updates": [...]
+}
+```
+
+---
+
+### POST /debts/:id/updates
+Create a debt timeline entry using one of the supported intents: `payment`, `promise`, `reminder`, or `note`.
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "intent": "reminder",
+  "note": "Called and agreed to follow up next week",
+  "reminderDate": "2024-02-20"
 }
 ```
 
@@ -1023,6 +1108,11 @@ Get person name suggestions for autocomplete.
 ```
 
 ---
+
+### DELETE /debts/updates/:updateId
+Delete a debt update and reverse its linked payment effect when applicable.
+
+**Authentication:** Required
 
 ### DELETE /debts/:id
 Delete a debt.
