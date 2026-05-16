@@ -51,6 +51,9 @@ export interface DebtAnalytics {
   personExposure: Array<{
     personName: string;
     outstanding: number;
+    totalBorrowedOutstanding: number;
+    totalLentOutstanding: number;
+    netPosition: number;
     totalPaid: number;
     overdueCount: number;
     debtCount: number;

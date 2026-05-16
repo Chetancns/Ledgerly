@@ -625,6 +625,9 @@ export class DebtService {
       personExposure: personLedger.map((person) => ({
         personName: person.personName,
         outstanding: person.totalOutstanding,
+        totalBorrowedOutstanding: person.totalBorrowedOutstanding,
+        totalLentOutstanding: person.totalLentOutstanding,
+        netPosition: Number((person.totalLentOutstanding - person.totalBorrowedOutstanding).toFixed(2)),
         totalPaid: person.totalPaid,
         overdueCount: person.overdueCount,
         debtCount: person.debtCount,

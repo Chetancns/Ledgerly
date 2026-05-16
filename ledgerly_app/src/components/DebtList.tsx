@@ -469,12 +469,22 @@ export default function DebtList() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Outstanding</p>
-                      <p className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{format(person.totalOutstanding)}</p>
+                      <p className="text-xs uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Net (lent - owe)</p>
+                      <p className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {format(person.totalLentOutstanding - person.totalBorrowedOutstanding)}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 text-sm">
+                    <div className="rounded-lg p-3" style={{ background: "var(--bg-card-hover)" }}>
+                      <p style={{ color: "var(--text-muted)" }}>I owe</p>
+                      <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(person.totalBorrowedOutstanding)}</p>
+                    </div>
+                    <div className="rounded-lg p-3" style={{ background: "var(--bg-card-hover)" }}>
+                      <p style={{ color: "var(--text-muted)" }}>I lent</p>
+                      <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(person.totalLentOutstanding)}</p>
+                    </div>
                     <div className="rounded-lg p-3" style={{ background: "var(--bg-card-hover)" }}>
                       <p style={{ color: "var(--text-muted)" }}>Recovered</p>
                       <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(person.totalPaid)}</p>
@@ -695,9 +705,22 @@ export default function DebtList() {
             <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Exposure by person</h3>
             <div className="mt-3 space-y-2">
               {analytics.personExposure.slice(0, 5).map((row) => (
-                <div key={row.personName} className="flex justify-between text-sm" style={{ color: "var(--text-secondary)" }}>
-                  <span>{row.personName}</span>
-                  <span>{format(row.outstanding)}</span>
+                <div key={row.personName} className="rounded-lg p-3 text-sm" style={{ background: "var(--bg-card-hover)", color: "var(--text-secondary)" }}>
+                  <p className="font-medium" style={{ color: "var(--text-primary)" }}>{row.personName}</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <p style={{ color: "var(--text-muted)" }}>I owe</p>
+                      <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(row.totalBorrowedOutstanding)}</p>
+                    </div>
+                    <div>
+                      <p style={{ color: "var(--text-muted)" }}>I lent</p>
+                      <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(row.totalLentOutstanding)}</p>
+                    </div>
+                    <div>
+                      <p style={{ color: "var(--text-muted)" }}>Net</p>
+                      <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(row.netPosition)}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
