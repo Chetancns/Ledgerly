@@ -265,11 +265,13 @@ Debt tracking and management (institutional, borrowed, and lent).
 | name | VARCHAR(200) | NOT NULL | Debt name/description |
 | principal | NUMERIC(12,2) | NOT NULL | Original principal amount |
 | currentBalance | NUMERIC(12,2) | NOT NULL | Current remaining balance |
-| installmentAmount | NUMERIC(12,2) | NOT NULL | Amount due per period |
-| frequency | VARCHAR(20) | NOT NULL | Payment frequency |
+| installmentAmount | NUMERIC(12,2) | NULLABLE | Amount due per period (required for institutional debts) |
+| frequency | VARCHAR(20) | NULLABLE | Payment frequency (required for institutional debts) |
 | startDate | DATE | NOT NULL | Debt start date |
-| nextDueDate | DATE | NOT NULL | Next payment due date |
+| nextDueDate | DATE | NULLABLE | Next payment due date |
 | term | INTEGER | NULLABLE | Number of payment periods |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'active' | Active/completed tracking state |
+| reminderDate | DATE | NULLABLE | Follow-up reminder date for borrowed/lent debts |
 
 **Indexes:**
 - PRIMARY KEY on `id`
@@ -329,50 +331,18 @@ Person names for P2P debt autocomplete suggestions.
 
 ### debt_updates
 
-Payment history and updates for debts.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique update identifier |
-| debtId | UUID | NOT NULL, FOREIGN KEY | Associated debt |
-| updateDate | DATE | NOT NULL | Payment/update date |
-| transactionId | UUID | NULLABLE, FOREIGN KEY | Linked transaction (if any) |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | Payment status |
-
-**Indexes:**
-- PRIMARY KEY on `id`
-- INDEX on `debtId`
-
-**Foreign Keys:**
-- `debtId` → `debts.id` (CASCADE DELETE)
-- `transactionId` → `transactions.id` (SET NULL)
-
-**Valid Status:**
-- `paid`: Payment completed
-- `pending`: Payment scheduled but not yet made
-- `skipped`: Payment was skipped
-
-**Business Rules:**
-- Each update represents one installment payment
-- Transaction creation is optional (transactionId can be NULL)
-- Catch-up process creates updates for missed payment dates
-- Updates reduce currentBalance when applied
-
----
-
-### debt_updates
-
 Debt payment history tracking.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | UUID | PRIMARY KEY | Unique update identifier |
 | debtId | UUID | NOT NULL, FOREIGN KEY | Associated debt |
+| updateDate | DATE | NOT NULL | Timeline date for the update |
 | transactionId | UUID | NULLABLE, FOREIGN KEY | Associated transaction |
 | amount | NUMERIC(12,2) | NOT NULL | Payment amount |
-| date | DATE | NOT NULL | Payment date |
+| intent | VARCHAR(20) | NOT NULL, DEFAULT 'payment' | Business meaning of the update |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | Paid/pending/skipped state |
 | note | TEXT | NULLABLE | Payment notes |
-| createdAt | TIMESTAMP | NOT NULL | Record creation timestamp |
 
 **Indexes:**
 - PRIMARY KEY on `id`
@@ -382,9 +352,16 @@ Debt payment history tracking.
 - `debtId` → `debts.id` (CASCADE DELETE)
 - `transactionId` → `transactions.id` (SET NULL)
 
+**Valid Intents:**
+- `payment`: Balance-affecting payment update
+- `promise`: Promise-to-pay/future commitment entry
+- `reminder`: Reminder or follow-up action
+- `note`: Non-financial audit note
+
 **Business Rules:**
-- Amount should be positive
-- Each update reduces the parent debt amount
+- `payment` updates reduce the parent debt balance and may link to a transaction
+- `promise`, `reminder`, and `note` updates keep an audit trail without reducing balance
+- Running balance and reconciliation state are derived from the ordered update timeline
 
 ---
 

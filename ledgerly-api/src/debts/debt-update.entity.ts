@@ -3,12 +3,15 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 't
 import { Debt } from './debt.entity';
 import { Transaction } from '../transactions/transaction.entity';
 
+export type DebtUpdateIntent = 'payment' | 'promise' | 'reminder' | 'note';
+export const DEBT_UPDATE_INTENTS: DebtUpdateIntent[] = ['payment', 'promise', 'reminder', 'note'];
+
 @Entity('dbo.debt_updates')
 export class DebtUpdate {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column('uuid')
   debtId: string;
 
   @ManyToOne(() => Debt, debt => debt.updates, { onDelete: 'CASCADE' })
@@ -27,6 +30,12 @@ export class DebtUpdate {
   @ManyToOne(() => Transaction, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'transactionId' })
   transaction?: Transaction;
+
+  @Column({ type: 'enum', enum: DEBT_UPDATE_INTENTS, default: 'payment' })
+  intent: DebtUpdateIntent;
+
+  @Column({ type: 'text', nullable: true })
+  note?: string;
 
   @Column({ type: 'enum', enum: ['paid', 'pending', 'skipped'], default: 'pending' })
   status: 'paid' | 'pending' | 'skipped';
