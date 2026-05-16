@@ -302,6 +302,7 @@ export class DebtService {
 
     const update = this.updateRepo.create({
       debtId: debt.id,
+      debt: { id: debt.id } as Debt,
       updateDate,
       amount: this.toMoney(payload.amount),
       status: 'pending',
@@ -373,6 +374,7 @@ export class DebtService {
 
     const update = this.updateRepo.create({
       debtId: debt.id,
+      debt: { id: debt.id } as Debt,
       updateDate,
       amount: this.toMoney(normalizedRequestedAmount),
       transactionId: transactionId || undefined,
@@ -712,6 +714,7 @@ export class DebtService {
 
         return {
           ...update,
+          debtId: update.debtId || debt.id,
           amount,
           runningBalanceAfter: Number(runningBalance.toFixed(2)),
           balanceImpact,

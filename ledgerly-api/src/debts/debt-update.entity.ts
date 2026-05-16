@@ -11,7 +11,7 @@ export class DebtUpdate {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column('uuid')
   debtId: string;
 
   @ManyToOne(() => Debt, debt => debt.updates, { onDelete: 'CASCADE' })

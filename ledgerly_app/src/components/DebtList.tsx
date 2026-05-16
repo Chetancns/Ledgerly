@@ -19,6 +19,7 @@ import {
   payDebtEarly,
   payInstallment,
   recordDebtUpdate,
+  updateDebt,
 } from "@/services/debts";
 import { getCategories } from "@/services/category";
 import { Category } from "@/models/category";
@@ -63,12 +64,23 @@ export default function DebtList() {
   const [actionDebt, setActionDebt] = useState<Debt | null>(null);
   const [actionType, setActionType] = useState<ActionType>("payment");
   const [showActionModal, setShowActionModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editDebt, setEditDebt] = useState<Debt | null>(null);
   const [actionForm, setActionForm] = useState({
     amount: "",
     note: "",
     reminderDate: "",
     createTransaction: true,
     categoryId: "",
+  });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    principal: "",
+    currentBalance: "",
+    installmentAmount: "",
+    nextDueDate: "",
+    reminderDate: "",
+    status: "active" as "active" | "completed",
   });
 
   const loadData = async () => {
@@ -180,6 +192,55 @@ export default function DebtList() {
       createTransaction: true,
       categoryId: "",
     });
+  };
+
+  const openEditDebt = (debt: Debt) => {
+    setEditDebt(debt);
+    setEditForm({
+      name: debt.name || "",
+      principal: debt.principal?.toString() || "",
+      currentBalance: debt.currentBalance?.toString() || "",
+      installmentAmount: debt.installmentAmount?.toString() || "",
+      nextDueDate: debt.nextDueDate || "",
+      reminderDate: debt.reminderDate || "",
+      status: debt.status || "active",
+    });
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditDebt(null);
+  };
+
+  const submitEditDebt = async () => {
+    if (!editDebt) return;
+    try {
+      await updateDebt(editDebt.id, {
+        name: editForm.name,
+        principal: editForm.principal ? Number(editForm.principal) : undefined,
+        currentBalance: editForm.currentBalance ? Number(editForm.currentBalance) : undefined,
+        installmentAmount:
+          editDebt.debtType === "institutional" && editForm.installmentAmount
+            ? Number(editForm.installmentAmount)
+            : undefined,
+        nextDueDate:
+          editDebt.debtType === "institutional"
+            ? editForm.nextDueDate || undefined
+            : undefined,
+        reminderDate:
+          editDebt.debtType !== "institutional"
+            ? editForm.reminderDate || undefined
+            : undefined,
+        status: editForm.status,
+      });
+      toast.success("Debt updated");
+      closeEditModal();
+      await loadData();
+    } catch (error: unknown) {
+      console.error("Failed to update debt", error);
+      toast.error(getErrorMessage(error, "Failed to update debt"));
+    }
   };
 
   const submitAction = async () => {
@@ -453,14 +514,21 @@ export default function DebtList() {
                                 {getDebtTypeLabel(debt.debtType)} · Balance {format(debt.currentBalance)}
                               </p>
                             </div>
-                            <button
-                              onClick={() => openHistory(fullDebt)}
-                              className="px-3 py-1 rounded text-xs"
-                              style={{ background: "var(--accent-secondary)", color: "#fff" }}
-                            >
-                              Timeline
-                            </button>
-                          </div>
+                              <button
+                                onClick={() => openHistory(fullDebt)}
+                                className="px-3 py-1 rounded text-xs"
+                                style={{ background: "var(--accent-secondary)", color: "#fff" }}
+                              >
+                                Timeline
+                              </button>
+                              <button
+                                onClick={() => openEditDebt(fullDebt)}
+                                className="px-3 py-1 rounded text-xs"
+                                style={{ background: "var(--bg-card)", color: "var(--text-primary)" }}
+                              >
+                                Edit
+                              </button>
+                            </div>
 
                           {fullDebt.status !== "completed" && (
                             <div className="flex flex-wrap gap-2 mt-3">
@@ -557,6 +625,13 @@ export default function DebtList() {
                       style={{ background: "var(--accent-secondary)", color: "#fff" }}
                     >
                       Timeline
+                    </button>
+                    <button
+                      onClick={() => openEditDebt(debt)}
+                      className="px-3 py-1 rounded text-xs"
+                      style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+                    >
+                      Edit
                     </button>
                     {!isCompleted && (
                       <>
@@ -670,29 +745,31 @@ export default function DebtList() {
               {updates.map((update) => (
                 <div
                   key={update.id}
-                  className="rounded-lg p-4 relative"
+                  className="rounded-lg p-4"
                   style={{ background: "var(--bg-card-hover)", border: `1px solid ${update.requiresReconciliation ? 'var(--color-warning)' : 'transparent'}` }}
                 >
-                  <button
-                    onClick={() => handleDeleteUpdate(update.id)}
-                    className="absolute top-3 right-3"
-                    style={{ color: "var(--color-error)" }}
-                    title="Delete debt update"
-                  >
-                    🗑️
-                  </button>
                   <div className="flex justify-between gap-3 flex-wrap">
                     <div>
                       <p className="font-medium" style={{ color: "var(--text-primary)" }}>{getIntentLabel(update.intent)}</p>
                       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{new Date(update.updateDate).toLocaleDateString()}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-end gap-2">
+                      <button
+                        onClick={() => handleDeleteUpdate(update.id)}
+                        className="px-2 py-1 rounded text-xs"
+                        style={{ color: "var(--color-error)", background: "var(--bg-card)" }}
+                        title="Delete debt update"
+                      >
+                        Delete
+                      </button>
+                      <div>
                       <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(update.amount)}</p>
                       {update.balanceImpact && (
                         <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                           Balance after: {format(update.runningBalanceAfter || 0)}
                         </p>
                       )}
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -829,6 +906,127 @@ export default function DebtList() {
                 style={{ background: "var(--accent-primary)", color: "var(--text-inverse)" }}
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {mounted && showEditModal && editDebt && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] p-4"
+          style={{ background: "rgba(0,0,0,0.85)", display: "grid", placeItems: "center", overflowY: "auto" }}
+        >
+          <div
+            className="w-full max-w-lg rounded-xl p-6"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          >
+            <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Edit debt</h3>
+            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>{editDebt.debtType === "institutional" ? "Institutional debt" : "Person-to-person debt"}</p>
+
+            <div className="space-y-4 mt-5">
+              <div>
+                <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 rounded"
+                  style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Principal</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editForm.principal}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, principal: e.target.value }))}
+                    className="w-full px-3 py-2 rounded"
+                    style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Current balance</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editForm.currentBalance}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, currentBalance: e.target.value }))}
+                    className="w-full px-3 py-2 rounded"
+                    style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                  />
+                </div>
+              </div>
+
+              {editDebt.debtType === "institutional" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Installment</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editForm.installmentAmount}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, installmentAmount: e.target.value }))}
+                      className="w-full px-3 py-2 rounded"
+                      style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Next due date</label>
+                    <input
+                      type="date"
+                      value={editForm.nextDueDate}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, nextDueDate: e.target.value }))}
+                      className="w-full px-3 py-2 rounded"
+                      style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Reminder date</label>
+                  <input
+                    type="date"
+                    value={editForm.reminderDate}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, reminderDate: e.target.value }))}
+                    className="w-full px-3 py-2 rounded"
+                    style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value as "active" | "completed" }))}
+                  className="w-full px-3 py-2 rounded"
+                  style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
+                >
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={closeEditModal}
+                className="px-4 py-2 rounded"
+                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitEditDebt}
+                className="px-4 py-2 rounded"
+                style={{ background: "var(--accent-primary)", color: "var(--text-inverse)" }}
+              >
+                Save changes
               </button>
             </div>
           </div>
