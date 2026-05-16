@@ -753,15 +753,7 @@ export default function DebtList() {
                       <p className="font-medium" style={{ color: "var(--text-primary)" }}>{getIntentLabel(update.intent)}</p>
                       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{new Date(update.updateDate).toLocaleDateString()}</p>
                     </div>
-                    <div className="text-right flex items-end gap-2">
-                      <button
-                        onClick={() => handleDeleteUpdate(update.id)}
-                        className="px-2 py-1 rounded text-xs"
-                        style={{ color: "var(--color-error)", background: "var(--bg-card)" }}
-                        title="Delete debt update"
-                      >
-                        Delete
-                      </button>
+                    <div className="text-right space-y-2">
                       <div>
                       <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{format(update.amount)}</p>
                       {update.balanceImpact && (
@@ -770,6 +762,14 @@ export default function DebtList() {
                         </p>
                       )}
                       </div>
+                      <button
+                        onClick={() => handleDeleteUpdate(update.id)}
+                        className="px-2 py-1 rounded text-xs"
+                        style={{ color: "var(--color-error)", background: "var(--bg-card)" }}
+                        title="Delete debt update"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                   <div className="mt-3 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>

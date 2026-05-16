@@ -347,7 +347,7 @@ export class DebtService {
 
     if (requestedAmount > currentBalance + PAYMENT_TOLERANCE) {
       throw new BadRequestException(
-        'Payment exceeds current balance. Set settleInFull=true to pay the remaining balance.',
+        'Payment amount exceeds current balance. Set settleInFull=true to settle the remaining balance or reduce the payment amount.',
       );
     }
     const normalizedRequestedAmount = Math.min(requestedAmount, currentBalance);
