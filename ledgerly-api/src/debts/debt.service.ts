@@ -301,8 +301,7 @@ export class DebtService {
     const reminderDate = payload.reminderDate || (intent === 'reminder' ? updateDate : undefined);
 
     const update = this.updateRepo.create({
-      debtId: debt.id,
-      debt: { id: debt.id } as Debt,
+      debt: debt as Debt,
       updateDate,
       amount: this.toMoney(payload.amount),
       status: 'pending',
@@ -373,8 +372,7 @@ export class DebtService {
     }
 
     const update = this.updateRepo.create({
-      debtId: debt.id,
-      debt: { id: debt.id } as Debt,
+      debt: debt as Debt,
       updateDate,
       amount: this.toMoney(normalizedRequestedAmount),
       transactionId: transactionId || undefined,
