@@ -313,7 +313,7 @@ export class DebtService {
 
     if (reminderDate) {
       debt.reminderDate = reminderDate;
-      await this.debtRepo.save(debt);
+      await this.debtRepo.update({ id: debt.id }, { reminderDate });
     }
 
     return this.getDebtDetails(debt.id, debt.userId);
@@ -397,7 +397,15 @@ export class DebtService {
       debt.reminderDate = null;
     }
 
-    await this.debtRepo.save(debt);
+    await this.debtRepo.update(
+      { id: debt.id },
+      {
+        currentBalance: debt.currentBalance,
+        status: debt.status,
+        nextDueDate: debt.nextDueDate,
+        reminderDate: debt.reminderDate,
+      },
+    );
     return this.getDebtDetails(debt.id, debt.userId);
   }
 
