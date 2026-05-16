@@ -811,7 +811,10 @@ export class DebtService {
       if (this.toNumber(debt.currentBalance) > 0) {
         debt.status = 'active';
       }
-      await this.debtRepo.save(debt);
+      await this.debtRepo.update(
+        { id: debt.id },
+        { currentBalance: debt.currentBalance, status: debt.status },
+      );
     }
 
     await this.updateRepo.delete({ id: updateId });
