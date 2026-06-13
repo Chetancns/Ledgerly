@@ -26,8 +26,8 @@ import {
   RiUserLine,
   RiRepeatLine,
   RiQuestionLine,
+  RiAppsLine,
 } from "react-icons/ri";
-import { HiOutlineViewGrid } from "react-icons/hi2";
 import { DevWarningBanner } from "./DevWarningBanner";
 import { uploadReceiptImage, uploadAudioFile } from "../services/ai";
 import toast from "react-hot-toast";
@@ -385,7 +385,7 @@ const stopRecording = () => {
                     showDesktopMoreMenu ? "bg-[var(--accent-soft)] text-[var(--nav-active)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-secondary)]"
                   }`}
                 >
-                  <HiOutlineViewGrid className="text-base" aria-hidden="true" />
+                  <RiAppsLine className="text-base" aria-hidden="true" />
                   <span className="hidden lg:inline">More</span>
                   <FaChevronDown className={`text-xs transition-transform duration-200 ${showDesktopMoreMenu ? "rotate-180" : ""}`} />
                 </button>
@@ -587,7 +587,7 @@ const stopRecording = () => {
             className="flex min-h-[48px] min-w-[50px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-all duration-200 ease-out active:scale-95 tap-target"
           >
             <div className="rounded-lg p-1.5">
-              <HiOutlineViewGrid className="text-lg" aria-hidden="true" />
+              <RiAppsLine className="text-lg" aria-hidden="true" />
             </div>
             <span className="text-center leading-tight whitespace-nowrap">More</span>
           </button>
