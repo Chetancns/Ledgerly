@@ -434,9 +434,6 @@ const stopRecording = () => {
             <div className="nav-icon-shell">
               <NotificationCenter />
             </div>
-            <div className="nav-icon-shell">
-              <ThemeToggle />
-            </div>
             <div className="relative" data-profile-menu-root="true">
               <button
                 onClick={() => setShowProfileMenu((open) => !open)}
@@ -466,6 +463,10 @@ const stopRecording = () => {
                     <RiUserLine aria-hidden="true" />
                     View Profile
                   </Link>
+                  <div className="mb-2 flex min-h-[40px] items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)]">
+                    <span>Theme</span>
+                    <ThemeToggle />
+                  </div>
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
@@ -501,9 +502,6 @@ const stopRecording = () => {
             <div className="nav-icon-shell nav-icon-shell--mobile">
               <NotificationCenter />
             </div>
-            <div className="nav-icon-shell nav-icon-shell--mobile">
-              <ThemeToggle />
-            </div>
             <div className="relative" data-profile-menu-root="true">
               <button
                 onClick={() => setShowProfileMenu((open) => !open)}
@@ -533,6 +531,10 @@ const stopRecording = () => {
                     <RiUserLine aria-hidden="true" />
                     View Profile
                   </Link>
+                  <div className="mb-2 flex min-h-[40px] items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)]">
+                    <span>Theme</span>
+                    <ThemeToggle />
+                  </div>
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
