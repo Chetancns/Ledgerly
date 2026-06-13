@@ -51,6 +51,8 @@ type NavItem = {
   icon: IconType;
   section: NavSection;
 };
+const NAV_SECTIONS: NavSection[] = ["Finances", "Insights & AI", "Settings"];
+const SWIPE_DISMISS_THRESHOLD = 40;
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -79,7 +81,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: "/accounts", label: "Accounts", icon: RiWallet3Line, section: "Finances" },
     { href: "/categories", label: "Categories", icon: RiFolderLine, section: "Finances" },
     { href: "/tags", label: "Tags", icon: RiPriceTag3Line, section: "Finances" },
-    { href: "/budgets", label: "Budget", icon: RiMoneyDollarCircleLine, section: "Finances" },
+    { href: "/budgets", label: "Budgets", icon: RiMoneyDollarCircleLine, section: "Finances" },
     { href: "/debts", label: "Debts", icon: RiScalesLine, section: "Finances" },
     { href: "/calendar", label: "Calendar", icon: RiCalendarLine, section: "Finances" },
     { href: "/insights", label: "Insights", icon: RiLineChartLine, section: "Insights & AI" },
@@ -126,30 +128,40 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const getUserInitials = (name?: string) => {
-    if (!name) return "GU";
+    if (!name) return "U";
     const initials = name
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part.charAt(0).toUpperCase())
       .join("");
-    return initials || "GU";
+    return initials || "U";
   };
 
   const userInitials = getUserInitials(user?.name);
-  const currentPageLabel = navItems.find((item) => item.href === router.pathname)?.label || "Ledgerly";
+  const fallbackPageLabel =
+    router.pathname === "/"
+      ? "Dashboard"
+      : (router.pathname
+          .split("/")
+          .filter(Boolean)
+          .pop()
+          ?.replace(/-/g, " ")
+          .replace(/\b\w/g, (match) => match.toUpperCase()) || "Overview");
+  const currentPageLabel = navItems.find((item) => item.href === router.pathname)?.label || fallbackPageLabel;
   const filteredSecondaryNavItems = secondaryNavItems.filter((item) =>
     item.label.toLowerCase().includes(navSearch.toLowerCase().trim())
   );
-  const groupedMoreItems: { section: NavSection; items: NavItem[] }[] = ["Finances", "Insights & AI", "Settings"].map(
+  const groupedMoreItems: { section: NavSection; items: NavItem[] }[] = NAV_SECTIONS.map(
     (section) => ({
       section,
       items: filteredSecondaryNavItems.filter((item) => item.section === section),
     })
   );
+  const userEmail = user?.email || "No email available";
 
   useEffect(() => {
-    const onPointerDown = (event: MouseEvent) => {
+    const onMouseDown = (event: MouseEvent) => {
       const target = event.target as Node;
       const clickedDesktopMore = target instanceof Element && !!target.closest('[data-desktop-more-root="true"]');
       const clickedProfileMenu = target instanceof Element && !!target.closest('[data-profile-menu-root="true"]');
@@ -170,10 +182,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       }
     };
 
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onEscape);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onEscape);
     };
   }, []);
@@ -350,7 +362,7 @@ const stopRecording = () => {
             className="group mr-4 lg:mr-6 flex items-center gap-2.5 rounded-xl px-2 py-1 transition-all duration-200 ease-out hover:bg-[var(--bg-card)]"
             aria-label="Navigate to Dashboard"
           >
-            <span className="ledgerly-logo-badge">💰</span>
+            <span className="ledgerly-logo-badge" role="img" aria-label="Ledgerly logo">💰</span>
             <span className="ledgerly-logo-text">Ledgerly</span>
           </Link>
 
@@ -443,7 +455,7 @@ const stopRecording = () => {
                 >
                   <div className="mb-3 border-b border-[var(--border-secondary)] pb-3">
                     <p className="text-sm font-semibold text-[var(--text-primary)]">{user?.name || "Guest User"}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{(user as { email?: string })?.email || "No email available"}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{userEmail}</p>
                   </div>
                   <Link
                     ref={profileMenuFirstActionRef}
@@ -480,7 +492,7 @@ const stopRecording = () => {
           }}
         >
           <Link href="/" className="flex items-center gap-2" aria-label="Navigate to Dashboard">
-            <span className="ledgerly-logo-badge ledgerly-logo-badge--sm">💰</span>
+            <span className="ledgerly-logo-badge ledgerly-logo-badge--sm" role="img" aria-label="Ledgerly logo">💰</span>
           </Link>
           <span className="text-sm font-bold tracking-wide" style={{ color: "var(--text-primary)" }}>
             {currentPageLabel}
@@ -510,7 +522,7 @@ const stopRecording = () => {
                 >
                   <div className="mb-3 border-b border-[var(--border-secondary)] pb-3">
                     <p className="text-sm font-semibold text-[var(--text-primary)]">{user?.name || "Guest User"}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{(user as { email?: string })?.email || "No email available"}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{userEmail}</p>
                   </div>
                   <Link
                     ref={profileMenuFirstActionRef}
@@ -614,7 +626,10 @@ const stopRecording = () => {
                 className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[var(--border-primary)]"
                 onTouchStart={(event) => setTouchStartY(event.touches[0].clientY)}
                 onTouchEnd={(event) => {
-                  if (touchStartY !== null && event.changedTouches[0].clientY - touchStartY > 40) {
+                  if (
+                    touchStartY !== null &&
+                    event.changedTouches[0].clientY - touchStartY > SWIPE_DISMISS_THRESHOLD
+                  ) {
                     setShowMoreMenu(false);
                   }
                   setTouchStartY(null);
