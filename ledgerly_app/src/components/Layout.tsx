@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -10,6 +10,24 @@ import {
   FaEdit,
   FaChevronDown,
 } from "react-icons/fa";
+import type { IconType } from "react-icons";
+import {
+  RiDashboardLine,
+  RiExchangeDollarLine,
+  RiWallet3Line,
+  RiFolderLine,
+  RiPriceTag3Line,
+  RiMoneyDollarCircleLine,
+  RiScalesLine,
+  RiCalendarLine,
+  RiLineChartLine,
+  RiRobot2Line,
+  RiBarChartGroupedLine,
+  RiUserLine,
+  RiRepeatLine,
+  RiQuestionLine,
+} from "react-icons/ri";
+import { HiOutlineViewGrid } from "react-icons/hi2";
 import { DevWarningBanner } from "./DevWarningBanner";
 import { uploadReceiptImage, uploadAudioFile } from "../services/ai";
 import toast from "react-hot-toast";
@@ -25,6 +43,15 @@ import { useTheme } from "@/context/ThemeContext";
 import NotificationCenter from "./NotificationCenter";
 import OnboardingModal, { useOnboardingKeyboard } from "./OnboardingModal";
 import SkipLink from "./SkipLink";
+
+type NavSection = "Finances" | "Insights & AI" | "Settings";
+type NavItem = {
+  href: string;
+  label: string;
+  icon: IconType;
+  section: NavSection;
+};
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -40,22 +67,27 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false); // mobile "More"
   const [showDesktopMoreMenu, setShowDesktopMoreMenu] = useState(false);
-  
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: "📊" },
-    { href: "/transactions", label: "Transactions", icon: "↔️" },
-    { href: "/accounts", label: "Accounts", icon: "💳" },
-    { href: "/categories", label: "Categories", icon: "📂" },
-    { href: "/tags", label: "Tags", icon: "🏷️" },
-    { href: "/budgets", label: "Budget", icon: "💰" },
-    { href: "/debts", label: "Debts", icon: "⚖️" },
-    { href: "/calendar", label: "Calendar", icon: "📅" },
-    { href: "/insights", label: "Insights", icon: "💡" },
-    { href: "/ai-chat", label: "AI Chat", icon: "💬" },
-    { href: "/tag-insights", label: "Tag Insights", icon: "📈" },
-    { href: "/profile", label: "Profile", icon: "👤" },
-    { href: "/recurring", label: "Recurring", icon: "🔁"},
-    { href: "/help", label: "Help", icon: "❓" },
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [navSearch, setNavSearch] = useState("");
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const profileMenuFirstActionRef = useRef<HTMLAnchorElement | null>(null);
+
+  const navItems: NavItem[] = [
+    { href: "/", label: "Dashboard", icon: RiDashboardLine, section: "Finances" },
+    { href: "/transactions", label: "Transactions", icon: RiExchangeDollarLine, section: "Finances" },
+    { href: "/accounts", label: "Accounts", icon: RiWallet3Line, section: "Finances" },
+    { href: "/categories", label: "Categories", icon: RiFolderLine, section: "Finances" },
+    { href: "/tags", label: "Tags", icon: RiPriceTag3Line, section: "Finances" },
+    { href: "/budgets", label: "Budget", icon: RiMoneyDollarCircleLine, section: "Finances" },
+    { href: "/debts", label: "Debts", icon: RiScalesLine, section: "Finances" },
+    { href: "/calendar", label: "Calendar", icon: RiCalendarLine, section: "Finances" },
+    { href: "/insights", label: "Insights", icon: RiLineChartLine, section: "Insights & AI" },
+    { href: "/ai-chat", label: "AI Chat", icon: RiRobot2Line, section: "Insights & AI" },
+    { href: "/tag-insights", label: "Tag Insights", icon: RiBarChartGroupedLine, section: "Insights & AI" },
+    { href: "/profile", label: "Profile", icon: RiUserLine, section: "Settings" },
+    { href: "/recurring", label: "Recurring", icon: RiRepeatLine, section: "Finances" },
+    { href: "/help", label: "Help", icon: RiQuestionLine, section: "Settings" },
   ];
 
   // Primary items to keep visible on desktop; rest go under More
@@ -92,6 +124,91 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     await logoutapi();
     router.push("/login");
   };
+
+  const getUserInitials = (name?: string) => {
+    if (!name) return "GU";
+    const initials = name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("");
+    return initials || "GU";
+  };
+
+  const userInitials = getUserInitials(user?.name);
+  const currentPageLabel = navItems.find((item) => item.href === router.pathname)?.label || "Ledgerly";
+  const filteredSecondaryNavItems = secondaryNavItems.filter((item) =>
+    item.label.toLowerCase().includes(navSearch.toLowerCase().trim())
+  );
+  const groupedMoreItems: { section: NavSection; items: NavItem[] }[] = ["Finances", "Insights & AI", "Settings"].map(
+    (section) => ({
+      section,
+      items: filteredSecondaryNavItems.filter((item) => item.section === section),
+    })
+  );
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedDesktopMore = target instanceof Element && !!target.closest('[data-desktop-more-root="true"]');
+      const clickedProfileMenu = target instanceof Element && !!target.closest('[data-profile-menu-root="true"]');
+
+      if (!clickedDesktopMore) {
+        setShowDesktopMoreMenu(false);
+      }
+      if (!clickedProfileMenu) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowDesktopMoreMenu(false);
+        setShowProfileMenu(false);
+        setShowMoreMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (showProfileMenu) {
+      profileMenuFirstActionRef.current?.focus();
+    }
+  }, [showProfileMenu]);
+
+  useEffect(() => {
+    if (!showProfileMenu || !profileMenuRef.current) return;
+
+    const menu = profileMenuRef.current;
+    const focusable = menu.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", trapFocus);
+    return () => document.removeEventListener("keydown", trapFocus);
+  }, [showProfileMenu]);
 
   const handleImageUpload = (file: File) => {
   setSelectedImageFile(file); // ✅ keep the file reference
@@ -219,7 +336,8 @@ const stopRecording = () => {
 
         {/* Desktop Navbar */}
         <nav
-          className="sticky top-0 z-50 hidden md:flex items-center px-4 lg:px-6 py-3 backdrop-blur-md"
+          className="sticky top-0 z-50 hidden md:flex items-center px-4 lg:px-6 py-3.5 backdrop-blur-xl"
+          role="navigation"
           aria-label="Main navigation"
           style={{
             background: "var(--nav-bg)",
@@ -227,144 +345,195 @@ const stopRecording = () => {
             boxShadow: "var(--shadow-lg)",
           }}
         >
-          <span 
-            className="text-lg md:text-2xl font-extrabold tracking-wide drop-shadow-md mr-4 lg:mr-6"
-            style={{ color: "var(--text-primary)" }}
+          <Link
+            href="/"
+            className="group mr-4 lg:mr-6 flex items-center gap-2.5 rounded-xl px-2 py-1 transition-all duration-200 ease-out hover:bg-[var(--bg-card)]"
+            aria-label="Navigate to Dashboard"
           >
-            <a href="/">💰 Ledgerly</a>
-          </span>
+            <span className="ledgerly-logo-badge">💰</span>
+            <span className="ledgerly-logo-text">Ledgerly</span>
+          </Link>
 
-          <div className="flex gap-2 lg:gap-3 flex-1 items-center flex-nowrap overflow-visible">
-            {primaryNavItems.map((item) => {
-              const isActive = router.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-label={`Navigate to ${item.label}`}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1.5 rounded-lg font-semibold transition min-h-[44px] ${
-                    isActive
-                      ? "bg-[var(--bg-card-hover)]"
-                      : "hover:bg-[var(--bg-card)]"
+          <div className="flex flex-1 items-center justify-center">
+            <div className="flex items-center gap-1 rounded-full border border-[var(--border-secondary)] bg-[var(--bg-card)]/80 px-2 py-1">
+              {primaryNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = router.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-label={`Navigate to ${item.label}`}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`relative flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ease-out ${
+                      isActive ? "bg-[var(--accent-soft)] text-[var(--nav-active)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-secondary)]"
+                    }`}
+                  >
+                    <Icon className="text-base" aria-hidden="true" />
+                    <span className="hidden lg:inline">{item.label}</span>
+                    {isActive && <span className="nav-indicator-pill" aria-hidden="true" />}
+                  </Link>
+                );
+              })}
+
+              <div className="relative flex items-center" data-desktop-more-root="true">
+                <button
+                  onClick={() => setShowDesktopMoreMenu((open) => !open)}
+                  aria-label="Open more navigation"
+                  aria-expanded={showDesktopMoreMenu}
+                  className={`flex min-h-[44px] min-w-[44px] items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ease-out ${
+                    showDesktopMoreMenu ? "bg-[var(--accent-soft)] text-[var(--nav-active)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-secondary)]"
                   }`}
-                  style={{
-                    color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
-                  }}
                 >
-                  <span className="text-base lg:text-lg">{item.icon}</span>
-                  <span className="hidden lg:inline text-sm">{item.label}</span>
-                </Link>
-              );
-            })}
+                  <HiOutlineViewGrid className="text-base" aria-hidden="true" />
+                  <span className="hidden lg:inline">More</span>
+                  <FaChevronDown className={`text-xs transition-transform duration-200 ${showDesktopMoreMenu ? "rotate-180" : ""}`} />
+                </button>
 
-            {/* Desktop More dropdown */}
-            <div className="relative flex items-center">
-              <button
-                onClick={() => setShowDesktopMoreMenu((open) => !open)}
-                aria-label="Open more navigation"
-                aria-expanded={showDesktopMoreMenu}
-                className="flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1.5 rounded-lg font-semibold transition min-h-[44px] min-w-[44px]"
-                style={{
-                  color: showDesktopMoreMenu ? "var(--nav-active)" : "var(--text-secondary)",
-                  background: showDesktopMoreMenu ? "var(--bg-card-hover)" : undefined,
-                }}
-              >
-                <span className="text-base lg:text-lg">⋯</span>
-                <span className="hidden lg:inline text-sm">More</span>
-                <FaChevronDown 
-                  className={`text-xs transition-transform ${showDesktopMoreMenu ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {showDesktopMoreMenu && (
-                <div
-                  className="absolute top-full left-0 mt-1 rounded-lg shadow-lg backdrop-blur-md min-w-[220px] z-20 animate-fadeIn"
-                  style={{
-                    background: "var(--nav-bg)",
-                    border: "1px solid var(--border-primary)",
-                  }}
-                >
-                  <div className="p-2 grid grid-cols-1 gap-1">
+                {showDesktopMoreMenu && (
+                  <div
+                    className="absolute left-0 top-full z-30 mt-2 min-w-[260px] rounded-2xl border border-[var(--border-primary)] bg-[var(--nav-bg)] p-2 shadow-xl backdrop-blur-xl transition-all duration-300 ease-out desktop-more-dropdown"
+                    role="menu"
+                  >
                     {secondaryNavItems.map((item) => {
+                      const Icon = item.icon;
                       const isActive = router.pathname === item.href;
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
                           onClick={() => setShowDesktopMoreMenu(false)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                            isActive ? "bg-[var(--bg-card-hover)]" : "hover:bg-[var(--bg-card)]"
+                          className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold transition-all duration-200 ease-out ${
+                            isActive ? "bg-[var(--accent-soft)] text-[var(--nav-active)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]"
                           }`}
-                          style={{
-                            color: isActive ? "var(--nav-active)" : "var(--text-secondary)",
-                          }}
                         >
-                          <span className="text-lg">{item.icon}</span>
+                          <Icon className="text-base" aria-hidden="true" />
                           <span>{item.label}</span>
                         </Link>
                       );
                     })}
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="ml-4 flex items-center gap-2">
+            <div className="nav-icon-shell">
+              <NotificationCenter />
+            </div>
+            <div className="nav-icon-shell">
+              <ThemeToggle />
+            </div>
+            <div className="relative" data-profile-menu-root="true">
+              <button
+                onClick={() => setShowProfileMenu((open) => !open)}
+                className="avatar-chip"
+                aria-label="Open account menu"
+                aria-expanded={showProfileMenu}
+              >
+                <span className="avatar-chip__text">{userInitials}</span>
+              </button>
+              {showProfileMenu && (
+                <div
+                  ref={profileMenuRef}
+                  className="absolute right-0 top-full z-40 mt-2 w-64 rounded-2xl border border-[var(--border-primary)] bg-[var(--nav-bg)] p-3 shadow-2xl backdrop-blur-xl"
+                  role="dialog"
+                  aria-label="Account menu"
+                >
+                  <div className="mb-3 border-b border-[var(--border-secondary)] pb-3">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{user?.name || "Guest User"}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{(user as { email?: string })?.email || "No email available"}</p>
+                  </div>
+                  <Link
+                    ref={profileMenuFirstActionRef}
+                    href="/profile"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="mb-2 flex min-h-[40px] items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all duration-200 ease-out hover:bg-[var(--bg-card-hover)]"
+                  >
+                    <RiUserLine aria-hidden="true" />
+                    View Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      logout();
+                    }}
+                    className="flex min-h-[40px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--color-error)] transition-all duration-200 ease-out hover:bg-[var(--color-error-bg)]"
+                  >
+                    <FaSignOutAlt aria-hidden="true" />
+                    Logout
+                  </button>
                 </div>
               )}
             </div>
           </div>
-
-          <div className="ml-auto flex items-center gap-2 lg:gap-3">
-            <NotificationCenter />
-            <ThemeToggle />
-            <span 
-              className="font-semibold text-sm md:text-base hidden sm:inline"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {user?.name || "Guest"}
-            </span>
-            <button
-              onClick={logout}
-              aria-label="Log out of your account"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm md:text-base font-semibold shadow-md transition min-h-[44px]"
-              style={{
-                backgroundColor: "var(--color-error)",
-                color: "var(--text-inverse)",
-              }}
-            >
-              <FaSignOutAlt /> <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
         </nav>
+        <div className="hidden h-1 bg-gradient-to-b from-[var(--border-primary)] to-transparent md:block" aria-hidden="true" />
 
         {/* Mobile Top Header */}
-        <div 
-          className="flex items-center justify-between px-3 py-3 md:hidden backdrop-blur-md sticky top-0 z-50"
+        <div
+          className="sticky top-0 z-50 flex items-center justify-between px-3 py-3 md:hidden backdrop-blur-xl"
           style={{
             background: "var(--nav-bg)",
             borderBottom: "1px solid var(--border-primary)",
           }}
         >
-          <span className="text-lg font-extrabold" style={{ color: "var(--text-primary)" }}>
-            💰 Ledgerly
+          <Link href="/" className="flex items-center gap-2" aria-label="Navigate to Dashboard">
+            <span className="ledgerly-logo-badge ledgerly-logo-badge--sm">💰</span>
+          </Link>
+          <span className="text-sm font-bold tracking-wide" style={{ color: "var(--text-primary)" }}>
+            {currentPageLabel}
           </span>
-          <div className="flex items-center gap-2">
-            <NotificationCenter />
-            <ThemeToggle />
-            <span 
-              className="font-semibold text-xs truncate max-w-[80px]"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {user?.name || "Guest"}
-            </span>
-            <button
-              onClick={logout}
-              aria-label="Log out"
-              className="px-2 py-2 rounded-lg text-xs font-semibold transition min-h-[44px] min-w-[44px] flex items-center justify-center"
-              style={{
-                backgroundColor: "var(--color-error)",
-                color: "var(--text-inverse)",
-              }}
-            >
-              <FaSignOutAlt />
-            </button>
+          <div className="flex items-center gap-1.5">
+            <div className="nav-icon-shell nav-icon-shell--mobile">
+              <NotificationCenter />
+            </div>
+            <div className="nav-icon-shell nav-icon-shell--mobile">
+              <ThemeToggle />
+            </div>
+            <div className="relative" data-profile-menu-root="true">
+              <button
+                onClick={() => setShowProfileMenu((open) => !open)}
+                className="avatar-chip avatar-chip--mobile"
+                aria-label="Open account menu"
+                aria-expanded={showProfileMenu}
+              >
+                <span className="avatar-chip__text">{userInitials}</span>
+              </button>
+              {showProfileMenu && (
+                <div
+                  ref={profileMenuRef}
+                  className="absolute right-0 top-full z-40 mt-2 w-56 rounded-2xl border border-[var(--border-primary)] bg-[var(--nav-bg)] p-3 shadow-2xl backdrop-blur-xl"
+                  role="dialog"
+                  aria-label="Account menu"
+                >
+                  <div className="mb-3 border-b border-[var(--border-secondary)] pb-3">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{user?.name || "Guest User"}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{(user as { email?: string })?.email || "No email available"}</p>
+                  </div>
+                  <Link
+                    ref={profileMenuFirstActionRef}
+                    href="/profile"
+                    onClick={() => setShowProfileMenu(false)}
+                    className="mb-2 flex min-h-[40px] items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all duration-200 ease-out hover:bg-[var(--bg-card-hover)]"
+                  >
+                    <RiUserLine aria-hidden="true" />
+                    View Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      logout();
+                    }}
+                    className="flex min-h-[40px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--color-error)] transition-all duration-200 ease-out hover:bg-[var(--color-error-bg)]"
+                  >
+                    <FaSignOutAlt aria-hidden="true" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -377,195 +546,146 @@ const stopRecording = () => {
         </main>
 
         {/* Mobile Bottom Nav - Dashboard, Transactions, Accounts, Budgets, More */}
-        <nav 
-          className="fixed bottom-0 left-0 right-0 z-40 flex justify-between items-center px-3 py-2 backdrop-blur-md md:hidden bottom-nav safe-area-padding"
+        <nav
+          role="navigation"
+          aria-label="Bottom navigation"
+          className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-3 py-2 backdrop-blur-xl md:hidden bottom-nav safe-area-padding"
           style={{
             background: "var(--nav-bg)",
             borderTop: "1px solid var(--border-primary)",
           }}
         >
-          {/* Dashboard */}
-          {dashboardItem && (
-            <Link
-              href={dashboardItem.href}
-              aria-label={`Navigate to ${dashboardItem.label}`}
-              aria-current={router.pathname === dashboardItem.href ? 'page' : undefined}
-              className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-              style={{
-                color: router.pathname === dashboardItem.href ? "var(--nav-active)" : "var(--text-secondary)",
-                background: router.pathname === dashboardItem.href ? "var(--bg-card)" : "transparent",
-              }}
-            >
-              <div className="text-lg">{dashboardItem.icon}</div>
-              <span className="text-center leading-tight whitespace-nowrap">{dashboardItem.label}</span>
-            </Link>
-          )}
+          {[dashboardItem, transactionsItem, accountsItem, budgetItem].map((item) => {
+            if (!item) return null;
+            const Icon = item.icon;
+            const isActive = router.pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={`Navigate to ${item.label}`}
+                aria-current={isActive ? "page" : undefined}
+                className="group relative flex min-h-[48px] min-w-[50px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-all duration-200 ease-out active:scale-95 tap-target"
+                style={{ color: isActive ? "var(--nav-active)" : "var(--text-secondary)" }}
+              >
+                {isActive && <span className="nav-indicator-pill nav-indicator-pill--mobile" aria-hidden="true" />}
+                <div
+                  className={`rounded-lg p-1.5 transition-all duration-200 ease-out ${
+                    isActive ? "bg-[var(--bg-card-hover)]" : "group-hover:bg-[var(--bg-card)]"
+                  }`}
+                >
+                  <Icon className="text-lg" aria-hidden="true" />
+                </div>
+                <span className="text-center leading-tight whitespace-nowrap">{item.href === "/transactions" ? "Txns" : item.label}</span>
+              </Link>
+            );
+          })}
 
-          {/* Transactions (mobile) */}
-          {transactionsItem && (
-            <Link
-              href={transactionsItem.href}
-              aria-label="Navigate to Transactions"
-              aria-current={router.pathname === transactionsItem.href ? 'page' : undefined}
-              className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-              style={{
-                color: router.pathname === transactionsItem.href ? "var(--nav-active)" : "var(--text-secondary)",
-                background: router.pathname === transactionsItem.href ? "var(--bg-card)" : "transparent",
-              }}
-            >
-              <div className="text-lg">{transactionsItem.icon}</div>
-              <span className="text-center leading-tight whitespace-nowrap">Txns</span>
-            </Link>
-          )}
-
-          {/* Accounts */}
-          {accountsItem && (
-            <Link
-              href={accountsItem.href}
-              aria-label={`Navigate to ${accountsItem.label}`}
-              aria-current={router.pathname === accountsItem.href ? 'page' : undefined}
-              className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-              style={{
-                color: router.pathname === accountsItem.href ? "var(--nav-active)" : "var(--text-secondary)",
-                background: router.pathname === accountsItem.href ? "var(--bg-card)" : "transparent",
-              }}
-            >
-              <div className="text-lg">{accountsItem.icon}</div>
-              <span className="text-center leading-tight whitespace-nowrap">{accountsItem.label}</span>
-            </Link>
-          )}
-
-          {/* Budget */}
-          {budgetItem && (
-            <Link
-              href={budgetItem.href}
-              aria-label={`Navigate to ${budgetItem.label}`}
-              aria-current={router.pathname === budgetItem.href ? 'page' : undefined}
-              className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-              style={{
-                color: router.pathname === budgetItem.href ? "var(--nav-active)" : "var(--text-secondary)",
-                background: router.pathname === budgetItem.href ? "var(--bg-card)" : "transparent",
-              }}
-            >
-              <div className="text-lg">{budgetItem.icon}</div>
-              <span className="text-center leading-tight whitespace-nowrap">{budgetItem.label}</span>
-            </Link>
-          )}
-
-          {/* More Menu */}
           <button
             onClick={() => setShowMoreMenu(true)}
-            aria-label="More menu"
-            className="flex flex-col items-center gap-1 text-[10px] font-semibold transition min-w-[50px] min-h-[48px] justify-center tap-target rounded-lg px-2 py-1"
-            style={{ color: "var(--text-secondary)" }}
+            aria-label="Open more menu"
+            className="flex min-h-[48px] min-w-[50px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-all duration-200 ease-out active:scale-95 tap-target"
           >
-            <div className="text-lg">⋯</div>
+            <div className="rounded-lg p-1.5">
+              <HiOutlineViewGrid className="text-lg" aria-hidden="true" />
+            </div>
             <span className="text-center leading-tight whitespace-nowrap">More</span>
           </button>
         </nav>
 
         {/* More Menu Modal */}
         {showMoreMenu && (
-          <div 
-            className="fixed inset-0 bg-black/70 flex items-end md:items-center md:justify-center z-50 animate-fadeIn"
+          <div
+            className="fixed inset-0 z-50 flex items-end bg-black/70 md:items-center md:justify-center animate-fadeIn"
             onClick={(e) => {
               if (e.target === e.currentTarget) setShowMoreMenu(false);
             }}
           >
-            <div 
-              className="backdrop-blur-xl rounded-t-3xl md:rounded-3xl p-6 w-full md:max-w-md shadow-2xl animate-slideUp max-h-[80vh] overflow-y-auto"
+            <div
+              className="max-h-[82vh] w-full overflow-y-auto rounded-t-3xl border border-[var(--border-primary)] p-5 shadow-2xl backdrop-blur-xl md:max-w-md md:rounded-3xl animate-slideUp"
               style={{
-                background: theme === 'dark' 
-                  ? "linear-gradient(160deg, rgba(6, 25, 55, 0.98), rgba(2, 15, 40, 0.98))"
-                  : "linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(224, 242, 251, 0.98))",
-                border: "1px solid var(--border-primary)",
+                background:
+                  theme === "dark"
+                    ? "linear-gradient(160deg, rgba(6, 25, 55, 0.98), rgba(2, 15, 40, 0.98))"
+                    : "linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(224, 242, 251, 0.98))",
               }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 
-                  className="text-2xl font-bold flex items-center gap-2"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  <span className="text-3xl">⋯</span>
+              <div
+                className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-[var(--border-primary)]"
+                onTouchStart={(event) => setTouchStartY(event.touches[0].clientY)}
+                onTouchEnd={(event) => {
+                  if (touchStartY !== null && event.changedTouches[0].clientY - touchStartY > 40) {
+                    setShowMoreMenu(false);
+                  }
+                  setTouchStartY(null);
+                }}
+                aria-hidden="true"
+              />
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
                   More Navigation
                 </h2>
                 <button
                   onClick={() => setShowMoreMenu(false)}
-                  className="hover:rotate-90 transition-all text-2xl w-10 h-10 flex items-center justify-center rounded-full min-h-[44px] min-w-[44px]"
-                  style={{ 
-                    color: "var(--text-muted)",
-                    background: "var(--bg-card)",
-                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-2xl transition-all duration-200 ease-out hover:rotate-90"
+                  style={{ color: "var(--text-muted)", background: "var(--bg-card)" }}
                   aria-label="Close more menu"
                 >
                   ✖
                 </button>
               </div>
 
-              {/* Grid layout for navigation items */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {navItems.slice(2).map((item) => {
-                  const isActive = router.pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setShowMoreMenu(false)}
-                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all transform hover:scale-105 active:scale-95 min-h-[90px]"
-                      style={{
-                        background: isActive ? "var(--accent-primary)" : "var(--bg-card)",
-                        border: `2px solid ${isActive ? "var(--accent-primary)" : "var(--border-primary)"}`,
-                        color: isActive ? "var(--text-inverse)" : "var(--text-primary)",
-                        boxShadow: isActive ? "0 8px 24px rgba(56, 189, 248, 0.28)" : "none",
-                      }}
-                    >
-                      <div className="text-4xl">{item.icon}</div>
-                      <span className="text-xs font-bold text-center leading-tight">{item.label}</span>
-                    </Link>
-                  );
-                })}
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={navSearch}
+                  onChange={(event) => setNavSearch(event.target.value)}
+                  placeholder="Search navigation..."
+                  className="w-full rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-[var(--accent-primary)]"
+                  style={{ color: "var(--text-primary)" }}
+                  aria-label="Search navigation items"
+                />
               </div>
 
-              {/* Divider */}
-              <div 
-                className="my-4 h-px"
-                style={{ background: "var(--border-primary)" }}
-              />
+              {groupedMoreItems.map((group) =>
+                group.items.length ? (
+                  <section key={group.section} className="mb-4">
+                    <h3 className="mb-2 px-1 text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
+                      {group.section}
+                    </h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = router.pathname === item.href;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setShowMoreMenu(false)}
+                            className="flex min-h-[90px] transform flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 transition-all duration-200 ease-out hover:scale-105 active:scale-95"
+                            style={{
+                              background: isActive ? "var(--accent-primary)" : "var(--bg-card)",
+                              borderColor: isActive ? "var(--accent-primary)" : "var(--border-primary)",
+                              color: isActive ? "var(--text-inverse)" : "var(--text-primary)",
+                              boxShadow: isActive ? "0 8px 24px rgba(56, 189, 248, 0.28)" : "none",
+                            }}
+                          >
+                            <Icon className="text-2xl" aria-hidden="true" />
+                            <span className="text-center text-xs font-bold leading-tight">{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-4 h-px bg-[var(--border-primary)]" />
+                  </section>
+                ) : null
+              )}
 
-              {/* Recurring option in More menu */}
-              <div className="mb-2">
-                <h3 
-                  className="text-sm font-semibold px-2 py-2"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  Financial Management
-                </h3>
-                <Link
-                  href="/recurring"
-                  onClick={() => setShowMoreMenu(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    router.pathname === "/recurring"
-                      ? "bg-[var(--accent-primary)]"
-                      : "hover:bg-[var(--bg-card)]"
-                  }`}
-                  style={{
-                    color: router.pathname === "/recurring" ? "var(--text-inverse)" : "var(--text-primary)",
-                  }}
-                >
-                  <span className="text-2xl">🔁</span>
-                  <div>
-                    <div className="font-semibold text-sm">Recurring</div>
-                    <div className="text-xs" style={{ color: "var(--text-muted)" }}>Manage recurring payments</div>
-                  </div>
-                </Link>
-              </div>
-
-              <div 
-                className="mt-4 text-center text-xs"
-                style={{ color: "var(--text-muted)" }}
-              >
-                Tap outside to close
-              </div>
+              {filteredSecondaryNavItems.length === 0 && (
+                <p className="py-6 text-center text-sm" style={{ color: "var(--text-muted)" }}>
+                  No pages found for "{navSearch}".
+                </p>
+              )}
             </div>
           </div>
         )}
