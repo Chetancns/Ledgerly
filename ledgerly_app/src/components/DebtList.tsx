@@ -123,23 +123,25 @@ export default function DebtList() {
     // render — it only creates a new notification the first time.
     // The NotificationContext will then show the toast exactly once per
     // notification (tracked in localStorage via shownNotificationIds).
-    Promise.all(
-      overdueDebts.map(async (debt) => {
-        const title =
-          debt.debtType === "institutional" ? "Debt overdue" : "Follow-up overdue";
-        const message = `${debt.name} needs attention${debt.personName ? ` for ${debt.personName}` : ""}`;
-        try {
-          const result = await createDebtReminderNotification(debt.id, title, message);
-          if (result.created) {
-            // Refresh context so the new backend notification is picked up
-            // and shown as a toast (the context deduplicates via localStorage).
-            await refreshNotifications();
+    void (async () => {
+      await Promise.all(
+        overdueDebts.map(async (debt) => {
+          const title =
+            debt.debtType === "institutional" ? "Debt overdue" : "Follow-up overdue";
+          const message = `${debt.name} needs attention${debt.personName ? ` for ${debt.personName}` : ""}`;
+          try {
+            const result = await createDebtReminderNotification(debt.id, title, message);
+            if (result.created) {
+              // Refresh context so the new backend notification is picked up
+              // and shown as a toast (the context deduplicates via localStorage).
+              await refreshNotifications();
+            }
+          } catch (err) {
+            console.error("Failed to persist debt reminder notification", err);
           }
-        } catch (err) {
-          console.error("Failed to persist debt reminder notification", err);
-        }
-      })
-    );
+        })
+      );
+    })();
   }, [debts, refreshNotifications]);
 
   const filteredDebts = useMemo(() => {

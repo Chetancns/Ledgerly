@@ -4,7 +4,7 @@ import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUser } from '../common/decorators/user.decorator';
 
-class CreateDebtReminderDto {
+export class CreateDebtReminderDto {
   @IsString() debtId: string;
   @IsString() title: string;
   @IsString() message: string;
