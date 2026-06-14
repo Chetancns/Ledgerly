@@ -41,3 +41,13 @@ export const deleteNotification = async (id: string): Promise<{ deleted: boolean
   const response = await api.delete(`/notifications/${id}`);
   return response.data;
 };
+
+// Create a debt-reminder notification (server deduplicates by debtId)
+export const createDebtReminderNotification = async (
+  debtId: string,
+  title: string,
+  message: string,
+): Promise<{ created: boolean; notification: BackendNotification }> => {
+  const response = await api.post("/notifications/debt-reminder", { debtId, title, message });
+  return response.data;
+};

@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
-export type NotificationType = 'transaction_posted' | 'budget_alert' | 'recurring_created' | 'general';
+export type NotificationType = 'transaction_posted' | 'budget_alert' | 'recurring_created' | 'debt_reminder' | 'general';
 
 @Entity('dbo.notifications')
 export class Notification {
