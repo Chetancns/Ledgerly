@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-06-13
+
+### Changed
+- Moved the light/dark theme toggle into the account profile popover in the app header on desktop and mobile.
+
 ## 2026-05-15
 
 ### Added
