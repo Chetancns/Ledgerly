@@ -26,6 +26,7 @@ import { Category } from "@/models/category";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
 import { useNotifications } from "@/context/NotificationContext";
+import { createDebtReminderNotification } from "@/services/notifications";
 
 type StatusFilter = "all" | "active" | "completed" | "overdue" | "active+overdue";
 type ViewMode = "people" | "debts";
@@ -47,7 +48,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 
 export default function DebtList() {
   const { format } = useCurrencyFormatter();
-  const { addNotification } = useNotifications();
+  const { refreshNotifications } = useNotifications();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [personLedger, setPersonLedger] = useState<PersonLedgerSummary[]>([]);
   const [analytics, setAnalytics] = useState<DebtAnalytics | null>(null);
@@ -59,7 +60,6 @@ export default function DebtList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active+overdue");
   const [categories, setCategories] = useState<Category[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [notifiedDebts, setNotifiedDebts] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>("people");
   const [actionDebt, setActionDebt] = useState<Debt | null>(null);
   const [actionType, setActionType] = useState<ActionType>("payment");
@@ -113,22 +113,34 @@ export default function DebtList() {
   useEffect(() => {
     if (debts.length === 0) return;
 
-    debts.forEach((debt) => {
-      if (debt.overdue && debt.status === "active" && !notifiedDebts.has(debt.id)) {
-        const title = debt.debtType === "institutional" ? "Debt overdue" : "Follow-up overdue";
-        const message = `${debt.name} needs attention${debt.personName ? ` for ${debt.personName}` : ""}`;
+    const overdueDebts = debts.filter(
+      (debt) => debt.overdue && debt.status === "active"
+    );
+    if (overdueDebts.length === 0) return;
 
-        addNotification({
-          type: "debt_reminder",
-          title,
-          message,
-          actionUrl: "/debts",
-        });
-        toast(message, { icon: "⚖️", duration: 5000 });
-        setNotifiedDebts((prev) => new Set(prev).add(debt.id));
-      }
-    });
-  }, [addNotification, debts, notifiedDebts]);
+    // Persist each overdue debt reminder to the backend.
+    // The backend deduplicates by debtId so this is safe to call on every
+    // render — it only creates a new notification the first time.
+    // The NotificationContext will then show the toast exactly once per
+    // notification (tracked in localStorage via shownNotificationIds).
+    Promise.all(
+      overdueDebts.map(async (debt) => {
+        const title =
+          debt.debtType === "institutional" ? "Debt overdue" : "Follow-up overdue";
+        const message = `${debt.name} needs attention${debt.personName ? ` for ${debt.personName}` : ""}`;
+        try {
+          const result = await createDebtReminderNotification(debt.id, title, message);
+          if (result.created) {
+            // Refresh context so the new backend notification is picked up
+            // and shown as a toast (the context deduplicates via localStorage).
+            await refreshNotifications();
+          }
+        } catch (err) {
+          console.error("Failed to persist debt reminder notification", err);
+        }
+      })
+    );
+  }, [debts, refreshNotifications]);
 
   const filteredDebts = useMemo(() => {
     return debts.filter((debt) => {

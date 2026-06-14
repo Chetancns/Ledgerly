@@ -89,4 +89,34 @@ export class NotificationsService {
       where: { userId, isRead: false },
     });
   }
+
+  /**
+   * Create a debt-reminder notification only if one doesn't already exist for
+   * this debt (matched by metadata.debtId). Returns the notification and a
+   * flag indicating whether it was newly created.
+   */
+  async createDebtReminderIfNotExists(
+    userId: string,
+    debtId: string,
+    title: string,
+    message: string,
+  ): Promise<{ created: boolean; notification: Notification }> {
+    // Check for an existing notification for this specific debt
+    const existing = await this.notificationRepo
+      .createQueryBuilder('n')
+      .where('n.userId = :userId', { userId })
+      .andWhere("n.type = 'debt_reminder'")
+      .andWhere("n.metadata->>'debtId' = :debtId", { debtId })
+      .getOne();
+
+    if (existing) {
+      return { created: false, notification: existing };
+    }
+
+    const notification = await this.create(userId, 'debt_reminder', title, message, {
+      debtId,
+      actionUrl: '/debts',
+    });
+    return { created: true, notification };
+  }
 }

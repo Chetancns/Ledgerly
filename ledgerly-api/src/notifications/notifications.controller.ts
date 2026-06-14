@@ -1,7 +1,14 @@
-import { Controller, Get, Patch, Delete, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Delete, Param, Query, UseGuards } from '@nestjs/common';
+import { IsString } from 'class-validator';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { GetUser } from '../common/decorators/user.decorator';
+
+class CreateDebtReminderDto {
+  @IsString() debtId: string;
+  @IsString() title: string;
+  @IsString() message: string;
+}
 
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
@@ -44,5 +51,18 @@ export class NotificationsController {
     @Param('id') id: string,
   ) {
     return this.notificationsService.delete(id, user.userId);
+  }
+
+  @Post('debt-reminder')
+  async createDebtReminder(
+    @GetUser() user: { userId: string },
+    @Body() body: CreateDebtReminderDto,
+  ) {
+    return this.notificationsService.createDebtReminderIfNotExists(
+      user.userId,
+      body.debtId,
+      body.title,
+      body.message,
+    );
   }
 }
