@@ -28,8 +28,6 @@ import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useTheme } from "@/context/ThemeContext";
 
 const FALLBACK_COLORS = ["#38bdf8", "#22d3ee", "#34d399", "#fbbf24", "#f87171", "#a78bfa"];
-const MAX_DISPLAY_PERCENT = 999;
-
 type ComparisonPoint = {
   label: string;
   income: number;
@@ -552,7 +550,7 @@ export function BudgetUtilizationRadialList({
   return (
     <div className="space-y-4">
       {data.map((item) => {
-        const percent = Math.max(0, Math.min(item.percent, MAX_DISPLAY_PERCENT));
+        const percent = Math.max(0, item.percent);
         return (
           <div
             key={item.categoryId}

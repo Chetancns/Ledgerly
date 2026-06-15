@@ -20,7 +20,7 @@ export default function SpendingHeatmap({
 
     transactions.forEach((transaction) => {
       const date = new Date(transaction.transactionDate);
-      const day = date.getUTCDate();
+      const day = date.getDate();
       const current = totalsByDay.get(day) || { count: 0, amount: 0 };
       totalsByDay.set(day, {
         count: current.count + 1,

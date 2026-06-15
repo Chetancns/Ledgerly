@@ -50,6 +50,10 @@ function calculateSavingsRate(income: number, expense: number) {
   return income > 0 ? ((income - expense) / income) * 100 : 0;
 }
 
+function getComparisonMonth(baseDate: Date, monthsBack: number) {
+  return new Date(baseDate.getFullYear(), baseDate.getMonth() - monthsBack, 1);
+}
+
 function AnalyticsCard({
   title,
   subtitle,
@@ -284,10 +288,12 @@ export default function Dashboard() {
         .sort(([firstDate], [secondDate]) => firstDate.localeCompare(secondDate))
         .map(([date, totals]) => {
           const dateParts = date.split("-");
-          const monthPart = dateParts[1];
-          const dayPart = dateParts[2];
+          const formattedDate =
+            dateParts.length === 3
+              ? `${Number(dateParts[1])}/${dateParts[2]}`
+              : date;
           return {
-            date: `${Number(monthPart)}/${dayPart}`,
+            date: formattedDate,
             income: totals.income,
             expense: totals.expense,
             creditCardExpense: totals.creditCardExpense,
@@ -353,15 +359,15 @@ export default function Dashboard() {
       };
     });
 
-    let runningNet = totalBalance - days.reduce((sum, item) => sum + item.net, 0);
+    let startingBalance = totalBalance - days.reduce((sum, item) => sum + item.net, 0);
     return days.map((item) => {
-      runningNet += item.net;
+      startingBalance += item.net;
       const rate = calculateSavingsRate(item.income, item.expense);
       return {
         label: item.label,
         income: item.income,
         expense: item.expense,
-        netWorth: runningNet,
+        netWorth: startingBalance,
         savingsRate: rate,
       };
     });
@@ -414,7 +420,7 @@ export default function Dashboard() {
     const baseDate = new Date(selectedYear, selectedMonth - 1, 1);
 
     return Array.from({ length: 6 }, (_, index) => {
-      const current = new Date(baseDate.getFullYear(), baseDate.getMonth() - (5 - index), 1);
+      const current = getComparisonMonth(baseDate, 5 - index);
       const label = `${MONTHS[current.getMonth()]} ${String(current.getFullYear()).slice(-2)}`;
 
       const summary = transactions.reduce(
