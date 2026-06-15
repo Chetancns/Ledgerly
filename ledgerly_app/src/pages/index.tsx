@@ -531,7 +531,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="min-h-screen overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6">
-        <div className="mx-auto max-w-7xl space-y-6">
+        <div className="space-y-6">
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--text-muted)]">
               Financial overview

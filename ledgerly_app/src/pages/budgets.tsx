@@ -439,8 +439,7 @@ export default function BudgetsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen px-3 py-4 sm:px-6 sm:py-6" style={{ color: "var(--text-primary)" }}>
-      <div className="mx-auto max-w-7xl">
+      <div className="min-h-screen p-6" style={{ color: "var(--text-primary)" }}>
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight mb-1 drop-shadow" style={{ color: "var(--text-primary)" }}>Budgets</h1>
@@ -887,7 +886,6 @@ export default function BudgetsPage() {
           onConfirm={() => handleDelete(deleteConfirm!)}
           onClose={() => setDeleteConfirm(null)}
         />
-      </div>
       </div>
     </Layout>
   );
