@@ -18,6 +18,7 @@ const accountTypeMeta: Record<string, { icon: IconType; accent: string }> = {
   savings: { icon: RiSafe2Line, accent: "var(--color-success)" },
   wallet: { icon: RiWallet3Line, accent: "var(--accent-primary)" },
 };
+const FEATURED_ACCOUNT_CARD_MIN_WIDTH = 250;
 
 function formatAccountType(type?: string) {
   if (!type) return "Unknown";
@@ -85,8 +86,9 @@ export default function AccountRail({
           return (
             <div
               key={account.id}
-              className="min-w-[250px] flex-1 rounded-2xl border bg-[var(--bg-card-hover)]/80 p-4 backdrop-blur-xl"
+              className="flex-1 rounded-2xl border bg-[var(--bg-card-hover)]/80 p-4 backdrop-blur-xl"
               style={{
+                minWidth: FEATURED_ACCOUNT_CARD_MIN_WIDTH,
                 borderColor: "var(--border-secondary)",
                 borderLeftColor: meta.accent,
                 borderLeftWidth: "3px",

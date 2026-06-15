@@ -28,7 +28,7 @@ import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useTheme } from "@/context/ThemeContext";
 
 const FALLBACK_COLORS = ["#38bdf8", "#22d3ee", "#34d399", "#fbbf24", "#f87171", "#a78bfa"];
-const MAX_PERCENT_LABEL = 999;
+const MAX_DISPLAY_PERCENT = 999;
 
 type ComparisonPoint = {
   label: string;
@@ -552,10 +552,10 @@ export function BudgetUtilizationRadialList({
   return (
     <div className="space-y-4">
       {data.map((item) => {
-        const percent = Math.max(0, Math.min(item.percent, MAX_PERCENT_LABEL));
+        const percent = Math.max(0, Math.min(item.percent, MAX_DISPLAY_PERCENT));
         return (
           <div
-            key={`${item.categoryId}-${item.amount}`}
+            key={item.categoryId}
             className="flex items-center gap-3 rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/80 p-3"
           >
             <div className="h-16 w-16 shrink-0">

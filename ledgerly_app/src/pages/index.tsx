@@ -88,9 +88,10 @@ function AnalyticsCard({
 }
 
 export default function Dashboard() {
-  const [today] = useState(() => new Date());
+  const today = new Date();
   const currentMonth = today.getMonth() + 1;
   const currentYear = today.getFullYear();
+  const currentDay = today.getDate();
   const { format } = useCurrencyFormatter();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -282,7 +283,9 @@ export default function Dashboard() {
       Object.entries(dailyTotals)
         .sort(([firstDate], [secondDate]) => firstDate.localeCompare(secondDate))
         .map(([date, totals]) => {
-          const [, monthPart, dayPart] = date.split("-");
+          const dateParts = date.split("-");
+          const monthPart = dateParts[1];
+          const dayPart = dateParts[2];
           return {
             date: `${Number(monthPart)}/${dayPart}`,
             income: totals.income,
@@ -331,8 +334,10 @@ export default function Dashboard() {
   const selectedPeriodEnd = useMemo(() => {
     const isCurrentPeriod =
       selectedMonth === currentMonth && selectedYear === currentYear;
-    return isCurrentPeriod ? today : new Date(selectedYear, selectedMonth, 0);
-  }, [currentMonth, currentYear, selectedMonth, selectedYear, today]);
+    return isCurrentPeriod
+      ? new Date(currentYear, currentMonth - 1, currentDay)
+      : new Date(selectedYear, selectedMonth, 0);
+  }, [currentDay, currentMonth, currentYear, selectedMonth, selectedYear]);
 
   const sevenDaySeries = useMemo(() => {
     const days = Array.from({ length: 7 }, (_, index) => {

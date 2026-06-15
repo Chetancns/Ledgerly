@@ -19,6 +19,8 @@ type KpiCard = {
   accent: string;
 };
 
+const PERCENT_DECIMALS = 1;
+
 function AnimatedMetric({
   value,
   formatAs = "currency",
@@ -47,7 +49,7 @@ function AnimatedMetric({
   }, [motionValue, transformed, value]);
 
   if (formatAs === "percent") {
-    return <>{displayValue.toFixed(1)}%</>;
+    return <>{displayValue.toFixed(PERCENT_DECIMALS)}%</>;
   }
 
   return <>{format(displayValue)}</>;
