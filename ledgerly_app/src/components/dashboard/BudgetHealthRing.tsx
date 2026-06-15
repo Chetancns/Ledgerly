@@ -18,8 +18,8 @@ export default function BudgetHealthRing({
   const ringColor = percent > 100 ? "#f87171" : percent > 85 ? "#fbbf24" : "#38bdf8";
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[220px,1fr] lg:items-center">
-      <div className="mx-auto h-[220px] w-[220px]">
+    <div className="flex flex-col items-center gap-4 w-full min-w-0 overflow-hidden">
+      <div className="h-[180px] w-[180px] shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart
             data={[{ value: chartValue }]}
@@ -45,22 +45,22 @@ export default function BudgetHealthRing({
         </ResponsiveContainer>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">Budgeted</p>
-          <p className="mt-2 text-xl font-semibold text-[var(--text-primary)]">{format(totalBudget)}</p>
+      <div className="grid grid-cols-2 gap-3 w-full min-w-0">
+        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-3 min-w-0 overflow-hidden">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] truncate">Budgeted</p>
+          <p className="mt-1 text-base font-semibold text-[var(--text-primary)] truncate">{format(totalBudget)}</p>
         </div>
-        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">Actual spend</p>
-          <p className="mt-2 text-xl font-semibold text-[var(--text-primary)]">{format(totalActual)}</p>
+        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-3 min-w-0 overflow-hidden">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] truncate">Actual spend</p>
+          <p className="mt-1 text-base font-semibold text-[var(--text-primary)] truncate">{format(totalActual)}</p>
         </div>
-        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">Overspent</p>
-          <p className="mt-2 text-xl font-semibold text-[var(--color-error)]">{format(overspentAmount)}</p>
+        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-3 min-w-0 overflow-hidden">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] truncate">Overspent</p>
+          <p className="mt-1 text-base font-semibold text-[var(--color-error)] truncate">{format(overspentAmount)}</p>
         </div>
-        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">Unbudgeted</p>
-          <p className="mt-2 text-xl font-semibold text-[var(--color-warning)]">{format(unbudgetedAmount)}</p>
+        <div className="rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-card-hover)]/70 p-3 min-w-0 overflow-hidden">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)] truncate">Unbudgeted</p>
+          <p className="mt-1 text-base font-semibold text-[var(--color-warning)] truncate">{format(unbudgetedAmount)}</p>
         </div>
       </div>
     </div>
