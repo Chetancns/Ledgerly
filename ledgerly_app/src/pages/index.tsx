@@ -84,7 +84,7 @@ function AnalyticsCard({
 }
 
 export default function Dashboard() {
-  const today = new Date();
+  const [today] = useState(() => new Date());
   const currentMonth = today.getMonth() + 1;
   const currentYear = today.getFullYear();
   const { format } = useCurrencyFormatter();
@@ -278,7 +278,7 @@ export default function Dashboard() {
       Object.entries(dailyTotals)
         .sort(([firstDate], [secondDate]) => firstDate.localeCompare(secondDate))
         .map(([date, totals]) => {
-          const [yearPart, monthPart, dayPart] = date.split("-");
+          const [, monthPart, dayPart] = date.split("-");
           return {
             date: `${Number(monthPart)}/${dayPart}`,
             income: totals.income,
