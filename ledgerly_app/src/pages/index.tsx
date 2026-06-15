@@ -46,6 +46,10 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 type BudgetFilter = "all" | "overspent" | "within_budget" | "no_budget";
 
+function calculateSavingsRate(income: number, expense: number) {
+  return income > 0 ? ((income - expense) / income) * 100 : 0;
+}
+
 function AnalyticsCard({
   title,
   subtitle,
@@ -322,7 +326,7 @@ export default function Dashboard() {
     [filteredTransactions]
   );
 
-  const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
+  const savingsRate = calculateSavingsRate(monthIncome, monthExpense);
 
   const selectedPeriodEnd = useMemo(() => {
     const isCurrentPeriod =
@@ -347,7 +351,7 @@ export default function Dashboard() {
     let runningNet = totalBalance - days.reduce((sum, item) => sum + item.net, 0);
     return days.map((item) => {
       runningNet += item.net;
-      const rate = item.income > 0 ? ((item.income - item.expense) / item.income) * 100 : 0;
+      const rate = calculateSavingsRate(item.income, item.expense);
       return {
         label: item.label,
         income: item.income,
@@ -443,7 +447,7 @@ export default function Dashboard() {
     () =>
       comparisonData.map((item) => ({
         label: item.label,
-        rate: item.income > 0 ? ((item.income - item.expense) / item.income) * 100 : 0,
+        rate: calculateSavingsRate(item.income, item.expense),
       })),
     [comparisonData]
   );

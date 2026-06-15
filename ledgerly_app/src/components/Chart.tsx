@@ -28,6 +28,7 @@ import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useTheme } from "@/context/ThemeContext";
 
 const FALLBACK_COLORS = ["#38bdf8", "#22d3ee", "#34d399", "#fbbf24", "#f87171", "#a78bfa"];
+const MAX_PERCENT_LABEL = 999;
 
 type ComparisonPoint = {
   label: string;
@@ -160,7 +161,7 @@ export function PieSpendingChart({ data }: { data: CategorySpending[] }) {
     () =>
       data.map((item, index) => ({
         ...item,
-        fill: stringToColor(item.name || `category-${index}`) || FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+        fill: item.name ? stringToColor(item.name) : FALLBACK_COLORS[index % FALLBACK_COLORS.length],
       })),
     [data]
   );
@@ -551,7 +552,7 @@ export function BudgetUtilizationRadialList({
   return (
     <div className="space-y-4">
       {data.map((item) => {
-        const percent = Math.max(0, Math.min(item.percent, 999));
+        const percent = Math.max(0, Math.min(item.percent, MAX_PERCENT_LABEL));
         return (
           <div
             key={`${item.categoryId}-${item.amount}`}
