@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-06-15
+
+### Changed
+- Redesigned the dashboard with a modern KPI hero strip, sticky filter toolbar, account balance rail, and richer analytics cards.
+- Added new dashboard visualizations for six-month income vs expense comparison, savings-rate trend, top expense categories, budget health, and monthly transaction activity.
+- Updated dashboard charts and budget utilization views to better match the refreshed header styling and responsive interaction patterns.
+
 ## 2026-06-13
 
 ### Changed

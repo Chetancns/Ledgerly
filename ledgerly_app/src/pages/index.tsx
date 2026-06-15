@@ -1,71 +1,171 @@
 import Layout from "../components/Layout";
 import Loading from "@/components/Loading";
-import { LineTrendChart, PieSpendingChart, BarChartComponent,PieChartComponent, ChashFlowLine, CatHeatmapPie, SummaryCard } from "@/components/Chart";
+import {
+  BarChartComponent,
+  BudgetUtilizationRadialList,
+  CatHeatmapPie,
+  ChashFlowLine,
+  IncomeExpenseComparisonChart,
+  LineTrendChart,
+  PieChartComponent,
+  PieSpendingChart,
+  SavingsRateTrendChart,
+  TopExpenseCategoriesChart,
+} from "@/components/Chart";
+import AccountRail from "@/components/dashboard/AccountRail";
+import BudgetHealthRing from "@/components/dashboard/BudgetHealthRing";
+import FilterToolbar from "@/components/dashboard/FilterToolbar";
+import KpiStrip from "@/components/dashboard/KpiStrip";
+import SpendingHeatmap from "@/components/dashboard/SpendingHeatmap";
 import { Transaction } from "@/models/Transaction";
 import { Account } from "@/models/account";
-import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { useEffect, useState, useMemo } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Category } from "@/models/category";
 import { getUserAccount } from "@/services/accounts";
 import { getUserCategory } from "@/services/category";
 import { getTransactions } from "@/services/transactions";
-import { CashflowRow, CategoryRow, ChartDataPoint, DailyTotals } from "@/models/chat";
-import { getBudgetUtilizations } from "@/services/budget"; // 🔹 new service
+import { CashflowRow, CategoryRow, CategorySpending, ChartDataPoint, DailyTotals } from "@/models/chat";
+import { getBudgetUtilizations } from "@/services/budget";
 import { getBudgetReports, getCashflowTimeline, getCategoryHeatmap } from "@/services/reports";
 import toast from "react-hot-toast";
-import { BudgetCategory, BudgetUtilization, BudgetReports } from "@/models/budget";
-import { useAuth } from "@/hooks/useAuth";
+import { BudgetCategory, BudgetReports, BudgetUtilization } from "@/models/budget";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
+import { AnimatePresence, motion } from "framer-motion";
+import type { IconType } from "react-icons";
+import {
+  RiBarChartGroupedLine,
+  RiCalendarLine,
+  RiExchangeDollarLine,
+  RiLineChartLine,
+  RiMoneyDollarCircleLine,
+  RiWallet3Line,
+} from "react-icons/ri";
+import SegmentedControl from "@/components/SegmentedControl";
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+type BudgetFilter = "all" | "overspent" | "within_budget" | "no_budget";
+
+function AnalyticsCard({
+  title,
+  subtitle,
+  icon: Icon,
+  children,
+  action,
+  className = "",
+}: {
+  title: string;
+  subtitle: string;
+  icon: IconType;
+  children: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.section
+      whileHover={{ y: -2, boxShadow: "var(--shadow-lg)" }}
+      className={`dashboard-surface p-4 sm:p-6 ${className}`.trim()}
+    >
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="dashboard-section-heading">
+            <div className="flex items-center gap-2 text-[var(--text-primary)]">
+              <Icon className="text-lg" />
+              <h2 className="text-base font-semibold sm:text-lg">{title}</h2>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-[var(--text-secondary)]">{subtitle}</p>
+        </div>
+        {action}
+      </div>
+      {children}
+    </motion.section>
+  );
+}
+
 export default function Dashboard() {
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
+  const { format } = useCurrencyFormatter();
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [hideBalances, setHideBalances] = useState<boolean>(true);
-  const [visibleAccountIds, setVisibleAccountIds] = useState<string[]>([]);
   const [budgetUtilizations, setBudgetUtilizations] = useState<BudgetUtilization[]>([]);
   const [budgetReports, setBudgetReports] = useState<BudgetReports | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const today = new Date();
+  const [cashflowData, setCashFlowData] = useState<CashflowRow[]>([]);
+  const [catHeatmap, setCatHeatmap] = useState<CategoryRow[]>([]);
+  const [hideBalances, setHideBalances] = useState(true);
+  const [visibleAccountIds, setVisibleAccountIds] = useState<string[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
-  const [selectedAccount, setSelectedAccount] = useState<string>("all");
-  const [cashflowData, setCashFlowData]  = useState<CashflowRow[]>([]);
-  const [catHeatmap,setCatHeatmap] = useState<CategoryRow[]>([]);
-  const [view, setView] = useState<"income" | "expense">("expense");
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedAccount, setSelectedAccount] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [budgetView, setBudgetView] = useState<"income" | "expense">("expense");
-  const [filter, setFilter] = useState<'all' | 'overspent' |'within_budget' | 'no_budget'>('all');
-  const { format } = useCurrencyFormatter();
+  const [filter, setFilter] = useState<BudgetFilter>("all");
+  const [trendView, setTrendView] = useState<"income" | "expense">("expense");
 
-  const filteredCategories = useMemo(() => {
-    return (budgetReports?.categories?.filter((c: BudgetCategory) => {
-      if (filter === 'all') return true;
-      return c.status === filter;
-    }) || []);
-  }, [budgetReports, filter]);
+  const loadCoreDashboard = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  const filteredBudgetByType = useMemo(() => {
-    const categoryTypeMap = new Map<string, string | undefined>(
-      categories.map((c) => [c.id, c.type])
-    );
+    try {
+      const [accountResponse, categoryResponse, transactionResponse] = await Promise.all([
+        getUserAccount(),
+        getUserCategory(),
+        getTransactions(),
+      ]);
 
-    return filteredCategories.filter((c) => {
-      const type = categoryTypeMap.get(c.categoryId);
-      return type === budgetView;
-    });
-  }, [filteredCategories, categories, budgetView]);
+      setAccounts(accountResponse);
+      setCategories(categoryResponse);
+      setTransactions(transactionResponse);
+    } catch (loadError) {
+      const message =
+        loadError instanceof Error ? loadError.message : "Failed to load dashboard data";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-useEffect(() => {
-  if (filter === 'overspent') {
-    toast('Showing overspent categories — brace yourself 😬',{
-  position: "bottom-center"
-});
-  } else if (filter === 'no_budget') {
-    toast('Showing unbudgeted spending — time to plan better 💡',{
-  position: "bottom-center"
-});
-  }
-}, [filter]);
+  const loadBudgetUtilizations = useCallback(async () => {
+    try {
+      const response = await getBudgetUtilizations(selectedMonth, selectedYear, "monthly");
+      setBudgetUtilizations(response);
+    } catch (loadError) {
+      console.error("Failed to load budget utilization", loadError);
+    }
+  }, [selectedMonth, selectedYear]);
+
+  const loadBudgetReports = useCallback(async () => {
+    try {
+      const response = await getBudgetReports("monthly", selectedMonth, selectedYear);
+      setBudgetReports(response);
+    } catch (loadError) {
+      console.error("Failed to load budget reports", loadError);
+    }
+  }, [selectedMonth, selectedYear]);
+
+  const loadCashflow = useCallback(async () => {
+    try {
+      const response = await getCashflowTimeline("daily", selectedMonth, selectedYear);
+      setCashFlowData(response.timeline);
+    } catch (loadError) {
+      console.error("Failed to load cashflow timeline", loadError);
+    }
+  }, [selectedMonth, selectedYear]);
+
+  const loadCategoryHeatmap = useCallback(async () => {
+    try {
+      const response = await getCategoryHeatmap(selectedMonth, selectedYear);
+      setCatHeatmap(response.categories);
+    } catch (loadError) {
+      console.error("Failed to load category heatmap", loadError);
+    }
+  }, [selectedMonth, selectedYear]);
 
   useEffect(() => {
     try {
@@ -76,196 +176,334 @@ useEffect(() => {
 
       const storedVisibleAccounts = localStorage.getItem("ledgerly:dashboard:visibleAccounts");
       if (storedVisibleAccounts) {
-        const parsed = JSON.parse(storedVisibleAccounts);
+        const parsed = JSON.parse(storedVisibleAccounts) as unknown;
         if (Array.isArray(parsed)) {
-          setVisibleAccountIds(parsed.filter((id): id is string => typeof id === "string"));
+          setVisibleAccountIds(parsed.filter((value): value is string => typeof value === "string"));
         }
       }
-    } catch (err) {
-      console.error("Failed to load balance visibility settings", err);
+    } catch (storageError) {
+      console.error("Failed to restore dashboard preferences", storageError);
     }
   }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem("ledgerly:dashboard:hideBalances", String(hideBalances));
-    } catch (err) {
-      console.error("Failed to save balance visibility setting", err);
+    } catch (storageError) {
+      console.error("Failed to persist balance visibility", storageError);
     }
   }, [hideBalances]);
 
   useEffect(() => {
     try {
       localStorage.setItem("ledgerly:dashboard:visibleAccounts", JSON.stringify(visibleAccountIds));
-    } catch (err) {
-      console.error("Failed to save account visibility settings", err);
+    } catch (storageError) {
+      console.error("Failed to persist account visibility", storageError);
     }
   }, [visibleAccountIds]);
 
   useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [accRes, catRes, txRes] = await Promise.all([
-          getUserAccount(),
-          getUserCategory(),
-          getTransactions(),
-        ]);
+    void loadCoreDashboard();
+  }, [loadCoreDashboard]);
 
-        if (!mounted) return;
-        setAccounts(accRes);
-        setCategories(catRes);
-        setTransactions(txRes);
-      } catch (err: any) {
-        console.error("Error loading initial dashboard data", err);
-        if (!mounted) return;
-        setError(err?.message || "Failed to load dashboard data");
-          toast.error(err?.message || "Failed to load dashboard data");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    fetchData();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // 🔹 fetch budget utilizations when month/year changes
   useEffect(() => {
-    let mounted = true;
-    const fetchUtilizations = async () => {
-      try {
-        const res = await getBudgetUtilizations(selectedMonth, selectedYear, "monthly");
-        if (!mounted) return;
-        setBudgetUtilizations(res);
-      } catch (err) {
-        console.error("Error loading budget utilizations", err);
-      }
-    };
-    fetchUtilizations();
-    return () => { mounted = false };
-  }, [selectedMonth, selectedYear]);
+    void Promise.all([
+      loadBudgetUtilizations(),
+      loadBudgetReports(),
+      loadCashflow(),
+      loadCategoryHeatmap(),
+    ]);
+  }, [loadBudgetUtilizations, loadBudgetReports, loadCashflow, loadCategoryHeatmap]);
 
-  // 🔹 fetch budget vs actual reports
-  useEffect(() => {
-    let mounted = true;
-    const fetchReports = async () => {
-      try {
-        const res = await getBudgetReports("monthly", selectedMonth, selectedYear);
-        if (!mounted) return;
-        setBudgetReports(res);
-      } catch (err) {
-        console.error("Error loading budget reports", err);
-      }
-    };
-    fetchReports();
-    return () => { mounted = false };
-  }, [selectedMonth, selectedYear]);
-
-  useEffect(() =>{
-    let mounted = true;
-    const fetchCashflow = async () =>{
-      try{
-        const res = await getCashflowTimeline("daily", selectedMonth, selectedYear);
-        if (!mounted) return;
-        setCashFlowData(res.timeline);
-      }catch(err){
-        console.error("Error Loading Cashflow data",err);
-      }
-    };
-    fetchCashflow();
-    return () => { mounted = false };
-  },[selectedMonth,selectedYear]);
-  useEffect(()=>{
-    let mounted = true;
-    const fetchCatHeatmap = async () =>{
-      const res = await getCategoryHeatmap(selectedMonth, selectedYear);
-      if (!mounted) return;
-      setCatHeatmap(res.categories)
-    };
-    fetchCatHeatmap();
-    return () => { mounted = false };
-  },[selectedMonth,selectedYear]);
-  // --- Account balances ---
-  const sortedAccounts = useMemo(() => {
-    return [...accounts].sort((a, b) =>
-      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
-    );
-  }, [accounts]);
-
-  const totalBalance = accounts.reduce(
-    (sum, acc) => sum + parseFloat(acc.balance || "0"),
-    0
+  const sortedAccounts = useMemo(
+    () =>
+      [...accounts].sort((first, second) =>
+        (first.name || "").localeCompare(second.name || "", undefined, {
+          sensitivity: "base",
+        })
+      ),
+    [accounts]
   );
 
-  // --- Filter Transactions ---
-  const filteredTx = useMemo(() => transactions.filter(t => {
-    const d = new Date(t.transactionDate);
-    const matchMonth = d.getUTCMonth() + 1 === selectedMonth;
-    const matchYear = d.getUTCFullYear() === selectedYear;
-    const matchAccount = selectedAccount === "all" || t.accountId === selectedAccount;
-    return matchMonth && matchYear && matchAccount;
-  }), [transactions, selectedMonth, selectedYear, selectedAccount]);
+  const categoryTypeMap = useMemo(
+    () => new Map(categories.map((category) => [category.id, category.type])),
+    [categories]
+  );
 
-  // --- Daily totals (income vs expense) ---
-  const dailyTotals: DailyTotals = useMemo(() => {
+  const categoryNameMap = useMemo(
+    () => new Map(categories.map((category) => [category.id, category.name || "Unknown"])),
+    [categories]
+  );
+
+  const totalBalance = useMemo(
+    () => accounts.reduce((sum, account) => sum + Number(account.balance || 0), 0),
+    [accounts]
+  );
+
+  const filteredTransactions = useMemo(
+    () =>
+      transactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.transactionDate);
+        const matchesMonth = transactionDate.getUTCMonth() + 1 === selectedMonth;
+        const matchesYear = transactionDate.getUTCFullYear() === selectedYear;
+        const matchesAccount =
+          selectedAccount === "all" || transaction.accountId === selectedAccount;
+        return matchesMonth && matchesYear && matchesAccount;
+      }),
+    [selectedAccount, selectedMonth, selectedYear, transactions]
+  );
+
+  const dailyTotals = useMemo(() => {
     const totals: DailyTotals = {};
-    filteredTx.forEach(t => {
-      const date = t.transactionDate.split("T")[0];
-      if (!totals[date]) totals[date] = { income: 0, expense: 0, creditCardExpense: 0 };
 
-      const account = accounts.find(a => a.id === t.accountId);
+    filteredTransactions.forEach((transaction) => {
+      const dateKey = transaction.transactionDate.split("T")[0];
+      if (!totals[dateKey]) {
+        totals[dateKey] = { income: 0, expense: 0, creditCardExpense: 0 };
+      }
 
-      if (t.type === "income" && account?.type !== "credit_card") {
-        totals[date].income += parseFloat(String(t.amount));
-      } else if (t.type === "expense") {
-        totals[date].expense += parseFloat(String(t.amount));
+      const amount = Number(transaction.amount || 0);
+      if (transaction.type === "income") {
+        totals[dateKey].income += amount;
+      } else if (transaction.type === "expense") {
+        totals[dateKey].expense += amount;
       }
     });
-    return totals;
-  }, [filteredTx, accounts]);
 
-  // --- Build line chart array ---
-  const lineData: ChartDataPoint[] = useMemo(() => Object.entries(dailyTotals)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, totals]) => {
-      const [year, month, day] = date.split("-");
+    return totals;
+  }, [filteredTransactions]);
+
+  const lineData = useMemo<ChartDataPoint[]>(
+    () =>
+      Object.entries(dailyTotals)
+        .sort(([firstDate], [secondDate]) => firstDate.localeCompare(secondDate))
+        .map(([date, totals]) => {
+          const [yearPart, monthPart, dayPart] = date.split("-");
+          return {
+            date: `${Number(monthPart)}/${dayPart}`,
+            income: totals.income,
+            expense: totals.expense,
+            creditCardExpense: totals.creditCardExpense,
+          };
+        }),
+    [dailyTotals]
+  );
+
+  const pieData = useMemo<CategorySpending[]>(() => {
+    const totals = new Map<string, number>();
+
+    filteredTransactions.forEach((transaction) => {
+      if (transaction.type !== "expense") return;
+      const categoryName = categoryNameMap.get(transaction.categoryId) || "Unknown";
+      const currentValue = totals.get(categoryName) || 0;
+      totals.set(categoryName, currentValue + Number(transaction.amount || 0));
+    });
+
+    return Array.from(totals.entries()).map(([name, value]) => ({ name, value }));
+  }, [categoryNameMap, filteredTransactions]);
+
+  const monthIncome = useMemo(
+    () =>
+      filteredTransactions.reduce(
+        (sum, transaction) =>
+          transaction.type === "income" ? sum + Number(transaction.amount || 0) : sum,
+        0
+      ),
+    [filteredTransactions]
+  );
+
+  const monthExpense = useMemo(
+    () =>
+      filteredTransactions.reduce(
+        (sum, transaction) =>
+          transaction.type === "expense" ? sum + Number(transaction.amount || 0) : sum,
+        0
+      ),
+    [filteredTransactions]
+  );
+
+  const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
+
+  const selectedPeriodEnd = useMemo(() => {
+    const isCurrentPeriod =
+      selectedMonth === currentMonth && selectedYear === currentYear;
+    return isCurrentPeriod ? today : new Date(selectedYear, selectedMonth, 0);
+  }, [currentMonth, currentYear, selectedMonth, selectedYear, today]);
+
+  const sevenDaySeries = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const currentDate = new Date(selectedPeriodEnd);
+      currentDate.setDate(selectedPeriodEnd.getDate() - (6 - index));
+      const key = currentDate.toISOString().split("T")[0];
+      const totals = dailyTotals[key] || { income: 0, expense: 0, creditCardExpense: 0 };
       return {
-        date: `${+month}-${day}`,
+        label: `${currentDate.getMonth() + 1}/${currentDate.getDate()}`,
         income: totals.income,
         expense: totals.expense,
-        creditCardExpense: totals.creditCardExpense,
+        net: totals.income - totals.expense,
       };
-    }), [dailyTotals]);
-
-  // --- Pie chart for expenses only (bank/cash vs credit card) ---
-  const pieData = useMemo(() => {
-    const categoryMap: Record<string, number> = {};
-    filteredTx.forEach(t => {
-      if (t.type === "expense") {
-        const account = accounts.find(a => a.id === t.accountId);
-        const category = categories.find(c => c.id === t.categoryId);
-        const catName = category?.name || "Unknown";
-        const key = catName;
-        categoryMap[key] = (categoryMap[key] || 0) + parseFloat(String(t.amount));
-      }
     });
-    return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
-  }, [filteredTx, accounts, categories]);
 
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    let runningNet = totalBalance - days.reduce((sum, item) => sum + item.net, 0);
+    return days.map((item) => {
+      runningNet += item.net;
+      const rate = item.income > 0 ? ((item.income - item.expense) / item.income) * 100 : 0;
+      return {
+        label: item.label,
+        income: item.income,
+        expense: item.expense,
+        netWorth: runningNet,
+        savingsRate: rate,
+      };
+    });
+  }, [dailyTotals, selectedPeriodEnd, totalBalance]);
 
-  const formatAccountType = (type?: string) => {
-    if (!type) return "Unknown";
+  const kpiCards = useMemo(
+    () => [
+      {
+        id: "net-worth",
+        label: "Net Worth",
+        value: totalBalance,
+        helper: `${sortedAccounts.length} account${sortedAccounts.length === 1 ? "" : "s"} tracked`,
+        icon: <RiWallet3Line className="text-xl" />,
+        sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.netWorth })),
+        accent: "#38bdf8",
+      },
+      {
+        id: "spent",
+        label: "This Month Spent",
+        value: monthExpense,
+        helper: "Total outgoing spend in the active period",
+        icon: <RiExchangeDollarLine className="text-xl" />,
+        sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.expense })),
+        accent: "#34d399",
+      },
+      {
+        id: "earned",
+        label: "This Month Earned",
+        value: monthIncome,
+        helper: "Income captured during the active period",
+        icon: <RiMoneyDollarCircleLine className="text-xl" />,
+        sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.income })),
+        accent: "#22d3ee",
+      },
+      {
+        id: "savings-rate",
+        label: "Savings Rate",
+        value: savingsRate,
+        helper: "Share of income kept after expenses",
+        icon: <RiLineChartLine className="text-xl" />,
+        formatAs: "percent" as const,
+        sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.savingsRate })),
+        accent: "#a78bfa",
+      },
+    ],
+    [monthExpense, monthIncome, savingsRate, sevenDaySeries, sortedAccounts.length, totalBalance]
+  );
 
-    return type
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  const comparisonData = useMemo(() => {
+    const baseDate = new Date(selectedYear, selectedMonth - 1, 1);
+
+    return Array.from({ length: 6 }, (_, index) => {
+      const current = new Date(baseDate.getFullYear(), baseDate.getMonth() - (5 - index), 1);
+      const label = `${MONTHS[current.getMonth()]} ${String(current.getFullYear()).slice(-2)}`;
+
+      const summary = transactions.reduce(
+        (accumulator, transaction) => {
+          const transactionDate = new Date(transaction.transactionDate);
+          const matchesMonth = transactionDate.getUTCMonth() === current.getMonth();
+          const matchesYear = transactionDate.getUTCFullYear() === current.getFullYear();
+          const matchesAccount =
+            selectedAccount === "all" || transaction.accountId === selectedAccount;
+
+          if (!matchesMonth || !matchesYear || !matchesAccount) return accumulator;
+
+          const amount = Number(transaction.amount || 0);
+          if (transaction.type === "income") {
+            accumulator.income += amount;
+          } else if (transaction.type === "expense") {
+            accumulator.expense += amount;
+          }
+
+          return accumulator;
+        },
+        { income: 0, expense: 0 }
+      );
+
+      return {
+        label,
+        income: summary.income,
+        expense: summary.expense,
+        net: summary.income - summary.expense,
+      };
+    });
+  }, [selectedAccount, selectedMonth, selectedYear, transactions]);
+
+  const savingsRateTrend = useMemo(
+    () =>
+      comparisonData.map((item) => ({
+        label: item.label,
+        rate: item.income > 0 ? ((item.income - item.expense) / item.income) * 100 : 0,
+      })),
+    [comparisonData]
+  );
+
+  const topExpenseCategories = useMemo(
+    () => [...pieData].sort((first, second) => second.value - first.value).slice(0, 5),
+    [pieData]
+  );
+
+  const filteredCategories = useMemo(
+    () =>
+      (budgetReports?.categories || []).filter((category: BudgetCategory) => {
+        if (filter === "all") return true;
+        return category.status === filter;
+      }),
+    [budgetReports?.categories, filter]
+  );
+
+  const filteredBudgetByType = useMemo(
+    () =>
+      filteredCategories.filter((category) => categoryTypeMap.get(category.categoryId) === budgetView),
+    [budgetView, categoryTypeMap, filteredCategories]
+  );
+
+  const budgetOverspentAmount = useMemo(() => {
+    if (!budgetReports?.categories) return 0;
+    return budgetReports.categories
+      .filter((category) => category.status === "overspent")
+      .reduce((sum, category) => sum + Math.max(category.actual - category.budget, 0), 0);
+  }, [budgetReports?.categories]);
+
+  const prioritizedBudgetUtilizations = useMemo(
+    () => [...budgetUtilizations].sort((first, second) => second.percent - first.percent).slice(0, 4),
+    [budgetUtilizations]
+  );
+
+  const handleRetry = useCallback(async () => {
+    await Promise.all([
+      loadCoreDashboard(),
+      loadBudgetUtilizations(),
+      loadBudgetReports(),
+      loadCashflow(),
+      loadCategoryHeatmap(),
+    ]);
+    toast.success("Dashboard reloaded");
+  }, [
+    loadCategoryHeatmap,
+    loadBudgetReports,
+    loadBudgetUtilizations,
+    loadCashflow,
+    loadCoreDashboard,
+  ]);
+
+  const toggleAccountVisibility = useCallback((accountId: string) => {
+    setVisibleAccountIds((current) =>
+      current.includes(accountId)
+        ? current.filter((value) => value !== accountId)
+        : [...current, accountId]
+    );
+  }, []);
 
   if (loading) {
     return (
@@ -275,507 +513,289 @@ useEffect(() => {
     );
   }
 
-  const handleRetry = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [accRes, catRes, txRes] = await Promise.all([
-        getUserAccount(),
-        getUserCategory(),
-        getTransactions(),
-      ]);
-      setAccounts(accRes);
-      setCategories(catRes);
-      setTransactions(txRes);
-      toast.success("Dashboard reloaded");
-    } catch (err: any) {
-      console.error("Retry failed:", err);
-      setError(err?.message || "Failed to reload dashboard");
-      toast.error(err?.message || "Failed to reload dashboard");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleAccountVisibility = (accountId: string) => {
-    setVisibleAccountIds((prev) =>
-      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]
-    );
-  };
-
   return (
     <Layout>
-      <div 
-        className="min-h-screen overflow-x-hidden px-3 sm:px-6 py-4 sm:py-6"
-        style={{ color: "var(--text-primary)" }}
-      >
-        <h1 
-          className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6"
-          style={{ color: "var(--text-primary)" }}
-        >
-          📊 Dashboard
-        </h1>
+      <div className="min-h-screen overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--text-muted)]">
+              Financial overview
+            </p>
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-[var(--text-primary)] sm:text-4xl">
+                  Dashboard
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)] sm:text-base">
+                  A cleaner, insight-first view of your money with richer trends, account drill-downs,
+                  and budget health at a glance.
+                </p>
+              </div>
+              <div className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-secondary)]">
+                {MONTHS[selectedMonth - 1]} {selectedYear}
+              </div>
+            </div>
+          </div>
 
-        {error && (
-          <div 
-            className="mb-4 rounded-lg p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
-            style={{ backgroundColor: "var(--color-error-bg)", border: "1px solid var(--color-error)" }}
-          >
-            <div className="text-sm font-medium" style={{ color: "var(--color-error)" }}>{error}</div>
-            <div>
+          {error && (
+            <div className="dashboard-surface flex flex-col gap-3 border-[var(--color-error)] bg-[var(--color-error-bg)] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-[var(--color-error)]">Dashboard data failed to load</p>
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">{error}</p>
+              </div>
               <button
-                onClick={handleRetry}
-                className="px-3 py-1.5 rounded font-semibold text-sm min-h-[36px]"
-                style={{ backgroundColor: "var(--color-error)", color: "var(--text-inverse)" }}
+                type="button"
+                onClick={() => void handleRetry()}
+                className="dashboard-filter-pill inline-flex items-center justify-center"
               >
                 Retry
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* --- Balances --- */}
-        <div
-        className="rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6"
-        style={{
-          backdropFilter: "blur(12px)",
-          background: "var(--bg-card)",
-          border: "1px solid var(--border-primary)",
-          boxShadow: "var(--shadow-lg)",
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-            💰 Total Balance
-          </h2>
-          <button
-            onClick={() => setHideBalances((prev) => !prev)}
-            className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium min-h-[36px]"
-            style={{
-              background: "var(--bg-card-hover)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-primary)",
-            }}
-            aria-pressed={hideBalances}
-            aria-label={hideBalances ? "Show balances" : "Hide balances"}
-          >
-            {hideBalances ? "👁️ Show All" : "🙈 Hide All"}
-          </button>
-        </div>
-        {/* Use user currency formatting */}
-        <p className="text-xl sm:text-2xl font-bold mt-2" style={{ color: "var(--text-primary)" }}>
-          {hideBalances ? "••••••" : format(totalBalance)}
-        </p>
+          <KpiStrip cards={kpiCards} />
 
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {sortedAccounts.map((acc) => {
-            const isAccountVisible = !hideBalances || visibleAccountIds.includes(acc.id);
+          <FilterToolbar
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            selectedAccount={selectedAccount}
+            accounts={sortedAccounts}
+            onMonthChange={setSelectedMonth}
+            onYearChange={setSelectedYear}
+            onAccountChange={setSelectedAccount}
+          />
 
-            return (
-              <div
-                key={acc.id}
-                className="rounded-xl p-3 sm:p-4 flex justify-between items-center"
-                style={{
-                  background: "var(--bg-card-hover)",
-                  border: "1px solid var(--border-secondary)",
-                }}
-              >
-                <span className="text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-                  <span className="font-semibold">{acc.name}</span> ({formatAccountType(acc.type)})
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm sm:text-base" style={{ color: "var(--text-primary)" }}>
-                    {isAccountVisible ? format(parseFloat(acc.balance || '0')) : "••••••"}
-                  </span>
-                  {hideBalances && (
-                    <button
-                      onClick={() => toggleAccountVisibility(acc.id)}
-                      className="px-2 py-1 rounded-md text-xs min-h-[32px]"
-                      style={{
-                        background: "var(--bg-card)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border-primary)",
-                      }}
-                      aria-pressed={isAccountVisible}
-                      aria-label={isAccountVisible ? `Hide ${acc.name} balance` : `Show ${acc.name} balance`}
-                    >
-                      {isAccountVisible ? "🙈" : "👁️"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+          <AccountRail
+            accounts={sortedAccounts}
+            totalBalance={totalBalance}
+            hideBalances={hideBalances}
+            visibleAccountIds={visibleAccountIds}
+            onToggleHideBalances={() => setHideBalances((current) => !current)}
+            onToggleAccountVisibility={toggleAccountVisibility}
+            formatBalance={format}
+          />
 
-
-        {/* --- Filters --- */}
-        <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="flex flex-col min-w-[100px]">
-          <label className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-            Month
-          </label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="backdrop-blur-lg rounded-lg px-3 py-2 min-h-[44px]"
-            style={{
-              backgroundColor: "var(--input-bg)",
-              color: "var(--input-text)",
-              border: "1px solid var(--input-border)",
-            }}
-          >
-            {months.map((m, i) => (
-              <option key={i} value={i + 1}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex flex-col min-w-[80px]">
-          <label className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-            Year
-          </label>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="backdrop-blur-lg rounded-lg px-3 py-2 min-h-[44px]"
-            style={{
-              backgroundColor: "var(--input-bg)",
-              color: "var(--input-text)",
-              border: "1px solid var(--input-border)",
-            }}
-          >
-            {Array.from({ length: 5 }).map((_, i) => {
-              const year = today.getFullYear() - 2 + i;
-              return (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-
-        <div className="flex flex-col min-w-[120px]">
-          <label className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-            Account
-          </label>
-          <select
-            value={selectedAccount}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-            className="backdrop-blur-lg rounded-lg px-3 py-2 min-h-[44px]"
-            style={{
-              backgroundColor: "var(--input-bg)",
-              color: "var(--input-text)",
-              border: "1px solid var(--input-border)",
-            }}
-          >
-            <option value="all">All</option>
-            {sortedAccounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-
-        {/* --- Charts --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div
-      style={{
-        backdropFilter: "blur(12px)",
-        background: "var(--bg-card)",
-        borderRadius: "16px",
-        border: "1px solid var(--border-primary)",
-        boxShadow: "var(--shadow-lg)",
-        padding: "1rem",
-        color: "var(--text-primary)",
-        fontFamily: "Inter, sans-serif",
-        transition: "box-shadow 0.3s ease",
-      }}
-    >
-      <div
-        style={{
-          marginBottom: "0.5rem",
-          fontSize: "1.1rem",
-          fontWeight: 600,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "var(--text-primary)",
-        }}
-      >
-        🍕 Spending Breakdown
-      </div>
-      {pieData.length === 0 ?(
-        <p style={{ color: "var(--text-muted)" }}>No Transaction found for this period</p>
-      ):( <PieSpendingChart data={pieData} />)}
-     
-    </div>
-
-    <div
-  style={{
-    backdropFilter: "blur(12px)",
-    background: "var(--bg-card)",
-    borderRadius: "16px",
-    border: "1px solid var(--border-primary)",
-    boxShadow: "var(--shadow-lg)",
-    padding: "1rem",
-    color: "var(--text-primary)",
-    fontFamily: "Inter, sans-serif",
-    transition: "box-shadow 0.3s ease",
-  }}
->
-  <div
-    style={{
-      marginBottom: "0.5rem",
-      fontSize: "1.1rem",
-      fontWeight: 600,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: "0.5rem",
-      flexWrap: "wrap",
-      color: "var(--text-primary)",
-    }}
-  >
-    <span>📊 Daily Flow</span>
-    <button
-      onClick={() => setView(view === "income" ? "expense" : "income")}
-      style={{
-        backgroundColor: "var(--bg-card-hover)",
-        color: "var(--text-primary)",
-        border: "1px solid var(--border-primary)",
-        borderRadius: "6px",
-        padding: "0.4rem 0.8rem",
-        fontSize: "0.85rem",
-        cursor: "pointer",
-        backdropFilter: "blur(6px)",
-        minHeight: "36px",
-      }}
-    >
-      {view === "income" ? "💸 Show Expense" : "💰 Show Income"}
-    </button>
-  </div>
-
-  {lineData.length === 0 ? (
-    <p style={{ color: "var(--text-muted)" }}>No Transaction found for this period</p>
-  ) : (
-    <>
-    <LineTrendChart data={lineData} view={view} />
-    <div
-      style={{
-        marginTop: "0.75rem",
-        textAlign: "center",
-        fontSize: "0.9rem",
-        fontWeight: 500,
-        color: "var(--text-muted)",
-      }}
-    >
-      {view === "income" ? "💰 Viewing Daily Income Trends" : "💸 Viewing Daily Expense Trends"}
-    </div>
-</>
-  )}
-</div>
-
-  </div>
-
-        {/* --- Budget Utilization --- */}
-        <div
-      className="rounded-2xl p-4 sm:p-6 mt-4 sm:mt-6"
-      style={{
-        backdropFilter: "blur(12px)",
-        background: "var(--bg-card)",
-        border: "1px solid var(--border-primary)",
-        boxShadow: "var(--shadow-lg)",
-        color: "var(--text-primary)",
-      }}
-    >
-      <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-        📦 Budget Utilization
-      </h2>
-
-      {budgetUtilizations.length === 0 ? (
-        <p style={{ color: "var(--text-muted)" }}>No budgets found for this period</p>
-      ) : (
-        <ul className="space-y-4">
-          {budgetUtilizations.map((b) => {
-            const category = categories.find((c) => c.id === b.categoryId);
-            const isOverBudget = b.percent > 100;
-            const percentDisplay = Math.min(b.percent, 100);
-
-            return (
-              <li key={b.budgetId}>
-                <div className="flex justify-between mb-1 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                  <span>{category?.name || "Unknown"}</span>
-                  <span>
-                    {b.spent} / {b.amount} ({b.percent}%)
-                  </span>
-                </div>
-                <div 
-                  className="w-full rounded-full h-3 overflow-hidden"
-                  style={{ backgroundColor: "var(--skeleton-base)" }}
-                >
-                  <div
-                    className="h-3 rounded-full transition-all duration-300 ease-in-out"
-                    style={{ 
-                      width: `${percentDisplay}%`,
-                      backgroundColor: isOverBudget ? "var(--color-error)" : "var(--color-success)",
-                    }}
-                  />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-      {/* --- Budget vs Actual --- */}
-   {budgetReports?.totals && <SummaryCard totals={budgetReports.totals} />}
-{budgetReports?.categories && (
-  <>
-    <div className="flex flex-wrap gap-2 mb-4 mt-4">
-      {['all','within_budget', 'overspent', 'no_budget'].map((f) => (
-        <button
-          key={f}
-          onClick={() => setFilter(f as any)}
-          className="px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm transition min-h-[36px]"
-          style={{
-            backgroundColor: filter === f ? "var(--accent-primary)" : "var(--bg-card)",
-            color: filter === f ? "var(--text-inverse)" : "var(--text-primary)",
-            border: `1px solid ${filter === f ? "var(--accent-primary)" : "var(--border-primary)"}`,
-            fontWeight: filter === f ? 600 : 400,
-          }}
-        >
-          {f === 'all'
-  ? 'All Categories'
-  : f === 'within_budget'
-  ? 'Budgeted'
-  : f === 'overspent'
-  ? 'Overspent'
-  : 'Unbudgeted'}
-
-        </button>
-      ))}
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-      <div className="rounded-2xl p-4 sm:p-6" style={{
-            backdropFilter: "blur(12px)",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-primary)",
-            boxShadow: "var(--shadow-lg)",
-            color: "var(--text-primary)",
-          }}>
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h2 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-            📦 Budget by Category
-          </h2>
-          <button
-            onClick={() => setBudgetView(budgetView === "income" ? "expense" : "income")}
-            className="px-3 py-1.5 rounded-md text-xs sm:text-sm min-h-[36px]"
-            style={{
-              backgroundColor: "var(--bg-card-hover)",
-              color: "var(--text-primary)",
-              border: "1px solid var(--border-primary)",
-            }}
-          >
-            {budgetView === "income" ? "💸 Show Expense" : "💰 Show Income"}
-          </button>
-        </div>
-        {filteredBudgetByType.length === 0 ? (
-          <p style={{ color: "var(--text-muted)" }}>
-            No {budgetView} categories found for this period
-          </p>
-        ) : (
-          <>
-            <BarChartComponent data={filteredBudgetByType} />
-            <div
-              style={{
-                marginTop: "0.75rem",
-                textAlign: "center",
-                fontSize: "0.9rem",
-                fontWeight: 500,
-                color: "var(--text-muted)",
-              }}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${selectedMonth}-${selectedYear}-${selectedAccount}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-6"
             >
-              {budgetView === "income" ? "💰 Viewing Budget vs Actual for Income Categories" : "💸 Viewing Budget vs Actual for Expense Categories"}
-            </div>
-          </>
-        )}
+              <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
+                <AnalyticsCard
+                  title="Income vs expense"
+                  subtitle="Six months of incoming vs outgoing money with net savings overlaid."
+                  icon={RiBarChartGroupedLine}
+                >
+                  {comparisonData.some((item) => item.income > 0 || item.expense > 0) ? (
+                    <IncomeExpenseComparisonChart data={comparisonData} />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">No transaction data for the last six months.</p>
+                  )}
+                </AnalyticsCard>
+
+                <AnalyticsCard
+                  title="Budget health"
+                  subtitle="Track how much of your planned spend is already used this month."
+                  icon={RiMoneyDollarCircleLine}
+                >
+                  {budgetReports?.totals ? (
+                    <BudgetHealthRing
+                      totalBudget={budgetReports.totals.totalBudgetExpense}
+                      totalActual={budgetReports.totals.totalActualExpense}
+                      overspentAmount={budgetOverspentAmount}
+                      unbudgetedAmount={budgetReports.totals.unbudgeted}
+                    />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">Budget health will appear once budget data is available.</p>
+                  )}
+                </AnalyticsCard>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <AnalyticsCard
+                  title="Spending breakdown"
+                  subtitle="Donut view for the current period so major categories stand out faster."
+                  icon={RiExchangeDollarLine}
+                >
+                  {pieData.length > 0 ? (
+                    <PieSpendingChart data={pieData} />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">No expense transactions found in this period.</p>
+                  )}
+                </AnalyticsCard>
+
+                <AnalyticsCard
+                  title="Savings rate trend"
+                  subtitle="See whether your saving behavior is improving over the last six months."
+                  icon={RiLineChartLine}
+                >
+                  {savingsRateTrend.some((item) => item.rate !== 0) ? (
+                    <SavingsRateTrendChart data={savingsRateTrend} />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">Not enough income history yet to plot savings rate.</p>
+                  )}
+                </AnalyticsCard>
+              </div>
+
+              <AnalyticsCard
+                title="Daily flow"
+                subtitle="Switch between income and expense to inspect short-term movement inside the selected month."
+                icon={RiCalendarLine}
+                action={
+                  <SegmentedControl
+                    options={[
+                      { value: "expense", label: "Expense" },
+                      { value: "income", label: "Income" },
+                    ]}
+                    value={trendView}
+                    onChange={(value) => setTrendView(value as "income" | "expense")}
+                    size="sm"
+                    className="w-full sm:w-[220px]"
+                  />
+                }
+              >
+                {lineData.length > 0 ? (
+                  <LineTrendChart data={lineData} view={trendView} />
+                ) : (
+                  <p className="text-sm text-[var(--text-secondary)]">No daily transaction trends for this month yet.</p>
+                )}
+              </AnalyticsCard>
+
+              <AnalyticsCard
+                title="Cash flow timeline"
+                subtitle="Wider timeline for income, expenses, savings, and net change across the month."
+                icon={RiLineChartLine}
+              >
+                {cashflowData.length > 0 ? (
+                  <ChashFlowLine data={cashflowData} />
+                ) : (
+                  <p className="text-sm text-[var(--text-secondary)]">Cash flow data is still loading or unavailable for this period.</p>
+                )}
+              </AnalyticsCard>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <AnalyticsCard
+                  title="Budget utilization"
+                  subtitle="Highest-usage budgets surface first so you can spot pressure points quickly."
+                  icon={RiMoneyDollarCircleLine}
+                >
+                  {prioritizedBudgetUtilizations.length > 0 ? (
+                    <BudgetUtilizationRadialList
+                      data={prioritizedBudgetUtilizations}
+                      categoryNames={categoryNameMap}
+                    />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">No budget utilization found for this period.</p>
+                  )}
+                </AnalyticsCard>
+
+                <AnalyticsCard
+                  title="Top expense categories"
+                  subtitle="Ranked categories make it easier to see what is driving spend."
+                  icon={RiBarChartGroupedLine}
+                >
+                  {topExpenseCategories.length > 0 ? (
+                    <TopExpenseCategoriesChart data={topExpenseCategories} />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">Need more expense activity to rank categories.</p>
+                  )}
+                </AnalyticsCard>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <AnalyticsCard
+                  title="Budget vs actual"
+                  subtitle="Compare budgeted and actual amounts by category, with overspending highlighted."
+                  icon={RiMoneyDollarCircleLine}
+                  action={
+                    <SegmentedControl
+                      options={[
+                        { value: "expense", label: "Expense" },
+                        { value: "income", label: "Income" },
+                      ]}
+                      value={budgetView}
+                      onChange={(value) => setBudgetView(value as "income" | "expense")}
+                      size="sm"
+                      className="w-full sm:w-[220px]"
+                    />
+                  }
+                >
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {(["all", "within_budget", "overspent", "no_budget"] as BudgetFilter[]).map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => setFilter(status)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                          filter === status
+                            ? "bg-[var(--accent-soft)] text-[var(--nav-active)]"
+                            : "border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]"
+                        }`}
+                      >
+                        {status === "all"
+                          ? "All categories"
+                          : status === "within_budget"
+                            ? "Budgeted"
+                            : status === "overspent"
+                              ? "Overspent"
+                              : "Unbudgeted"}
+                      </button>
+                    ))}
+                  </div>
+
+                  {filteredBudgetByType.length > 0 ? (
+                    <BarChartComponent data={filteredBudgetByType} />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">No {budgetView} categories found for this filter.</p>
+                  )}
+                </AnalyticsCard>
+
+                <AnalyticsCard
+                  title="Category concentration"
+                  subtitle="See which categories account for the largest share of this month's totals."
+                  icon={RiExchangeDollarLine}
+                >
+                  {catHeatmap.length > 0 ? (
+                    <CatHeatmapPie data={catHeatmap} />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">Category concentration data is unavailable right now.</p>
+                  )}
+                </AnalyticsCard>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <AnalyticsCard
+                  title="Budget mix"
+                  subtitle="A quick split of overspent, on-track, and unbudgeted categories."
+                  icon={RiMoneyDollarCircleLine}
+                >
+                  {budgetReports?.categories?.length ? (
+                    <PieChartComponent data={budgetReports.categories} />
+                  ) : (
+                    <p className="text-sm text-[var(--text-secondary)]">Budget mix will appear once categories have budget activity.</p>
+                  )}
+                </AnalyticsCard>
+
+                <AnalyticsCard
+                  title="Transaction activity heatmap"
+                  subtitle="A calendar-style view of how often money moved each day this month."
+                  icon={RiCalendarLine}
+                >
+                  <SpendingHeatmap
+                    transactions={filteredTransactions}
+                    month={selectedMonth}
+                    year={selectedYear}
+                  />
+                </AnalyticsCard>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
-
-      <div className="rounded-2xl p-4 sm:p-6" style={{
-            backdropFilter: "blur(12px)",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-primary)",
-            boxShadow: "var(--shadow-lg)",
-            color: "var(--text-primary)",
-          }}>
-        <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-          🧮 Total Budget Breakdown
-        </h2>
-        <PieChartComponent data={budgetReports.categories} />
-      </div>
-    </div>
-  </>
-)}
-
-      {/* --- Cash Flow Reports --- */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-  {/* Line Chart */}
-  <div
-    className="rounded-2xl p-4 sm:p-6"
-    style={{
-      backdropFilter: "blur(12px)",
-      background: "var(--bg-card)",
-      border: "1px solid var(--border-primary)",
-      boxShadow: "var(--shadow-lg)",
-      color: "var(--text-primary)",
-    }}
-  >
-    <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-      📈 Cash Flow Timeline
-    </h2>
-    {cashflowData ? (
-      <ChashFlowLine data={cashflowData} />
-    ) : (
-      <p style={{ color: "var(--text-muted)" }}>Loading timeline...</p>
-    )}
-  </div>
-
-  {/* Summary Card */}
-  <div
-    className="rounded-2xl p-4 sm:p-6"
-    style={{
-      backdropFilter: "blur(12px)",
-      background: "var(--bg-card)",
-      border: "1px solid var(--border-primary)",
-      boxShadow: "var(--shadow-lg)",
-      color: "var(--text-primary)",
-    }}
-  >
-    <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-      📊 Spending by Category
-    </h2>
-    {
-      catHeatmap?(
-        <CatHeatmapPie data={catHeatmap} />
-      ):(<p style={{ color: "var(--text-muted)" }}>Loading summary...</p>)
-    }
-      
-    
-  </div>
-</div>
- 
-
-  </div>
-  
     </Layout>
   );
 }

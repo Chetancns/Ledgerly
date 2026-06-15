@@ -71,6 +71,40 @@
   --shadow-lg: 0 8px 32px rgba(2, 8, 20, 0.6);
 }
 
+.dashboard-surface {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(18px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+.dashboard-filter-pill {
+  min-height: 44px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-primary);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  backdrop-filter: blur(14px);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-filter-pill:hover {
+  background: var(--bg-card-hover);
+  transform: translateY(-1px);
+}
+
+.dashboard-section-heading {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--accent-primary);
+}
+
 /* Arctic Light theme — snowfield, clear sky, crisp daylight */
 .light {
   /* Arctic Dawn gradient — softened to reduce eye strain */
