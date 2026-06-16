@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect, useCallback, useMemo } from "react";
+import { useState, FormEvent, useEffect, useCallback, useMemo, useRef } from "react";
 import { Transaction } from "@/models/Transaction";
 import { createTransaction, updateTransaction } from "@/services/transactions";
 import { getUserAccount } from "@/services/accounts";
@@ -66,6 +66,7 @@ export default function TransactionForm({
   const [toAccountId, setToAccountId] = useState("");
   const [lastDefaults, setLastDefaults] = useState<LastDefaults>({});
   const [lastDraft, setLastDraft] = useState<Partial<TransactionFormData> | null>(null);
+  const previousAiSignal = useRef<number | undefined>(openAiImportSignal);
 
   const amountValue = Number(form.amount || 0);
   const amountError = !form.amount
@@ -145,8 +146,10 @@ export default function TransactionForm({
   }, [transaction]);
 
   useEffect(() => {
-    if (openAiImportSignal === undefined) return;
+    if (openAiImportSignal === undefined || openAiImportSignal <= 0) return;
+    if (previousAiSignal.current === openAiImportSignal) return;
     setShowImportPopup(true);
+    previousAiSignal.current = openAiImportSignal;
   }, [openAiImportSignal]);
 
   const resetForm = useCallback(() => {
