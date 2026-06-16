@@ -1,964 +1,351 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dayjs from "dayjs";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  RiAddLine,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiCloseLine,
+  RiDeleteBinLine,
+  RiEdit2Line,
+  RiFolderLine,
+  RiSearchLine,
+  RiSparklingLine,
+  RiTaskLine,
+} from "react-icons/ri";
 import Layout from "../components/Layout";
 import TransactionForm from "../components/TransactionForm";
 import StatusBadge from "../components/StatusBadge";
-import { getTransactions, onDelete ,getFilterTransactions, getTransactionsWithPagination, getTransactionSummary, updateTransactionStatus} from "../services/transactions";
-import { Transaction, TransactionType } from "@/models/Transaction";
-import { getUserAccount } from "@/services/accounts";
-import { Account } from "@/models/account";
-import { Category } from "@/models/category";
-import { getUserCategory } from "@/services/category";
-import { TrashIcon } from '@heroicons/react/24/solid';
 import ConfirmModal from "@/components/ConfirmModal";
-import dayjs from "dayjs";
-import toast from "react-hot-toast";
-import {motion,AnimatePresence} from "framer-motion";
-import clsx from "clsx";
-import { div } from "framer-motion/client";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { useTheme } from "@/context/ThemeContext";
+import { Account } from "@/models/account";
+import { Category } from "@/models/category";
+import { Transaction, TransactionType } from "@/models/Transaction";
+import { getUserAccount } from "@/services/accounts";
+import { getUserCategory } from "@/services/category";
+import { bulkUpdateTransactionStatus, createTransaction, getFilterTransactions, getTransactionSummary, onDelete, updateTransaction, updateTransactionStatus } from "@/services/transactions";
+import { getAllTags, Tag } from "@/services/tags";
+import toast from "react-hot-toast";
+
+type SortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+type GroupBy = "none" | "date" | "account" | "category" | "status";
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const TYPE_META: Record<TransactionType, { label: string; icon: string; color: string }> = {
+  income: { label: "Income", icon: "💰", color: "var(--color-success)" },
+  expense: { label: "Expense", icon: "💸", color: "var(--color-error)" },
+  savings: { label: "Savings", icon: "🏦", color: "var(--color-info)" },
+  transfer: { label: "Transfer", icon: "🔁", color: "#8b5cf6" },
+};
 
 export default function Transactions() {
   const { format } = useCurrencyFormatter();
   const { theme } = useTheme();
+  const today = new Date();
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const today = new Date();
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [summary, setSummary] = useState<Partial<Record<TransactionType, number>>>({});
+  const [loading, setLoading] = useState(true);
+
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
-  const [selectedAccount, setSelectedAccount] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [typeSummary, setTypeSummary] = useState<Partial<Record<TransactionType, number>>>({});
-  const [viewMode, setViewMode] = useState<"list" | "table">("list");
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [totalTransactions, setTotalTransactions] = useState(0);
-  const [usePagination, setUsePagination] = useState(false);
-  const handleEdit = (tx: Transaction) => {
-    setEditingTransaction(tx);
-  };
-  const formatDateForUI = (dateString: string) => {  
-    if (!dateString) return "";
-    const [year, month, day] = dateString.split("-");
-    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(
-      "en-US",
-      { year: "numeric", month: "short", day: "numeric" }
-    );
-  };
-  // Load setting on mount
-    useEffect(() => {
-      const saved = localStorage.getItem("viewMode");
-      if (saved === "list" || saved === "table") {
-        setViewMode(saved);
-      }else {
-        setViewMode("list");
-      }
-      
-      const savedPagination = localStorage.getItem("usePagination");
-      if (savedPagination !== null) {
-        setUsePagination(savedPagination === "true");
-      }
-    }, []);
+  const [selectedAccount, setSelectedAccount] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedType, setSelectedType] = useState("all");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortBy>("date_desc");
+  const [groupBy, setGroupBy] = useState<GroupBy>("date");
 
-    // Save when changed
-    useEffect(() => {
-      localStorage.setItem("viewMode", viewMode);
-    }, [viewMode]);
-    
-    useEffect(() => {
-      localStorage.setItem("usePagination", String(usePagination));
-    }, [usePagination]);
-  
-  const tLabels: Record<TransactionType, string> = {
-    income: 'Income',
-    expense: 'Expense',
-    savings: 'Savings',
-    transfer: 'Transfer',
-  };
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkCategory, setBulkCategory] = useState("all");
+  const [bulkTag, setBulkTag] = useState("all");
 
-  const typeStyleMap: Record<TransactionType, string> = {
-    income: 'bg-green-100 text-green-600',
-    savings: 'bg-green-100 text-green-600',
-    expense: 'bg-red-100 text-red-600',
-    transfer: 'bg-blue-100 text-blue-600',
-  };
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const [showComposer, setShowComposer] = useState(false);
+  const [aiSignal, setAiSignal] = useState(0);
 
-  const pendingWithoutExpectedDate = transactions.filter(
-    (transaction) => transaction.status === 'pending' && !transaction.expectedPostDate,
-  );
+  const [hideBalances, setHideBalances] = useState(true);
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
+  const [singleCategorizeId, setSingleCategorizeId] = useState<string | null>(null);
+  const [singleCategory, setSingleCategory] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const totalBalance = useMemo(() => accounts.reduce((sum, a) => sum + Number(a.balance || 0), 0), [accounts]);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
-      await onDelete(id);
-      await fetchTransaction();
-      setDeleteConfirm(null);
-    } catch (err) {
-      console.error('Delete failed', err);
-      toast.error('Delete failed. Please try again.');
+      const [acc, cat, tagsResponse] = await Promise.all([getUserAccount(), getUserCategory(), getAllTags(false)]);
+      setAccounts(acc);
+      setCategories(cat);
+      setTags(tagsResponse.data || []);
+
+      const from = dayjs(`${selectedYear}-${selectedMonth}-01`).startOf("month").format("YYYY-MM-DD");
+      const to = dayjs(`${selectedYear}-${selectedMonth}-01`).endOf("month").format("YYYY-MM-DD");
+      const filters: { from: string; to: string; accountId?: string; categoryId?: string; status?: string; type?: string } = { from, to };
+      if (selectedAccount !== "all") filters.accountId = selectedAccount;
+      if (selectedCategory !== "all") filters.categoryId = selectedCategory;
+      if (selectedStatus !== "all") filters.status = selectedStatus;
+      if (selectedType !== "all") filters.type = selectedType;
+
+      const [txRes, summaryRes] = await Promise.all([getFilterTransactions(filters), getTransactionSummary(filters)]);
+      const payload = txRes.data;
+      const tx = payload && typeof payload === "object" && "data" in payload ? (payload.data as Transaction[]) : (payload as Transaction[]);
+      setTransactions(tx || []);
+      setSummary((summaryRes.data || {}) as Partial<Record<TransactionType, number>>);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load transaction data");
     } finally {
-      setDeletingId(null);
+      setLoading(false);
     }
-  };
+  }, [selectedAccount, selectedCategory, selectedMonth, selectedStatus, selectedType, selectedYear]);
 
-  const handleMarkAsPosted = async (id: string) => {
-    try {
-      await toast.promise(
-        updateTransactionStatus(id, 'posted'),
-        {
-          loading: 'Marking as posted...',
-          success: '✅ Transaction marked as posted!',
-          error: 'Failed to update status',
-        }
-      );
-      await fetchTransaction();
-    } catch (err) {
-      console.error('Status update failed', err);
-    }
-  };
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
-  const load = async () => {
-    const [ accRes, catRes] = await Promise.all([
-      //fetchTransaction(),
-      getUserAccount(),
-      getUserCategory()
-    ]);
-    setAccounts(accRes);
-    setCategories(catRes);
-  };
-  const toastId = "fetch-transactions-toast";
-  const fetchTransaction = useCallback(() => {
-    const controller = new AbortController(); // optional: for cancellation
-    const fetchData = async () => {
-      toast.loading("Loading transactions...", { id: toastId });
-
-      try {
-        const date = `${selectedYear}-${selectedMonth}-01`;
-        const dayjsDate = dayjs(date);
-        if (!dayjsDate.isValid()) {
-          throw new Error(`Invalid date: ${date}`);
-        }
-
-        const from = dayjsDate.startOf('month');
-        const to = dayjsDate.endOf('month');
-
-        const filters: Record<string, any> = {
-          from: from.format('YYYY-MM-DD'),
-          to: to.format('YYYY-MM-DD'),
-        };
-
-        if (selectedAccount !== 'all') {
-          filters.accountId = selectedAccount;
-        }
-
-        if (selectedCategory !== 'all') {
-          filters.categoryId = selectedCategory;
-        }
-
-        if (selectedStatus !== 'all') {
-          filters.status = selectedStatus;
-        }
-
-        // Add pagination if enabled
-        if (usePagination) {
-          filters.skip = (currentPage - 1) * pageSize;
-          filters.take = pageSize;
-          console.log('Pagination enabled - sending:', { skip: filters.skip, take: filters.take });
-        }
-
-        // Fetch transactions for display (with pagination if enabled)
-        const txRes = await getFilterTransactions(filters, { signal: controller.signal });
-        
-        console.log('Backend response:', txRes.data);
-        
-        // Handle paginated response
-        let actualTransactions: any[] = [];
-        
-        if (txRes.data && typeof txRes.data === 'object' && 'data' in txRes.data) {
-          actualTransactions = txRes.data.data;
-          setTransactions(txRes.data.data);
-          setTotalTransactions(txRes.data.total || 0);
-          console.log('Paginated response - showing:', actualTransactions.length, 'of', txRes.data.total);
-        } else {
-          actualTransactions = txRes.data;
-          setTransactions(txRes.data);
-          setTotalTransactions(txRes.data.length || 0);
-          console.log('Non-paginated response - showing all:', actualTransactions.length);
-        }
-        
-        // Fetch summary from dedicated endpoint (efficient - no need to fetch all transactions)
-        const summaryFilters = {
-          from: filters.from,
-          to: filters.to,
-          categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined,
-          accountId: filters.accountId !== 'all' ? filters.accountId : undefined,
-          type: filters.type,
-        };
-        const summaryRes = await getTransactionSummary(summaryFilters);
-        setTypeSummary(summaryRes.data || {});
-        toast.dismiss(toastId);
-
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.error('Error loading transactions', err);
-          toast.dismiss(toastId);
-          toast.error('Failed to load transactions ❌');
-        }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = t?.tagName === "INPUT" || t?.tagName === "TEXTAREA" || t?.isContentEditable;
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        searchRef.current?.focus();
       }
-      return () => controller.abort();
+      if ((e.key === "n" || e.key === "N") && !typing) {
+        e.preventDefault();
+        setEditing(null);
+        setShowComposer(true);
+      }
+      if (e.key === "Escape") setShowComposer(false);
     };
-
-    fetchData();
-  }, [selectedMonth, selectedYear, selectedAccount, selectedCategory, selectedStatus, currentPage, usePagination]);
-
-  // Debounce logic
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      fetchTransaction();
-    }, 400); // adjust delay as needed
-  }, [fetchTransaction]);
-
-  useEffect(() => {
-    load();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const shiftMonth = (delta: number) => {
-    const baseDate = new Date(selectedYear, selectedMonth - 1, 1);
-    baseDate.setMonth(baseDate.getMonth() + delta);
-    setSelectedMonth(baseDate.getMonth() + 1);
-    setSelectedYear(baseDate.getFullYear());
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    const rows = transactions.filter((t) => {
+      if (!s) return true;
+      const text = [t.description || "", accountMap.get(t.accountId)?.name || "", categoryMap.get(t.categoryId)?.name || "", t.tags?.map((x) => x.name).join(" ") || "", String(t.amount || "")].join(" ").toLowerCase();
+      return text.includes(s);
+    });
+    rows.sort((a, b) => {
+      if (sortBy === "date_desc") return dayjs(b.transactionDate).valueOf() - dayjs(a.transactionDate).valueOf();
+      if (sortBy === "date_asc") return dayjs(a.transactionDate).valueOf() - dayjs(b.transactionDate).valueOf();
+      if (sortBy === "amount_desc") return Number(b.amount || 0) - Number(a.amount || 0);
+      return Number(a.amount || 0) - Number(b.amount || 0);
+    });
+    return rows;
+  }, [accountMap, categoryMap, search, sortBy, transactions]);
+
+  const groups = useMemo(() => {
+    if (groupBy === "none") return [{ key: "all", label: "All", items: filtered }];
+    const map = new Map<string, Transaction[]>();
+    filtered.forEach((t) => {
+      const label = groupBy === "account"
+        ? accountMap.get(t.accountId)?.name || "Unknown"
+        : groupBy === "category"
+          ? categoryMap.get(t.categoryId)?.name || "Unknown"
+          : groupBy === "status"
+            ? t.status || "posted"
+            : dayjs(t.transactionDate).isSame(dayjs(), "day")
+              ? "Today"
+              : dayjs(t.transactionDate).isSame(dayjs().subtract(1, "day"), "day")
+                ? "Yesterday"
+                : dayjs(t.transactionDate).format("MMM D, YYYY");
+      map.set(label, [...(map.get(label) || []), t]);
+    });
+    return [...map.entries()].map(([key, items]) => ({ key, label: key, items }));
+  }, [accountMap, categoryMap, filtered, groupBy]);
+
+  const allVisibleIds = filtered.map((t) => t.id);
+  const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id));
+
+  const toggleSelected = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleAll = () => setSelectedIds((prev) => (allSelected ? prev.filter((id) => !allVisibleIds.includes(id)) : [...new Set([...prev, ...allVisibleIds])]));
+
+  const markPosted = async (id: string) => {
+    try {
+      await updateTransactionStatus(id, "posted");
+      await fetchData();
+      toast.success("Marked as posted");
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const duplicateTx = async (tx: Transaction) => {
+    try {
+      const payload: Partial<Transaction> = { ...tx, transactionDate: new Date().toISOString(), tagIds: tx.tags?.map((t) => t.id) || [] };
+      delete payload.id;
+      await createTransaction(payload);
+      await fetchData();
+      toast.success("Duplicated");
+    } catch {
+      toast.error("Failed to duplicate");
+    }
+  };
+
+  const deleteTx = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await onDelete(deleteConfirm);
+      setDeleteConfirm(null);
+      await fetchData();
+      toast.success("Deleted");
+    } catch {
+      toast.error("Delete failed");
+    }
+  };
+
+  const bulkStatus = async (status: "pending" | "posted" | "cancelled") => {
+    if (!selectedIds.length) return;
+    try {
+      await bulkUpdateTransactionStatus(selectedIds, status);
+      setSelectedIds([]);
+      await fetchData();
+      toast.success("Bulk status updated");
+    } catch {
+      toast.error("Bulk action failed");
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (!selectedIds.length) return;
+    try {
+      await Promise.all(selectedIds.map((id) => onDelete(id)));
+      setSelectedIds([]);
+      await fetchData();
+      toast.success("Selected transactions deleted");
+    } catch {
+      toast.error("Bulk delete failed");
+    }
+  };
+
+  const applySingleCategory = async () => {
+    if (!singleCategorizeId || !singleCategory) return;
+    const tx = transactions.find((t) => t.id === singleCategorizeId);
+    if (!tx) return;
+    try {
+      await updateTransaction(singleCategorizeId, {
+        accountId: tx.accountId,
+        categoryId: singleCategory,
+        amount: tx.amount,
+        description: tx.description,
+        transactionDate: tx.transactionDate,
+        tagIds: tx.tags?.map((x) => x.id) || [],
+        status: tx.status,
+        type: tx.type,
+        toAccountId: tx.toAccountId || undefined,
+        expectedPostDate: tx.expectedPostDate,
+      });
+      setSingleCategorizeId(null);
+      setSingleCategory("");
+      await fetchData();
+      toast.success("Category updated");
+    } catch {
+      toast.error("Failed to categorize");
+    }
   };
 
   const quickMonthOptions = Array.from({ length: 48 }).map((_, i) => {
-    const date = new Date(today.getFullYear(), today.getMonth() - 36 + i, 1);
-    return {
-      label: `${months[date.getMonth()]} ${date.getFullYear()}`,
-      value: `${date.getFullYear()}-${date.getMonth() + 1}`,
-    };
+    const d = new Date(today.getFullYear(), today.getMonth() - 36 + i, 1);
+    return { label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, value: `${d.getFullYear()}-${d.getMonth() + 1}` };
   });
 
-  // useEffect(() => {
-  //   fetchTransaction();
-  // }, [selectedMonth, selectedYear, selectedAccount, selectedCategory]);
+  const categoryOptions = useMemo(() => categories.map((c) => ({ value: c.id, label: c.name })), [categories]);
 
   return (
-  <Layout>
-    <div className="mx-auto p-4">
-
-      {/* Header */}
-      <h1 className="text-4xl font-extrabold tracking-tight mb-6 drop-shadow-lg" style={{ color: "var(--text-primary)" }}>
-        Transactions
-      </h1>
-
-      {/* Transaction Form */}
-      <div className="mb-6">
-        {editingTransaction ? (
-          <TransactionForm
-            transaction={editingTransaction}
-            onUpdated={fetchTransaction}
-            onCancel={() => setEditingTransaction(null)}
-            onCreated={fetchTransaction}
-          />
-        ) : (
-          <TransactionForm onCreated={fetchTransaction} />
-        )}
-      </div>
-
-      {/* --- Filters + Summary --- */}
-      <div 
-        className="backdrop-blur-2xl shadow-xl rounded-3xl p-6 mb-6"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
-      >
-        <div className="flex flex-wrap items-end gap-6">
-
-          {/* Month/Year Navigation */}
-          <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Month</label>
-            <div
-              className="flex items-center gap-2 backdrop-blur-xl px-3 py-2 rounded-xl transition"
-              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-            >
-              <button
-                type="button"
-                onClick={() => shiftMonth(-1)}
-                className="h-8 w-8 rounded-lg flex items-center justify-center hover:scale-105 transition"
-                style={{ background: "var(--bg-card)", color: "var(--text-primary)", border: "1px solid var(--border-primary)" }}
-                aria-label="Previous month"
-                title="Previous month"
-              >
-                ◀
-              </button>
-              <div className="min-w-[120px] text-center font-semibold" style={{ color: "var(--text-primary)" }}>
-                {months[selectedMonth - 1]} {selectedYear}
-              </div>
-              <button
-                type="button"
-                onClick={() => shiftMonth(1)}
-                className="h-8 w-8 rounded-lg flex items-center justify-center hover:scale-105 transition"
-                style={{ background: "var(--bg-card)", color: "var(--text-primary)", border: "1px solid var(--border-primary)" }}
-                aria-label="Next month"
-                title="Next month"
-              >
-                ▶
-              </button>
-              <select
-                value={`${selectedYear}-${selectedMonth}`}
-                onChange={(e) => {
-                  const [year, month] = e.target.value.split("-").map(Number);
-                  setSelectedYear(year);
-                  setSelectedMonth(month);
-                }}
-                className="backdrop-blur-xl px-2 py-1 rounded-lg transition text-sm"
-                style={{ background: "var(--bg-card)", color: "var(--input-text)", border: "1px solid var(--border-primary)" }}
-                aria-label="Jump to month"
-                title="Jump to month"
-              >
-                {quickMonthOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+    <Layout>
+      <div className="mx-auto space-y-6 px-3 py-4 sm:px-6 sm:py-6">
+        <section className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--text-muted)]">Transaction workspace</p>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[var(--text-primary)] sm:text-4xl">Transactions</h1>
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">Compact, scan-friendly transactions with quick actions.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => { setEditing(null); setShowComposer(true); }}><RiAddLine />Add transaction</button>
+              <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => { setEditing(null); setShowComposer(true); setAiSignal((x) => x + 1); }}><RiSparklingLine />AI import</button>
+              <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => setShowBalanceModal(true)}>Quick view</button>
             </div>
           </div>
+        </section>
 
-          {/* Account */}
-          <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Account</label>
-            <select
-              value={selectedAccount}
-              onChange={(e) => setSelectedAccount(e.target.value)}
-              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
-              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-            >
-              <option value="all">All</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Category */}
-          <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Category</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
-              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-            >
-              <option value="all">All</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status */}
-          <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Status</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="backdrop-blur-xl px-3 py-2 rounded-xl transition"
-              style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
-            >
-              <option value="all">All Status</option>
-              <option value="posted">✅ Posted</option>
-              <option value="pending">⏳ Pending</option>
-              <option value="cancelled">❌ Cancelled</option>
-            </select>
-          </div>
-
-          {/* Pagination Toggle */}
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer" style={{ color: "var(--text-primary)" }}>
-              <input
-                type="checkbox"
-                checked={usePagination}
-                onChange={(e) => {
-                  setUsePagination(e.target.checked);
-                  setCurrentPage(1);
-                }}
-                className="rounded w-4 h-4"
-              />
-              Enable Pagination
-            </label>
-          </div>
-
-          {/* Summary Boxes */}
-          <div className="flex flex-wrap items-center gap-3 ml-auto">
-            {Object.entries(typeSummary).map(([type, total]) => (
-              <div
-                key={type}
-                className="px-4 py-2 rounded-xl shadow-lg text-sm font-semibold backdrop-blur-xl flex items-center gap-2"
-                style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
-              >
-                <span className={clsx(
-                  type === 'income' ? 'text-green-600' :
-                  type === 'expense' ? 'text-red-600' :
-                  'text-blue-600'
-                )}>{tLabels[type as TransactionType]}</span>
-                <span className="font-bold" style={{ color: "var(--text-primary)" }}>
-                  {format(Number(total))}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="ml-auto flex items-center">
-            <div className="flex backdrop-blur-xl rounded-2xl p-1 shadow-inner relative" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-              
-              {/* Sliding highlight */}
-              <motion.div
-                layout
-                className="absolute top-[4px] bottom-[4px] w-[45%] rounded-xl shadow-md"
-                style={{ background: "var(--bg-card-hover)" }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                initial={false}
-                animate={{ left: viewMode === "list" ? "4px" : "calc(50% + 4px)" }}
-              />
-
-              {/* List Button */}
-              <label
-                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                <input
-                  type="radio"
-                  name="view-toggle"
-                  value="list"
-                  checked={viewMode === "list"}
-                  onChange={() => setViewMode("list")}
-                  className="hidden"
-                />
-                📑 List
-              </label>
-
-              {/* Table Button */}
-              <label
-                className="relative z-10 flex items-center gap-1 px-4 py-2 w-[120px] justify-center cursor-pointer font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                <input
-                  type="radio"
-                  name="view-toggle"
-                  value="table"
-                  checked={viewMode === "table"}
-                  onChange={() => setViewMode("table")}
-                  className="hidden"
-                />
-                📊 Table
-              </label>
+        <section className="dashboard-surface sticky top-20 z-20 p-4 sm:top-24">
+          <div className="grid gap-2 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-4"><label className="text-xs text-[var(--text-muted)]">Search</label><div className="mt-1 flex items-center gap-2 rounded-xl border border-[var(--input-border)] px-3 py-2"><RiSearchLine /><input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none" /></div></div>
+            <div className="lg:col-span-4"><label className="text-xs text-[var(--text-muted)]">Period</label><div className="mt-1 flex items-center gap-2"><button onClick={() => { const d = new Date(selectedYear, selectedMonth - 2, 1); setSelectedMonth(d.getMonth() + 1); setSelectedYear(d.getFullYear()); }}><RiArrowLeftSLine /></button><span className="text-sm font-semibold text-[var(--text-primary)]">{MONTHS[selectedMonth - 1]} {selectedYear}</span><button onClick={() => { const d = new Date(selectedYear, selectedMonth, 1); setSelectedMonth(d.getMonth() + 1); setSelectedYear(d.getFullYear()); }}><RiArrowRightSLine /></button><select value={`${selectedYear}-${selectedMonth}`} onChange={(e) => { const [y, m] = e.target.value.split("-").map(Number); setSelectedYear(y); setSelectedMonth(m); }} className="rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-1 text-sm">{quickMonthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div></div>
+            <div className="lg:col-span-4 grid grid-cols-2 gap-2">
+              <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All categories</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All status</option><option value="posted">Posted</option><option value="pending">Pending</option><option value="cancelled">Cancelled</option></select>
+              <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All types</option><option value="income">Income</option><option value="expense">Expense</option><option value="transfer">Transfer</option><option value="savings">Savings</option></select>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="date_desc">Newest</option><option value="date_asc">Oldest</option><option value="amount_desc">Amount high-low</option><option value="amount_asc">Amount low-high</option></select>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="none">No group</option><option value="date">Date</option><option value="account">Account</option><option value="category">Category</option><option value="status">Status</option></select>
             </div>
           </div>
+          <div className="mt-2 flex flex-wrap gap-2">{Object.entries(summary).map(([type, total]) => <span key={type} className="rounded-full border border-[var(--border-primary)] px-3 py-1 text-xs">{TYPE_META[type as TransactionType]?.icon} {format(Number(total || 0))}</span>)}</div>
+        </section>
 
-
-        </div>
-      </div>
-
-      {pendingWithoutExpectedDate.length > 0 && (
-        <div
-          className="mb-4 rounded-2xl border px-3 py-2.5"
-          style={{
-            background: theme === 'dark'
-              ? 'rgba(120, 53, 15, 0.16)'
-              : 'rgba(255, 247, 237, 0.96)',
-            borderColor: 'rgba(245, 158, 11, 0.28)',
-          }}
-        >
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-sm">
-                <span aria-hidden="true">⚠️</span>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {pendingWithoutExpectedDate.length} pending transaction{pendingWithoutExpectedDate.length === 1 ? '' : 's'} missing an expected date
-                </span>
+        <section className="space-y-3">
+          {!!selectedIds.length && (
+            <div className="dashboard-surface p-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-semibold text-[var(--text-primary)]">{selectedIds.length} selected</span>
+                <button className="rounded-lg border border-[var(--border-primary)] px-2 py-1" onClick={() => void bulkStatus("posted")}>Mark posted</button>
+                <button className="rounded-lg border border-[var(--border-primary)] px-2 py-1" onClick={() => void bulkDelete()}>Delete</button>
+                <select value={bulkCategory} onChange={(e) => setBulkCategory(e.target.value)} className="rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-1"><option value="all">Category</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+                <select value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} className="rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-1"><option value="all">Tag</option>{tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {pendingWithoutExpectedDate.slice(0, 3).map((transaction) => {
-                  const account = accounts.find((item) => item.id === transaction.accountId);
-                  const category = categories.find((item) => item.id === transaction.categoryId);
+            </div>
+          )}
 
+          {loading ? <div className="dashboard-surface p-4"><div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton-base)]" />)}</div></div> : (
+            groups.map((g) => (
+              <div key={g.key} className="dashboard-surface overflow-hidden">
+                <div className="flex items-center justify-between border-b border-[var(--border-secondary)] bg-[var(--bg-card-hover)] px-3 py-2"><span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>{g.key === groups[0]?.key && <div className="text-xs"><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>}</div>
+                <div className="divide-y divide-[var(--border-secondary)]">{g.items.map((t) => {
+                  const type = (t.type || "expense") as TransactionType;
+                  const account = accountMap.get(t.accountId)?.name || "Unknown account";
+                  const category = categoryMap.get(t.categoryId)?.name || "Unknown category";
+                  const toAccount = t.toAccountId ? accountMap.get(t.toAccountId)?.name || "Unknown account" : "";
                   return (
-                    <button
-                      key={transaction.id}
-                      type="button"
-                      onClick={() => handleEdit(transaction)}
-                      className="rounded-full border px-2.5 py-1 text-xs transition hover:opacity-90"
-                      style={{
-                        background: 'var(--bg-card)',
-                        color: 'var(--text-secondary)',
-                        borderColor: 'rgba(245, 158, 11, 0.22)',
-                      }}
-                    >
-                      {transaction.description?.trim() || category?.name || 'Pending transaction'}
-                      {' • '}
-                      {account?.name || 'Unknown account'}
-                    </button>
+                    <div key={t.id} className="group px-3 py-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-start gap-2"><input type="checkbox" checked={selectedIds.includes(t.id)} onChange={() => toggleSelected(t.id)} /><span className="mt-1 h-6 w-1 rounded-full" style={{ background: TYPE_META[type].color }} /><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--text-primary)]">{t.description?.trim() || category}</p><p className="truncate text-xs text-[var(--text-secondary)]">{account}{toAccount ? ` → ${toAccount}` : ""} · {category} · {dayjs(t.transactionDate).format("MMM D")}</p></div></div>
+                        <div className="text-right"><p className="text-sm font-semibold text-[var(--text-primary)]">{format(Number(t.amount || 0))}</p><span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]" style={{ borderColor: TYPE_META[type].color, color: TYPE_META[type].color }}>{TYPE_META[type].icon} {TYPE_META[type].label}</span></div>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between"><StatusBadge status={t.status} size="sm" /><div className="flex gap-1"><button onClick={() => { setEditing(t); setShowComposer(true); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiEdit2Line /></button><button onClick={() => { setSingleCategorizeId(t.id); setSingleCategory(t.categoryId || ""); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiFolderLine /></button><button onClick={() => void duplicateTx(t)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiAddLine /></button>{t.status === "pending" && <button onClick={() => void markPosted(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiTaskLine /></button>}<button onClick={() => setDeleteConfirm(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5 text-[var(--color-error)]"><RiDeleteBinLine /></button></div></div>
+                    </div>
                   );
-                })}
-                {pendingWithoutExpectedDate.length > 3 && (
-                  <span
-                    className="rounded-full px-2.5 py-1 text-xs font-medium"
-                    style={{
-                      background: 'rgba(245, 158, 11, 0.12)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    +{pendingWithoutExpectedDate.length - 3} more
-                  </span>
-                )}
+                })}</div>
               </div>
-            </div>
+            ))
+          )}
+        </section>
+      </div>
 
-            <div className="flex items-center gap-2 lg:flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedStatus('pending');
-                  setCurrentPage(1);
-                }}
-                className="rounded-full px-3 py-1.5 text-xs font-semibold transition hover:opacity-90"
-                style={{
-                  background: 'rgba(245, 158, 11, 0.14)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid rgba(245, 158, 11, 0.28)',
-                }}
-              >
-                Show pending only
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>{showComposer && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm"><motion.div initial={{ x: 60 }} animate={{ x: 0 }} exit={{ x: 60 }} className="ml-auto flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="transaction-drawer-title"><div className="mb-3 flex items-center justify-between"><h3 id="transaction-drawer-title" className="text-lg font-semibold text-[var(--text-primary)]">{editing ? "Edit transaction" : "Add transaction"}</h3><button onClick={() => { setEditing(null); setShowComposer(false); }} className="rounded-full border border-[var(--border-primary)] p-2" aria-label="Close drawer"><RiCloseLine /></button></div><div className="min-h-0 flex-1 overflow-auto"><TransactionForm transaction={editing || undefined} onCreated={() => { void fetchData(); }} onUpdated={() => { setEditing(null); void fetchData(); }} onCancel={() => { setEditing(null); setShowComposer(false); }} openAiImportSignal={aiSignal} /></div></motion.div></motion.div>}</AnimatePresence>
 
-      {/* Pagination Controls */}
-      {usePagination && totalTransactions > 0 && (
-        <div className="backdrop-blur-2xl shadow-xl rounded-3xl p-4 mb-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="text-sm" style={{ color: "var(--text-primary)" }}>
-              Showing {Math.min((currentPage - 1) * pageSize + 1, totalTransactions)} - {Math.min(currentPage * pageSize, totalTransactions)} of {totalTransactions} transactions
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition"
-                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
-              >
-                Previous
-              </button>
-              
-              <span className="font-semibold px-4" style={{ color: "var(--text-primary)" }}>
-                Page {currentPage} of {Math.ceil(totalTransactions / pageSize)}
-              </span>
-              
-              <button
-                onClick={() => setCurrentPage(Math.min(Math.ceil(totalTransactions / pageSize), currentPage + 1))}
-                disabled={currentPage >= Math.ceil(totalTransactions / pageSize)}
-                className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition"
-                style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>{showBalanceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/55 p-4 backdrop-blur-sm" onClick={() => setShowBalanceModal(false)}><motion.div initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: 20 }} className="mx-auto max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="quick-view-title"><div className="mb-4 flex items-center justify-between"><h3 id="quick-view-title" className="text-lg font-bold text-[var(--text-primary)]">Account quick view</h3><button onClick={() => setHideBalances((x) => !x)} className="rounded-full border border-[var(--border-primary)] px-3 py-1 text-xs">{hideBalances ? "Show" : "Hide"}</button></div><p className="mb-3 text-sm text-[var(--text-secondary)]">Total balance: <span className="font-semibold text-[var(--text-primary)]">{hideBalances ? "••••••" : format(totalBalance)}</span></p><div className="space-y-2">{accounts.map((a) => <div key={a.id} className="flex items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-3 py-2"><p className="text-sm font-medium text-[var(--text-primary)]">{a.name}</p><p className="text-sm font-semibold text-[var(--text-primary)]">{hideBalances ? "••••••" : format(Number(a.balance || 0))}</p></div>)}</div></motion.div></motion.div>}</AnimatePresence>
 
-<AnimatePresence mode="wait">
-  {viewMode === "list" && (
-    <motion.div
-     key="list"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.25 }}
-    >
-      <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 px-2">
-  {transactions.map((t) => {
-    const account = accounts.find(a => a.id === t.accountId);
-    const category = categories.find(c => c.id === t.categoryId);
-    const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
+      <AnimatePresence>{!!singleCategorizeId && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[55] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" onClick={() => { setSingleCategorizeId(null); setSingleCategory(""); }}><motion.div initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: 20 }} className="w-full max-w-md rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="category-dialog-title"><h3 id="category-dialog-title" className="mb-3 text-base font-semibold text-[var(--text-primary)]">Update category</h3><NeumorphicSelect value={singleCategory} onChange={setSingleCategory} options={categoryOptions} placeholder="Select category" theme={theme} /><div className="mt-4 flex justify-end gap-2"><button className="rounded-xl border border-[var(--border-primary)] px-3 py-2 text-sm text-[var(--text-secondary)]" onClick={() => { setSingleCategorizeId(null); setSingleCategory(""); }}>Cancel</button><button className="rounded-xl bg-[var(--accent-primary)] px-3 py-2 text-sm font-semibold text-[var(--text-inverse)] disabled:opacity-60" disabled={!singleCategory} onClick={() => void applySingleCategory()}>Apply</button></div></motion.div></motion.div>}</AnimatePresence>
 
-    // Type colors & icons
-    const typeColor = t.type === 'income' ? 'green' :
-                      t.type === 'expense' ? 'red' : 
-                      t.type === 'savings' ? 'blue' : 
-                      t.type === 'transfer' ? 'purple' : 'white';
-    const typeIcon = t.type === 'income' ? '💰' :
-                     t.type === 'expense' ? '💸' : 
-                     t.type === 'transfer' ? '🔀' : 
-                     t.type === 'savings' ? '🏦' : '💰';
-
-    return (
-      <li
-        key={t.id}
-        className={clsx(`
-          relative flex flex-col shadow-md
-          border rounded-2xl p-3 transition-all duration-300
-          hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]
-          min-h-[200px]
-          ${deletingId === t.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
-        `)}
-        style={{
-          background: "var(--bg-card)",
-          borderColor: "var(--border-primary)",
-        }}
-      >
-        {/* Top Row: Type Badge + Date */}
-        <div className="flex justify-between items-start mb-2">
-          <span className={`px-2 py-0.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm
-            ${t.type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
-              t.type === 'expense' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
-              t.type === 'savings' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
-              'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'}
-          `}>
-            {typeIcon} {t.type ? tLabels[t.type] : 'Unknown'}
-          </span>
-          <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-            {formatDateForUI(t.transactionDate)}
-          </span>
-        </div>
-
-        {/* Amount - Prominent Display */}
-        <div className="mb-2">
-          <span className={clsx(
-            "font-bold text-xl",
-            t.type === 'income' ? 'text-green-600 dark:text-green-400' :
-            t.type === 'expense' ? 'text-red-600 dark:text-red-400' :
-            t.type === 'savings' ? 'text-blue-600 dark:text-blue-400' :
-            'text-purple-600 dark:text-purple-400'
-          )}>
-            {format(t.amount)}
-          </span>
-        </div>
-
-        {/* Account and Category - 2-column layout */}
-        <div className="grid grid-cols-2 gap-3 mb-2">
-          {/* Account Column */}
-          <div className="min-h-[2.5rem]">
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Account</p>
-            <span className="text-sm font-semibold truncate block" style={{ color: "var(--text-primary)" }}>
-              {account ? account.name : 'Unknown Account'}
-            </span>
-            {toAccount && (
-              <div className="flex items-center gap-1 text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                <span>→</span>
-                <span className="font-medium truncate">{toAccount.name}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Category Column */}
-          <div className="min-h-[2.5rem]">
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Category</p>
-            <div className="text-sm truncate" style={{ color: "var(--text-primary)" }}>
-              {category ? category.name : 'Unknown'}
-            </div>
-          </div>
-        </div>
-
-        {/* Description and Tags - 2-column layout */}
-        <div className="grid grid-cols-2 gap-3 mb-2">
-          {/* Description Column */}
-          <div className="min-h-[2.5rem]">
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Description</p>
-            {t.description ? (
-              <p className="text-xs line-clamp-2" style={{ color: "var(--text-secondary)" }}>
-                {t.description}
-              </p>
-            ) : (
-              <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>
-                No description
-              </p>
-            )}
-          </div>
-
-          {/* Tags Column */}
-          <div className="min-h-[1.5rem]">
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Tags</p>
-            {t.tags && t.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {t.tags.slice(0, 2).map(tag => (
-                  <span
-                    key={tag.id}
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
-                    style={{
-                      backgroundColor: `${tag.color}20`,
-                      color: tag.color,
-                      border: `1px solid ${tag.color}40`,
-                    }}
-                  >
-                    {tag.name}
-                  </span>
-                ))}
-                {t.tags.length > 2 && (
-                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    +{t.tags.length - 2}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>
-                No tags
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Status Badge + Actions Combined - Push to bottom */}
-        <div className="flex items-center justify-between pt-2 mt-auto border-t" style={{ borderColor: "var(--border-secondary)" }}>
-          <div className="flex-1">
-            <StatusBadge status={t.status} size="sm" />
-            {t.status === 'pending' && t.expectedPostDate && (
-              <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                {formatDateForUI(t.expectedPostDate)}
-              </div>
-            )}
-          </div>
-          
-          <div className="flex gap-1.5">
-            {t.status === 'pending' && (
-              <button
-                onClick={() => handleMarkAsPosted(t.id)}
-                className="text-xs px-2 py-1 rounded-lg font-semibold transition-all hover:scale-105
-                         bg-green-100 text-green-700 hover:bg-green-200
-                         dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-800/50"
-                title="Mark as Posted"
-              >
-                ✅
-              </button>
-            )}
-            <button
-              onClick={() => handleEdit(t)}
-              className="text-xs px-2 py-1 rounded-lg font-semibold transition-all hover:scale-105
-                       bg-blue-100 text-blue-700 hover:bg-blue-200
-                       dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-800/50"
-              title="Edit Transaction"
-            >
-              ✏️
-            </button>
-            <button
-              onClick={() => setDeleteConfirm(t.id)}
-              className="px-2 py-1 rounded-lg transition-all hover:scale-105
-                       bg-red-100 text-red-700 hover:bg-red-200
-                       dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-800/50"
-              title="Delete Transaction"
-            >
-              <TrashIcon className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </li>
-    );
-  })}
-</ul>
-    </motion.div>
-)}
-
-{viewMode === "table" && (
-  <motion.div
-      key="table"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.25 }}
-    > 
-    <div className="overflow-x-auto backdrop-blur-xl shadow-xl rounded-2xl p-4"
-         style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}>
-  <table className="min-w-full divide-y" style={{ borderColor: "var(--border-secondary)" }}>
-    <thead style={{ background: "var(--bg-secondary)" }}>
-      <tr>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Date</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Amount</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>From</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>To</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Category</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Description</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Type</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Tags</th>
-        <th className="px-4 py-3 text-left text-sm font-bold" style={{ color: "var(--text-primary)" }}>Status</th>
-        <th className="px-4 py-3 text-right text-sm font-bold" style={{ color: "var(--text-primary)" }}>Actions</th>
-      </tr>
-    </thead>
-    <tbody className="divide-y" style={{ borderColor: "var(--border-secondary)" }}>
-      {transactions.map((t) => {
-        const account = accounts.find(a => a.id === t.accountId);
-        const category = categories.find(c => c.id === t.categoryId);
-        const toAccount = t.toAccountId ? accounts.find(a => a.id === t.toAccountId) : null;
-
-        const typeColor = t.type === 'income' ? 'green' :
-                          t.type === 'expense' ? 'red' : 
-                          t.type === 'savings' ? 'blue' : 'purple';
-        const typeIcon = t.type === 'income' ? '💰' :
-                         t.type === 'expense' ? '💸' : 
-                         t.type === 'transfer' ? '🔀' :
-                         t.type === 'savings' ? '🏦' : '🔁';
-
-        return (
-          <tr 
-            key={t.id} 
-            className={`transition-all ${deletingId === t.id ? 'opacity-0' : 'opacity-100'}`}
-            style={{ 
-              background: theme === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = theme === 'dark' 
-                ? 'rgba(255, 255, 255, 0.05)' 
-                : 'rgba(0, 0, 0, 0.04)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = theme === 'dark' 
-                ? 'rgba(255, 255, 255, 0.02)' 
-                : 'rgba(0, 0, 0, 0.02)';
-            }}
-          >
-            <td className="px-4 py-3 text-sm font-medium whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>
-              {formatDateForUI(t.transactionDate)}
-            </td>
-            <td className="px-4 py-3 text-sm font-bold whitespace-nowrap">
-              <span className={clsx(
-                "flex items-center gap-2",
-                t.type === 'income' ? 'text-green-600 dark:text-green-400' :
-                t.type === 'expense' ? 'text-red-600 dark:text-red-400' :
-                t.type === 'savings' ? 'text-blue-600 dark:text-blue-400' :
-                'text-purple-600 dark:text-purple-400'
-              )}>
-                {typeIcon} {format(t.amount)}
-              </span>
-            </td>
-            <td className="px-4 py-3 text-sm" style={{ color: "var(--text-primary)" }}>
-              {account ? account.name : 'Unknown'}
-            </td>
-            <td className="px-4 py-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-              {toAccount ? toAccount.name : '-'}
-            </td>
-            <td className="px-4 py-3 text-sm" style={{ color: "var(--text-primary)" }}>
-              {category ? category.name : 'Unknown'}
-            </td>
-            <td className="px-4 py-3 text-sm max-w-xs">
-              <div className="line-clamp-2" style={{ color: "var(--text-secondary)" }}>
-                {t.description || '-'}
-              </div>
-            </td>
-            <td className="px-4 py-3">
-              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1.5
-                ${t.type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
-                  t.type === 'expense' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300' :
-                  t.type === 'savings' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
-                  'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'}
-              `}>
-                {typeIcon} {t.type ? tLabels[t.type] : 'Unknown'}
-              </span>
-            </td>
-            <td className="px-4 py-3">
-              {t.tags && t.tags.length > 0 ? (
-                <div className="flex flex-wrap gap-1 max-w-xs">
-                  {t.tags.slice(0, 2).map(tag => (
-                    <span
-                      key={tag.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium"
-                      style={{
-                        backgroundColor: `${tag.color}20`,
-                        color: tag.color,
-                        border: `1px solid ${tag.color}40`,
-                      }}
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                  {t.tags.length > 2 && (
-                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      +{t.tags.length - 2}
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <span style={{ color: "var(--text-muted)" }}>-</span>
-              )}
-            </td>
-            <td className="px-4 py-3">
-              <div className="space-y-1">
-                <StatusBadge status={t.status} size="sm" />
-                {t.status === 'pending' && t.expectedPostDate && (
-                  <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    Expected: {formatDateForUI(t.expectedPostDate)}
-                  </div>
-                )}
-              </div>
-            </td>
-            <td className="px-4 py-3 text-right">
-              <div className="flex gap-2 justify-end">
-                {t.status === 'pending' && (
-                  <button
-                    onClick={() => handleMarkAsPosted(t.id)}
-                    className="text-xs px-2.5 py-1.5 rounded-lg font-semibold transition-all hover:scale-105
-                             bg-green-100 text-green-700 hover:bg-green-200
-                             dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-800/50"
-                    title="Mark as Posted"
-                  >
-                    ✅ Post
-                  </button>
-                )}
-                <button
-                  onClick={() => handleEdit(t)}
-                  className="p-2 rounded-lg transition-all hover:scale-110
-                           bg-blue-100 text-blue-700 hover:bg-blue-200
-                           dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-800/50"
-                  title="Edit"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={() => setDeleteConfirm(t.id)}
-                  className="p-2 rounded-lg transition-all hover:scale-110
-                           bg-red-100 text-red-700 hover:bg-red-200
-                           dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-800/50"
-                  title="Delete"
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        );
-      })}
-    </tbody>
-  </table>
-</div>
-    </motion.div>
-
-)}
-</AnimatePresence>
-
-    </div>
-
-    {/* Reusable Delete Confirmation Modal */}
-    <ConfirmModal
-      open={!!deleteConfirm}
-      title="Delete Transaction"
-      description="Delete this transaction? This action cannot be undone."
-      confirmLabel="Delete"
-      confirmColor="red-500"
-      loading={!!deletingId}
-      onConfirm={() => handleDelete(deleteConfirm!)}
-      onClose={() => setDeleteConfirm(null)}
-    />
-  </Layout>
-);
-
+      <ConfirmModal open={!!deleteConfirm} title="Delete transaction" description="Delete this transaction permanently?" confirmLabel="Delete" confirmColor="red-500" onConfirm={() => void deleteTx()} onClose={() => setDeleteConfirm(null)} />
+    </Layout>
+  );
 }
