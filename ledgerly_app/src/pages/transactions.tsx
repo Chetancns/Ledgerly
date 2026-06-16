@@ -77,7 +77,7 @@ export default function Transactions() {
   const [aiSignal, setAiSignal] = useState(0);
 
   const [hideBalances, setHideBalances] = useState(true);
-  const [visibleAccountIds, setVisibleAccountIds] = useState<string[]>([]);
+  const [visibleAccountIds] = useState<string[]>([]);
   const [showBalancesPanel, setShowBalancesPanel] = useState(false);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [pinBalancePill, setPinBalancePill] = useState(false);
@@ -94,10 +94,10 @@ export default function Transactions() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [acc, cat, allTags] = await Promise.all([getUserAccount(), getUserCategory(), getAllTags(false)]);
+      const [acc, cat, tagsResponse] = await Promise.all([getUserAccount(), getUserCategory(), getAllTags(false)]);
       setAccounts(acc);
       setCategories(cat);
-      setTags(allTags.data || []);
+      setTags(tagsResponse.data || []);
 
       const from = dayjs(`${selectedYear}-${selectedMonth}-01`).startOf("month").format("YYYY-MM-DD");
       const to = dayjs(`${selectedYear}-${selectedMonth}-01`).endOf("month").format("YYYY-MM-DD");
@@ -249,7 +249,18 @@ export default function Transactions() {
     const tx = transactions.find((t) => t.id === singleCategorizeId);
     if (!tx) return;
     try {
-      await updateTransaction(singleCategorizeId, { ...tx, categoryId: singleCategory, tagIds: tx.tags?.map((x) => x.id) || [] });
+      await updateTransaction(singleCategorizeId, {
+        accountId: tx.accountId,
+        categoryId: singleCategory,
+        amount: tx.amount,
+        description: tx.description,
+        transactionDate: tx.transactionDate,
+        tagIds: tx.tags?.map((x) => x.id) || [],
+        status: tx.status,
+        type: tx.type,
+        toAccountId: tx.toAccountId || undefined,
+        expectedPostDate: tx.expectedPostDate,
+      });
       setSingleCategorizeId(null);
       setSingleCategory("all");
       await fetchData();

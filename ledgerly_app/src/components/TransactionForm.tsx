@@ -68,9 +68,11 @@ export default function TransactionForm({
   const [lastDraft, setLastDraft] = useState<Partial<TransactionFormData> | null>(null);
 
   const amountValue = Number(form.amount || 0);
-  const amountError = form.amount && (!Number.isFinite(amountValue) || amountValue <= 0)
-    ? "Amount must be greater than 0"
-    : "";
+  const amountError = !form.amount
+    ? "Amount is required"
+    : !Number.isFinite(amountValue) || amountValue <= 0
+      ? "Amount must be greater than 0"
+      : "";
 
   const toISOStringWithoutOffset = (dateString: string) => {
     const [year, month, day] = dateString.split("-").map(Number);
@@ -199,8 +201,8 @@ export default function TransactionForm({
       ...previous,
       ...lastDraft,
       transactionDate: today,
-      amount: lastDraft.amount || previous.amount,
-      description: lastDraft.description || previous.description,
+      amount: lastDraft.amount || "",
+      description: lastDraft.description || "",
     }));
 
     if (lastDraft.type === "transfer" || lastDraft.type === "savings") {
@@ -262,8 +264,13 @@ export default function TransactionForm({
     }
 
     const payload: TransactionFormData = {
-      ...form,
+      accountId: form.accountId,
+      categoryId: form.categoryId,
+      amount: form.amount,
+      description: form.description,
       transactionDate: toISOStringWithoutOffset(form.transactionDate),
+      tagIds: form.tagIds || [],
+      status: form.status,
       expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
       ...(kind === "transfer" || kind === "savings"
         ? { toAccountId, type: kind }
