@@ -106,6 +106,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ]);
   const primaryNavItems = navItems.filter((item) => primaryNavHrefs.has(item.href));
   const secondaryNavItems = navItems.filter((item) => !primaryNavHrefs.has(item.href));
+  const mobileBottomNavHrefs = new Set(["/", "/transactions", "/accounts", "/budgets"]);
+  const mobileMoreItems = navItems.filter((item) => !mobileBottomNavHrefs.has(item.href));
   const dashboardItem = navItems.find((item) => item.href === "/");
   const transactionsItem = navItems.find((item) => item.href === "/transactions");
   const accountsItem = navItems.find((item) => item.href === "/accounts");
@@ -149,13 +151,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           ?.replace(/-/g, " ")
           .replace(/\b\w/g, (match) => match.toUpperCase()) || "Overview");
   const currentPageLabel = navItems.find((item) => item.href === router.pathname)?.label || fallbackPageLabel;
-  const filteredSecondaryNavItems = secondaryNavItems.filter((item) =>
+  const filteredMobileMoreItems = mobileMoreItems.filter((item) =>
     item.label.toLowerCase().includes(navSearch.toLowerCase().trim())
   );
   const groupedMoreItems: { section: NavSection; items: NavItem[] }[] = NAV_SECTIONS.map(
     (section) => ({
       section,
-      items: filteredSecondaryNavItems.filter((item) => item.section === section),
+      items: filteredMobileMoreItems.filter((item) => item.section === section),
     })
   );
   const userEmail = user?.email || "No email available";
@@ -698,9 +700,9 @@ const stopRecording = () => {
                 ) : null
               )}
 
-              {filteredSecondaryNavItems.length === 0 && (
+              {filteredMobileMoreItems.length === 0 && (
                 <p className="py-6 text-center text-sm" style={{ color: "var(--text-muted)" }}>
-                  No pages found for "{navSearch}".
+                  No pages found for {navSearch}.
                 </p>
               )}
             </div>
