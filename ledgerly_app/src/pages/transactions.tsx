@@ -68,7 +68,7 @@ export default function Transactions() {
   const [bulkTag, setBulkTag] = useState("all");
 
   const [editing, setEditing] = useState<Transaction | null>(null);
-  const [showComposer, setShowComposer] = useState(false);
+  const [showComposer, setShowComposer] = useState(true);
   const [aiSignal, setAiSignal] = useState(0);
 
   const [hideBalances, setHideBalances] = useState(true);
@@ -318,21 +318,51 @@ export default function Transactions() {
             groups.map((g) => (
               <div key={g.key} className="dashboard-surface overflow-hidden">
                 <div className="flex items-center justify-between border-b border-[var(--border-secondary)] bg-[var(--bg-card-hover)] px-3 py-2"><span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>{g.key === groups[0]?.key && <div className="text-xs"><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>}</div>
-                <div className="divide-y divide-[var(--border-secondary)]">{g.items.map((t) => {
+                <ul className="divide-y divide-[var(--border-secondary)]">{g.items.map((t) => {
                   const type = (t.type || "expense") as TransactionType;
                   const account = accountMap.get(t.accountId)?.name || "Unknown account";
                   const category = categoryMap.get(t.categoryId)?.name || "Unknown category";
                   const toAccount = t.toAccountId ? accountMap.get(t.toAccountId)?.name || "Unknown account" : "";
                   return (
-                    <div key={t.id} className="group px-3 py-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-start gap-2"><input type="checkbox" checked={selectedIds.includes(t.id)} onChange={() => toggleSelected(t.id)} /><span className="mt-1 h-6 w-1 rounded-full" style={{ background: TYPE_META[type].color }} /><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--text-primary)]">{t.description?.trim() || category}</p><p className="truncate text-xs text-[var(--text-secondary)]">{account}{toAccount ? ` → ${toAccount}` : ""} · {category} · {dayjs(t.transactionDate).format("MMM D")}</p></div></div>
-                        <div className="text-right"><p className="text-sm font-semibold text-[var(--text-primary)]">{format(Number(t.amount || 0))}</p><span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]" style={{ borderColor: TYPE_META[type].color, color: TYPE_META[type].color }}>{TYPE_META[type].icon} {TYPE_META[type].label}</span></div>
+                    <li key={t.id} className="flex flex-col gap-2 p-4">
+                      {/* Top Row: Type Badge + Date */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" checked={selectedIds.includes(t.id)} onChange={() => toggleSelected(t.id)} />
+                          <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium" style={{ borderColor: TYPE_META[type].color, color: TYPE_META[type].color }}>{TYPE_META[type].icon} {TYPE_META[type].label}</span>
+                        </div>
+                        <span className="text-xs text-[var(--text-muted)]">{dayjs(t.transactionDate).format("MMM D, YYYY")}</span>
                       </div>
-                      <div className="mt-1.5 flex items-center justify-between"><StatusBadge status={t.status} size="sm" /><div className="flex gap-1"><button onClick={() => { setEditing(t); setShowComposer(true); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiEdit2Line /></button><button onClick={() => { setSingleCategorizeId(t.id); setSingleCategory(t.categoryId || ""); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiFolderLine /></button><button onClick={() => void duplicateTx(t)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiAddLine /></button>{t.status === "pending" && <button onClick={() => void markPosted(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiTaskLine /></button>}<button onClick={() => setDeleteConfirm(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5 text-[var(--color-error)]"><RiDeleteBinLine /></button></div></div>
-                    </div>
+
+                      {/* Amount - Prominent Display */}
+                      <p className="text-2xl font-bold text-[var(--text-primary)]">{format(Number(t.amount || 0))}</p>
+
+                      {/* Account and Category - 2-column layout */}
+                      <div className="grid grid-cols-2 gap-1 text-xs text-[var(--text-secondary)]">
+                        <span><span aria-hidden="true">🏦</span> {account}{toAccount ? ` → ${toAccount}` : ""}</span>
+                        <span><span aria-hidden="true">🗂</span> {category}</span>
+                      </div>
+
+                      {/* Description and Tags - 2-column layout */}
+                      <div className="grid grid-cols-2 gap-1 text-xs">
+                        <span className="truncate text-[var(--text-primary)]">{t.description?.trim() || "—"}</span>
+                        <div className="flex flex-wrap gap-1">{t.tags?.map((tag) => <span key={tag.id} className="rounded-full bg-[var(--bg-card-hover)] px-2 py-0.5 text-[var(--text-secondary)]">{tag.name}</span>)}</div>
+                      </div>
+
+                      {/* Status Badge + Actions Combined - Push to bottom */}
+                      <div className="flex items-center justify-between">
+                        <StatusBadge status={t.status} size="sm" />
+                        <div className="flex gap-1">
+                          <button onClick={() => { setEditing(t); setShowComposer(true); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiEdit2Line /></button>
+                          <button onClick={() => { setSingleCategorizeId(t.id); setSingleCategory(t.categoryId || ""); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiFolderLine /></button>
+                          <button onClick={() => void duplicateTx(t)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiAddLine /></button>
+                          {t.status === "pending" && <button onClick={() => void markPosted(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiTaskLine /></button>}
+                          <button onClick={() => setDeleteConfirm(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5 text-[var(--color-error)]"><RiDeleteBinLine /></button>
+                        </div>
+                      </div>
+                    </li>
                   );
-                })}</div>
+                })}</ul>
               </div>
             ))
           )}
