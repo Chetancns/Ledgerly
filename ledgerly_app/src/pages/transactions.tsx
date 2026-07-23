@@ -318,13 +318,13 @@ export default function Transactions() {
             groups.map((g) => (
               <div key={g.key} className="dashboard-surface overflow-hidden">
                 <div className="flex items-center justify-between border-b border-[var(--border-secondary)] bg-[var(--bg-card-hover)] px-3 py-2"><span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>{g.key === groups[0]?.key && <div className="text-xs"><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>}</div>
-                <ul className="divide-y divide-[var(--border-secondary)]">{g.items.map((t) => {
+                <ul className="grid gap-2 p-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">{g.items.map((t) => {
                   const type = (t.type || "expense") as TransactionType;
                   const account = accountMap.get(t.accountId)?.name || "Unknown account";
                   const category = categoryMap.get(t.categoryId)?.name || "Unknown category";
                   const toAccount = t.toAccountId ? accountMap.get(t.toAccountId)?.name || "Unknown account" : "";
                   return (
-                    <li key={t.id} className="flex flex-col gap-2 p-4">
+                    <li key={t.id} className="flex flex-col gap-2 rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-card)] p-4">
                       {/* Top Row: Type Badge + Date */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
