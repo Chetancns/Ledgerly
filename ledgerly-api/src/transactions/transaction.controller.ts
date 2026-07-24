@@ -34,7 +34,7 @@ async transfer(
   });
 }
   @Post()
-  create(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: Partial<CreateTransactionDto>) {
+create(@GetUser() user: { userId: string, email: string, name: string }, @Body() dto: CreateTransactionDto) {
     //console.log("Create is called ",user.userId,dto)
     dto.userId = user.userId;
     return this.service.create(dto);

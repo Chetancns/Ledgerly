@@ -41,7 +41,7 @@ const defaultSteps: OnboardingStep[] = [
   {
     id: "transactions",
     title: "Track Transactions ↔️",
-    description: "Add transactions manually, scan receipts with AI, or record voice notes. Keep all your financial activity organized.",
+    description: "Add transactions with a simple Credit (income) or Debit (expense) selection, then optionally add labels/tags for organization.",
     targetPath: "/transactions",
   },
   {
@@ -53,7 +53,7 @@ const defaultSteps: OnboardingStep[] = [
   {
     id: "budgets",
     title: "Create Budgets 💰",
-    description: "Set spending limits for different categories and get notified when you're close to your limit.",
+    description: "Set spending limits by label and get notified when you're close to your limit.",
     targetPath: "/budgets",
   },
   {

@@ -2,11 +2,13 @@ import { AxiosRequestConfig } from "axios";
 import api from "./api";
 import { Transaction } from "@/models/Transaction";
 
+type CreateTransactionPayload = Partial<Transaction> & Pick<Transaction, "type">;
+
 export const getTransactions = async () => {
   const res = await api.get("/transactions");
   return res.data;
 };
-export const createTransaction = (data: Partial<Transaction>) => api.post("/transactions", data);
+export const createTransaction = (data: CreateTransactionPayload) => api.post("/transactions", data);
 export const onDelete = (id:string) => api.delete(`/transactions/${id}`);
 export const transfer = (par:{
         from: string,
@@ -110,4 +112,3 @@ export const updateTransactionStatus = (id: string, status: 'pending' | 'posted'
 
 export const bulkUpdateTransactionStatus = (ids: string[], status: 'pending' | 'posted' | 'cancelled') => 
   api.patch('/transactions/bulk/status', { ids, status });
-

@@ -86,9 +86,12 @@ const onCancel = () => {
   return (
     <Layout>
       <div className="min-h-screen py-5 px-4" style={{ color: "var(--text-primary)" }}>
-          <h1 className="text-3xl font-bold mb-6" style={{ color: "var(--text-primary)" }}>Categories</h1>
+          <h1 className="text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Labels</h1>
+          <p className="mb-6 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Labels organize transactions and power budget/report grouping.
+          </p>
 
-          {/* Add Category Form */}
+          {/* Add Label Form */}
           
           <form 
             onSubmit={handleCreate} 
@@ -101,7 +104,7 @@ const onCancel = () => {
             <NeumorphicInput
               value={name}
               onChange={setName}
-              placeholder="Category Name"
+              placeholder="Label Name"
               theme={theme}
               type="text"
             />
@@ -109,7 +112,7 @@ const onCancel = () => {
               value={type}
               onChange={(val) => setType(val as CategoryType)}
               options={categoryTypes}
-              placeholder="Select Category Type"
+              placeholder="Select Label Type"
               theme={theme}
             />
             <ModernButton
@@ -118,7 +121,7 @@ const onCancel = () => {
               variant="solid"
               theme={theme}
             >
-              Add Category
+              Add Label
             </ModernButton>
             <ModernButton
               type="button"
@@ -131,7 +134,7 @@ const onCancel = () => {
             </ModernButton>
           </form>
 
-          {/* List Categories */}
+          {/* List Labels */}
           <div 
             className="rounded-2xl shadow-2xl p-4 backdrop-blur-lg"
             style={{
@@ -187,11 +190,11 @@ const onCancel = () => {
         border: "1px solid var(--border-primary)",
       }}
     >
-      <h2 className="text-xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>Edit Category</h2>
+      <h2 className="text-xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>Edit Label</h2>
       <form onSubmit={handleCreate} className="flex flex-col gap-4">
         <input
           className="p-2 rounded-lg"
-          placeholder="Category Name"
+          placeholder="Label Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           style={{

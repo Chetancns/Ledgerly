@@ -5,14 +5,17 @@ import { sanitizeInput } from '../../utils/sanitize.util';
 export class CreateTransactionDto {
   @IsOptional() @IsUUID() userId: string; // from auth in real apps; keep here for simplicity or inject from req.user
   @IsOptional() @IsUUID() accountId?: string;
-  @IsOptional() @IsUUID() categoryId?: string;
+  @IsOptional()
+  @Transform(({ value }) => value === '' || value === null || value === undefined ? undefined : value)
+  @IsUUID()
+  categoryId?: string;
   @IsNotEmpty()
   @Transform(({ value }) => typeof value === 'string'
       ? parseFloat(value.replace(/,/g, ''))
       : value
   )
   @IsNumberString() amount: string;
-  @IsOptional() @IsIn(['expense' , 'income' , 'savings','transfer']) type: 'expense' | 'income' | 'savings' | 'transfer';
+  @IsNotEmpty() @IsIn(['expense' , 'income' , 'savings','transfer']) type: 'expense' | 'income' | 'savings' | 'transfer';
   @IsOptional() @IsDateString() transactionDate: string;
   @IsOptional() @IsIn(['pending', 'posted', 'cancelled']) status?: 'pending' | 'posted' | 'cancelled';
   @IsOptional() 
@@ -23,7 +26,10 @@ export class CreateTransactionDto {
   @IsString() 
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   description?: string;
-  @IsOptional() @IsUUID() toAccountId?: string | null; // for transfers, the destination account
+  @IsOptional()
+  @Transform(({ value }) => value === '' || value === null || value === undefined ? undefined : value)
+  @IsUUID()
+  toAccountId?: string | null; // for transfers, the destination account
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })

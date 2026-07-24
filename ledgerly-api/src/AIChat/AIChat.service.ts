@@ -97,7 +97,7 @@ Output must be an array of transaction objects:
 [
   {
     "accountId": "one account id from: ${accounts.map((a) => `${a.id} (${a.name})`).join(', ')}",
-    "categoryId": "one category id from: ${categories.map((c) => `${c.id} (${c.name})`).join(', ')}",
+    "categoryId": "optional category id from: ${categories.map((c) => `${c.id} (${c.name})`).join(', ')}",
     "transactionDate": "YYYY-MM-DD",
     "amount": number,
     "type": "expense" | "income" | "savings" | "transfer",
@@ -112,6 +112,7 @@ Rules:
 - If amount sign is negative, output absolute value.
 - If unsure about any field, still provide best guess and lower confidence.
 - Set confidence < 0.7 when uncertain.
+- categoryId is optional and can be omitted when uncertain.
 `;
   }
 
@@ -150,7 +151,9 @@ Rules:
     const confidence = this.clampConfidence(draft.confidence);
 
     const accountId = typeof draft.accountId === 'string' ? draft.accountId : undefined;
-    const categoryId = typeof draft.categoryId === 'string' ? draft.categoryId : undefined;
+    const categoryId = typeof draft.categoryId === 'string' && categoryIds.has(draft.categoryId)
+      ? draft.categoryId
+      : undefined;
     const transactionDate =
       typeof draft.transactionDate === 'string' && dayjs(draft.transactionDate).isValid()
         ? dayjs(draft.transactionDate).format('YYYY-MM-DD')
@@ -159,7 +162,6 @@ Rules:
     const reasons: string[] = [];
     if (!Number.isFinite(amount) || amount <= 0) reasons.push('Invalid amount');
     if (!accountId || !accountIds.has(accountId)) reasons.push('Account uncertain');
-    if (!categoryId || !categoryIds.has(categoryId)) reasons.push('Category uncertain');
     if (confidence < 0.7) reasons.push('Low AI confidence');
     if (!['expense', 'income', 'savings', 'transfer'].includes(parsedType)) reasons.push('Type inferred');
 
@@ -260,7 +262,7 @@ Rules:
     for (const draft of drafts) {
       const amount = Number(draft.amount);
       const validAmount = Number.isFinite(amount) && amount > 0;
-      const hasRequiredRefs = !!draft.accountId && !!draft.categoryId;
+      const hasRequiredRefs = !!draft.accountId;
 
       if (draft.needsReview || !validAmount || !hasRequiredRefs) {
         skipped.push(draft);

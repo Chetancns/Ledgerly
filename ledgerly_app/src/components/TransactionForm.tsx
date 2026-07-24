@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent, useEffect, useCallback } from "react";
+import { useState, FormEvent, useEffect, useCallback } from "react";
 import { Transaction } from "@/models/Transaction"; 
 import { createTransaction, onDelete, updateTransaction } from "@/services/transactions"; 
 import { getUserAccount } from "@/services/accounts";
@@ -31,6 +31,7 @@ export default function TransactionForm({
     accountId: transaction?.accountId || "",
     categoryId: transaction?.categoryId || "",
     amount: transaction?.amount?.toString() || "",
+    type: transaction?.type || "expense",
     description: transaction?.description || "",
     transactionDate: transaction?.transactionDate?.split("T")[0] || new Date().toISOString().split("T")[0],
     tagIds: transaction?.tags?.map(t => t.id) || [],
@@ -63,8 +64,9 @@ export default function TransactionForm({
     if (transaction) {
     setForm({
       accountId: transaction.accountId,
-      categoryId: transaction.categoryId,
+      categoryId: transaction.categoryId || "",
       amount: transaction.amount.toString(),
+      type: transaction.type || "expense",
       description: transaction.description,
       transactionDate: transaction.transactionDate.split("T")[0],
       tagIds: transaction.tags?.map(t => t.id) || [],
@@ -84,14 +86,6 @@ export default function TransactionForm({
   }
   }, [transaction]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const toISOStringWithoutOffset = (dateString: string) => {
     const [year, month, day] = dateString.split("-").map(Number);
     const date = new Date(Date.UTC(year, month - 1, day));
@@ -102,6 +96,7 @@ export default function TransactionForm({
     accountId: "",
     categoryId: "",
     amount: "",
+    type: "expense",
     description: "",
     transactionDate: new Date().toISOString().split("T")[0],
     tagIds: [],
@@ -114,8 +109,12 @@ export default function TransactionForm({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   e.preventDefault();
-  if (!form.accountId || !form.categoryId) {
-    toast.error("Please select both account and category.");
+  if (!form.accountId) {
+    toast.error("Please select an account.");
+    return;
+  }
+  if (kind === "normal" && !form.type) {
+    toast.error("Please select credit or debit.");
     return;
   }
 
@@ -132,7 +131,10 @@ export default function TransactionForm({
           ...form,
           transactionDate: toISOStringWithoutOffset(form.transactionDate),
           expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
-          ...(kind === "transfer" || kind === "savings" ? { toAccountId, type: kind } : {}),
+          categoryId: form.categoryId || undefined,
+          ...(kind === "transfer" || kind === "savings"
+            ? { toAccountId, type: kind }
+            : { type: form.type }),
         };
 
         return updateTransaction(transaction.id, payload);
@@ -151,6 +153,7 @@ export default function TransactionForm({
           expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
           toAccountId,
           type: kind,
+          categoryId: form.categoryId || undefined,
         });
       }
 
@@ -158,6 +161,8 @@ export default function TransactionForm({
         ...form,
         transactionDate: toISOStringWithoutOffset(form.transactionDate),
         expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
+        type: form.type,
+        categoryId: form.categoryId || undefined,
       });
     })();
 
@@ -185,6 +190,7 @@ export default function TransactionForm({
       accountId: "",
       categoryId: "",
       amount: "",
+      type: "expense",
       description: "",
       transactionDate: new Date().toISOString().split("T")[0],
       tagIds: [],
@@ -290,7 +296,17 @@ export default function TransactionForm({
                   { value: "savings", label: "Savings", icon: "🏦" },
                 ]}
                 value={kind}
-                onChange={(val) => setKind(val as any)}
+                onChange={(val) => {
+                  const nextKind = val as "normal" | "transfer" | "savings";
+                  setKind(nextKind);
+                  setForm((prev) => ({
+                    ...prev,
+                    type:
+                      nextKind === "normal"
+                        ? (prev.type === "income" || prev.type === "expense" ? prev.type : "expense")
+                        : nextKind,
+                  }));
+                }}
                 size="md"
               />
             </div>
@@ -313,6 +329,25 @@ export default function TransactionForm({
                 size="md"
               />
             </div>
+
+            {kind === "normal" && (
+              <div className="space-y-3 md:col-span-2">
+                <label className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Entry Direction
+                </label>
+                <SegmentedControl
+                  options={[
+                    { value: "expense", label: "Debit (Expense)", icon: "💸" },
+                    { value: "income", label: "Credit (Income)", icon: "💰" },
+                  ]}
+                  value={form.type}
+                  onChange={(val) =>
+                    setForm((prev) => ({ ...prev, type: val as "income" | "expense" }))
+                  }
+                  size="md"
+                />
+              </div>
+            )}
           </div>
 
           {/* Main Form Fields Grid */}
@@ -339,8 +374,11 @@ export default function TransactionForm({
             {/* Category */}
             <div className="space-y-2">
               <label htmlFor="categoryId" className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Category *
+                Label <span className="text-xs font-normal" style={{ color: "var(--text-secondary)" }}>(optional)</span>
               </label>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Used for budgets and spending reports.
+              </p>
               <NeumorphicSelect
                 options={categories.map(cat => ({
                   value: cat.id,
@@ -350,7 +388,7 @@ export default function TransactionForm({
                 onChange={(val) =>
                   setForm((prev) => ({ ...prev, categoryId: val }))
                 }
-                placeholder="Select Category"
+                placeholder="Select Label"
                 theme={theme}
               />
             </div>

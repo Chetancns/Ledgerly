@@ -667,7 +667,7 @@ export default function Transactions() {
           <div className="min-h-[2.5rem]">
             <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Category</p>
             <div className="text-sm truncate" style={{ color: "var(--text-primary)" }}>
-              {category ? category.name : 'Unknown'}
+            {category ? category.name : '—'}
             </div>
           </div>
         </div>
@@ -848,7 +848,7 @@ export default function Transactions() {
               {toAccount ? toAccount.name : '-'}
             </td>
             <td className="px-4 py-3 text-sm" style={{ color: "var(--text-primary)" }}>
-              {category ? category.name : 'Unknown'}
+              {category ? category.name : '—'}
             </td>
             <td className="px-4 py-3 text-sm max-w-xs">
               <div className="line-clamp-2" style={{ color: "var(--text-secondary)" }}>

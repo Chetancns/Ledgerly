@@ -2,9 +2,7 @@ import { BadRequestException, Injectable, NotFoundException, Logger } from '@nes
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, DataSource, In, LessThanOrEqual } from 'typeorm';
 import { Transaction } from './transaction.entity';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { Account } from '../accounts/account.entity';
-import { Category } from '../categories/category.entity';
 import { Tag } from '../tags/tag.entity';
 import { withTransaction } from '../utils/transaction.util';
 import { parseSafeAmount } from 'src/utils/number.util';
@@ -18,7 +16,6 @@ export class TransactionsService {
   constructor(
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(Account) private accRepo: Repository<Account>,
-    @InjectRepository(Category) private catRepo: Repository<Category>,
     @InjectRepository(Tag) private tagRepo: Repository<Tag>,
     @InjectDataSource() private dataSource: DataSource,
     private notificationsService: NotificationsService,
@@ -29,17 +26,17 @@ export class TransactionsService {
     return withTransaction(this.dataSource, async (manager) => {
       const txRepo = manager.withRepository(this.txRepo);
       const accRepo = manager.withRepository(this.accRepo);
-      const catRepo = manager.withRepository(this.catRepo);
       const tagRepo = manager.withRepository(this.tagRepo);
 
       const amount = parseSafeAmount(dto.amount);
       if (!amount) throw new Error('Invalid amount');
 
-      if (!dto.type && dto.categoryId) {
-        const cat = await catRepo.findOne({ where: { id: dto.categoryId, userId: dto.userId } });
-        if (!cat) throw new NotFoundException('Category not found');
-        dto.type = cat.type;
-      }
+      if (!dto.type) throw new BadRequestException('Transaction type is required');
+
+      const normalizedCategoryId =
+        dto.categoryId === '' || dto.categoryId === undefined ? null : dto.categoryId;
+      const normalizedToAccountId =
+        dto.toAccountId === '' || dto.toAccountId === undefined ? null : dto.toAccountId;
 
       // Set default status to 'posted' if not provided
       const status = dto.status || 'posted';
@@ -50,7 +47,7 @@ export class TransactionsService {
       // handle transfers
       if (shouldAffectBalance && (dto.type === 'transfer' || dto.type === 'savings')) {
         const fromAcc = await accRepo.findOne({ where: { id: dto.accountId!, userId: dto.userId } });
-        const toAcc = await accRepo.findOne({ where: { id: dto.toAccountId!, userId: dto.userId } });
+        const toAcc = await accRepo.findOne({ where: { id: normalizedToAccountId!, userId: dto.userId } });
         if (!fromAcc || !toAcc) throw new NotFoundException('Account not found');
 
           fromAcc.balance = (Number(fromAcc.balance) - Number(dto.amount)).toFixed(2);
@@ -77,7 +74,14 @@ export class TransactionsService {
         }
       }
 
-      const tx = txRepo.create({ ...dto, amount: amount.toString(), status, tags });
+      const tx = txRepo.create({
+        ...dto,
+        categoryId: normalizedCategoryId,
+        toAccountId: normalizedToAccountId,
+        amount: amount.toString(),
+        status,
+        tags,
+      });
       return txRepo.save(tx);
     });
   }
@@ -87,7 +91,6 @@ export class TransactionsService {
     return withTransaction(this.dataSource, async (manager) => {
       const txRepo = manager.withRepository(this.txRepo);
       const accRepo = manager.withRepository(this.accRepo);
-      const catRepo = manager.withRepository(this.catRepo);
       const tagRepo = manager.withRepository(this.tagRepo);
 
       const tx = await txRepo.findOne({ where: { id, userId }, relations: ['tags'] });
@@ -128,12 +131,8 @@ export class TransactionsService {
         }
       }
 
-      // Determine transaction type for new effect
-      if (!dto.type && dto.categoryId) {
-        const cat = await catRepo.findOne({ where: { id: dto.categoryId, userId } });
-        if (!cat) throw new NotFoundException('Category not found');
-        dto.type = cat.type;
-      }
+      if (dto.categoryId === '') dto.categoryId = null;
+      if (dto.toAccountId === '') dto.toAccountId = null;
 
       const transactionType = dto.type || tx.type;
       const accountIdToUpdate = dto.accountId ?? tx.accountId;
