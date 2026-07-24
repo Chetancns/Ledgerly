@@ -1,6 +1,6 @@
 import { useState, FormEvent, useEffect, useCallback } from "react";
 import { Transaction } from "@/models/Transaction"; 
-import { createTransaction, onDelete, updateTransaction } from "@/services/transactions"; 
+import { createTransaction, updateTransaction } from "@/services/transactions"; 
 import { getUserAccount } from "@/services/accounts";
 import { Account } from "@/models/account";
 import { Category } from "@/models/category";
@@ -15,6 +15,16 @@ import SegmentedControl from "./SegmentedControl";
 import { useTheme } from "@/context/ThemeContext";
 
 type TransactionFormData = Omit<Transaction, "id">;
+
+const determineTransactionType = (
+  nextKind: "normal" | "transfer" | "savings",
+  prevType: Transaction["type"]
+): Transaction["type"] => {
+  if (nextKind === "normal") {
+    return prevType === "income" || prevType === "expense" ? prevType : "expense";
+  }
+  return nextKind;
+};
 
 export default function TransactionForm({
   onCreated,
@@ -301,10 +311,7 @@ export default function TransactionForm({
                   setKind(nextKind);
                   setForm((prev) => ({
                     ...prev,
-                    type:
-                      nextKind === "normal"
-                        ? (prev.type === "income" || prev.type === "expense" ? prev.type : "expense")
-                        : nextKind,
+                    type: determineTransactionType(nextKind, prev.type),
                   }));
                 }}
                 size="md"
@@ -324,7 +331,10 @@ export default function TransactionForm({
                 ]}
                 value={form.status || "posted"}
                 onChange={(val) =>
-                  setForm((prev) => ({ ...prev, status: val as any }))
+                  setForm((prev) => ({
+                    ...prev,
+                    status: val as "pending" | "posted" | "cancelled",
+                  }))
                 }
                 size="md"
               />

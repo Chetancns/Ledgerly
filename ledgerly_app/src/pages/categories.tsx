@@ -7,7 +7,6 @@ import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
 import NeumorphicInput from "@/components/NeumorphicInput";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
-import { on } from "events";
 import ModernButton from "@/components/NeumorphicButton";
 import { useTheme } from "@/context/ThemeContext";
 

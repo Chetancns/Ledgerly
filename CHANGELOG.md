@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-24
+
+### Changed
+- Transactions now require an explicit type (`income`/`expense`/`savings`/`transfer`) and no longer derive type from category.
+- Transaction form now uses a Credit/Debit selector for normal entries and allows label/category to be optional.
+- AI transaction parsing/save flow now keeps explicit type handling while allowing transactions without a label/category.
+- Categories UI copy has been reworded to Labels, and onboarding copy now reflects Credit/Debit plus label-based organization.
+
 ## 2026-06-15
 
 ### Changed
