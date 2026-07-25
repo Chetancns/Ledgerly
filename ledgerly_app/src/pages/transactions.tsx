@@ -318,13 +318,18 @@ export default function Transactions() {
             <div className="space-y-4">
             {groups.map((g) => (
               <div key={g.key} className="space-y-2">
-                {(groupBy !== "none" || g.key === groups[0]?.key) && (
+                {groupBy !== "none" && (
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
-                      {groupBy !== "none" && <span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>}
-                      {groupBy !== "none" && <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">{g.items.length}</span>}
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>
+                      <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">{g.items.length}</span>
                     </div>
                     {g.key === groups[0]?.key && <div className="text-xs"><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>}
+                  </div>
+                )}
+                {groupBy === "none" && g.key === groups[0]?.key && (
+                  <div className="flex justify-end px-1 text-xs">
+                    <div><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>
                   </div>
                 )}
                 <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{g.items.map((t) => {
