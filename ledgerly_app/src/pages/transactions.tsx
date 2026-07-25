@@ -170,7 +170,6 @@ export default function Transactions() {
     return [...map.entries()].map(([key, items]) => ({ key, label: key, items }));
   }, [accountMap, categoryMap, filtered, groupBy]);
 
-  const isDateGrouped = groupBy === "date";
   const allVisibleIds = filtered.map((t) => t.id);
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id));
   const selectAllCheckboxId = groupBy === "none" ? "select-all-transactions-ungrouped" : "select-all-transactions-grouped";
@@ -323,9 +322,9 @@ export default function Transactions() {
           )}
 
           {loading ? <div className="dashboard-surface p-4"><div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton-base)]" />)}</div></div> : (
-            <div className={isDateGrouped ? "flex flex-nowrap items-start gap-4 overflow-x-auto pb-2" : "space-y-4"}>
+            <div className="space-y-4">
             {groups.map((g) => (
-              <div key={g.key} className={isDateGrouped ? "w-[320px] shrink-0 space-y-2" : "space-y-2"}>
+              <div key={g.key} className="space-y-2">
                 {groupBy !== "none" && (
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
@@ -340,7 +339,7 @@ export default function Transactions() {
                     {renderSelectAll()}
                   </div>
                 )}
-                <ul className={isDateGrouped ? "flex flex-col gap-2" : "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}>{g.items.map((t) => {
+                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{g.items.map((t) => {
                   const type = (t.type || "expense") as TransactionType;
                   const account = accountMap.get(t.accountId)?.name || "Unknown account";
                   const category = categoryMap.get(t.categoryId)?.name || "Unknown category";
