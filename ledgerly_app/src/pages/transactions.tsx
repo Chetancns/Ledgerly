@@ -178,7 +178,7 @@ export default function Transactions() {
   const toggleAll = () => setSelectedIds((prev) => (allSelected ? prev.filter((id) => !allVisibleIds.includes(id)) : [...new Set([...prev, ...allVisibleIds])]));
   const renderSelectAll = () => (
     <div className="inline-flex items-center text-xs">
-      <input id={selectAllCheckboxId} type="checkbox" checked={allSelected} onChange={toggleAll} />
+      <input id={selectAllCheckboxId} type="checkbox" aria-label="Select all transactions" checked={allSelected} onChange={toggleAll} />
       <label htmlFor={selectAllCheckboxId} className="ml-1">Select all</label>
     </div>
   );
@@ -329,7 +329,7 @@ export default function Transactions() {
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>
-                      <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">{g.items.length}</span>
+                      <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]" aria-label={`${g.items.length} transactions`}>{g.items.length}</span>
                     </div>
                     {g.key === groups[0]?.key && renderSelectAll()}
                   </div>
