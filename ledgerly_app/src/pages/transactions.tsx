@@ -172,14 +172,15 @@ export default function Transactions() {
 
   const allVisibleIds = filtered.map((t) => t.id);
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id));
+  const selectAllCheckboxId = groupBy === "none" ? "select-all-transactions-ungrouped" : "select-all-transactions-grouped";
 
   const toggleSelected = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const toggleAll = () => setSelectedIds((prev) => (allSelected ? prev.filter((id) => !allVisibleIds.includes(id)) : [...new Set([...prev, ...allVisibleIds])]));
   const renderSelectAll = () => (
-    <label className="inline-flex items-center text-xs">
-      <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-      <span className="ml-1">Select all</span>
-    </label>
+    <div className="inline-flex items-center text-xs">
+      <input id={selectAllCheckboxId} type="checkbox" checked={allSelected} onChange={toggleAll} />
+      <label htmlFor={selectAllCheckboxId} className="ml-1">Select all</label>
+    </div>
   );
 
   const markPosted = async (id: string) => {
