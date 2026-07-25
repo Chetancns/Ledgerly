@@ -175,6 +175,12 @@ export default function Transactions() {
 
   const toggleSelected = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const toggleAll = () => setSelectedIds((prev) => (allSelected ? prev.filter((id) => !allVisibleIds.includes(id)) : [...new Set([...prev, ...allVisibleIds])]));
+  const renderSelectAll = () => (
+    <label className="inline-flex items-center text-xs">
+      <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+      <span className="ml-1">Select all</span>
+    </label>
+  );
 
   const markPosted = async (id: string) => {
     try {
@@ -324,12 +330,12 @@ export default function Transactions() {
                       <span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>
                       <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">{g.items.length}</span>
                     </div>
-                    {g.key === groups[0]?.key && <div className="text-xs"><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>}
+                    {g.key === groups[0]?.key && renderSelectAll()}
                   </div>
                 )}
                 {groupBy === "none" && g.key === groups[0]?.key && (
                   <div className="flex justify-end px-1 text-xs">
-                    <div><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>
+                    {renderSelectAll()}
                   </div>
                 )}
                 <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{g.items.map((t) => {
