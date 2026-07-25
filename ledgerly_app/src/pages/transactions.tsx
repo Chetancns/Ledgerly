@@ -323,9 +323,9 @@ export default function Transactions() {
           )}
 
           {loading ? <div className="dashboard-surface p-4"><div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton-base)]" />)}</div></div> : (
-            <div className={isDateGrouped ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "space-y-4"}>
+            <div className={isDateGrouped ? "flex flex-nowrap items-start gap-4 overflow-x-auto" : "space-y-4"}>
             {groups.map((g) => (
-              <div key={g.key} className="min-w-0 space-y-2">
+              <div key={g.key} className={isDateGrouped ? "min-w-[260px] flex-1 space-y-2" : "space-y-2"}>
                 {groupBy !== "none" && (
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
