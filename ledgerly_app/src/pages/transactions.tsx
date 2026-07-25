@@ -33,8 +33,6 @@ type SortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 type GroupBy = "none" | "date" | "account" | "category" | "status";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const GROUP_PANEL_MIN_WIDTH = 460;
-const GROUP_PANEL_FLEX_BASIS = 560;
 const TYPE_META: Record<TransactionType, { label: string; icon: string; color: string }> = {
   income: { label: "Income", icon: "💰", color: "var(--color-success)" },
   expense: { label: "Expense", icon: "💸", color: "var(--color-error)" },
@@ -317,11 +315,11 @@ export default function Transactions() {
           )}
 
           {loading ? <div className="dashboard-surface p-4"><div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton-base)]" />)}</div></div> : (
-            <div className="flex flex-wrap items-start gap-3">
+            <div className="space-y-3">
             {groups.map((g) => (
-              <div key={g.key} className="dashboard-surface overflow-hidden" style={{ minWidth: `${GROUP_PANEL_MIN_WIDTH}px`, flex: `1 1 ${GROUP_PANEL_FLEX_BASIS}px` }}>
+              <div key={g.key} className="dashboard-surface w-full overflow-hidden">
                 <div className="flex items-center justify-between border-b border-[var(--border-secondary)] bg-[var(--bg-card-hover)] px-3 py-2"><span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>{g.key === groups[0]?.key && <div className="text-xs"><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>}</div>
-                <ul className="grid gap-2 p-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>{g.items.map((t) => {
+                <ul className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{g.items.map((t) => {
                   const type = (t.type || "expense") as TransactionType;
                   const account = accountMap.get(t.accountId)?.name || "Unknown account";
                   const category = categoryMap.get(t.categoryId)?.name || "Unknown category";
