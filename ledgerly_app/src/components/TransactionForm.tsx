@@ -170,6 +170,24 @@ export default function TransactionForm({
     setAdvancedOpen(false);
   }, [lastDefaults.accountId, lastDefaults.categoryId, lastDefaults.tagIds, today]);
 
+  const clearForm = useCallback(() => {
+    setForm({
+      accountId: "",
+      categoryId: "",
+      amount: "",
+      description: "",
+      transactionDate: today,
+      tagIds: [],
+      status: "posted",
+      expectedPostDate: undefined,
+      type: undefined,
+      toAccountId: undefined,
+    });
+    setKind("normal");
+    setToAccountId("");
+    setAdvancedOpen(false);
+  }, [today]);
+
   const saveDefaults = useCallback((payload: TransactionFormData) => {
     const defaults: LastDefaults = {
       accountId: payload.accountId,
@@ -562,7 +580,7 @@ export default function TransactionForm({
             <ModernButton
               type="button"
               theme={theme}
-              onClick={resetForm}
+              onClick={clearForm}
               className="bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-none"
             >
               Clear form
