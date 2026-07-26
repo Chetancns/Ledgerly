@@ -179,7 +179,7 @@ export default function TransactionForm({
     });
   }, [applyFormReset, lastDefaults.accountId, lastDefaults.categoryId, lastDefaults.tagIds]);
 
-  const clearForm = useCallback(() => {
+  const clearFormToEmpty = useCallback(() => {
     applyFormReset();
   }, [applyFormReset]);
 
@@ -575,10 +575,11 @@ export default function TransactionForm({
             <ModernButton
               type="button"
               theme={theme}
-              onClick={clearForm}
+              onClick={clearFormToEmpty}
               className="bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-none"
             >
               Clear form
+              <span className="sr-only"> and remove selected account, category, and tags</span>
             </ModernButton>
           )}
 
