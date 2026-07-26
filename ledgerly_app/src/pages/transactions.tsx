@@ -193,6 +193,12 @@ export default function Transactions() {
     }
   };
 
+  const handleComposerBackdropClick = () => {
+    if (!editing) {
+      setShowComposer(false);
+    }
+  };
+
   const duplicateTx = async (tx: Transaction) => {
     try {
       const payload: Partial<Transaction> = { ...tx, transactionDate: new Date().toISOString(), tagIds: tx.tags?.map((t) => t.id) || [] };
@@ -398,11 +404,7 @@ export default function Transactions() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm"
-            onClick={() => {
-              if (!editing) {
-                setShowComposer(false);
-              }
-            }}
+            onClick={handleComposerBackdropClick}
           >
             <motion.div
               initial={{ x: 60 }}

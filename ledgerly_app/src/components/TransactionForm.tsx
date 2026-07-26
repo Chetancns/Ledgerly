@@ -576,6 +576,7 @@ export default function TransactionForm({
               type="button"
               theme={theme}
               onClick={clearForm}
+              ariaLabel="Clear all transaction form fields"
               className="bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-none"
             >
               Clear form

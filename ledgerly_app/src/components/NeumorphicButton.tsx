@@ -20,6 +20,7 @@ type ModernButtonProps = {
   children: ReactNode;
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
+  ariaLabel?: string;
   color?: string; // any Tailwind color
   variant?: Variant;
   size?: Size;
@@ -34,6 +35,7 @@ export default function ModernButton({
   children,
   onClick,
   type = "button",
+  ariaLabel,
   color = "sky-600",
   variant = "solid",
   size = "md",
@@ -64,6 +66,7 @@ export default function ModernButton({
     <motion.button
       whileTap={{ scale: 0.96 }}
       type={type}
+      aria-label={ariaLabel}
       disabled={disabled}
       onClick={onClick}
       className={clsx(
@@ -81,4 +84,3 @@ export default function ModernButton({
     </motion.button>
   );
 }
-
