@@ -33,8 +33,6 @@ type SortBy = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 type GroupBy = "none" | "date" | "account" | "category" | "status";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const GROUP_PANEL_MIN_WIDTH = 320;
-const GROUP_PANEL_FLEX_BASIS = 360;
 const TYPE_META: Record<TransactionType, { label: string; icon: string; color: string }> = {
   income: { label: "Income", icon: "💰", color: "var(--color-success)" },
   expense: { label: "Expense", icon: "💸", color: "var(--color-error)" },
@@ -174,9 +172,16 @@ export default function Transactions() {
 
   const allVisibleIds = filtered.map((t) => t.id);
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id));
+  const selectAllCheckboxId = groupBy === "none" ? "select-all-transactions-ungrouped" : "select-all-transactions-grouped";
 
   const toggleSelected = (id: string) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const toggleAll = () => setSelectedIds((prev) => (allSelected ? prev.filter((id) => !allVisibleIds.includes(id)) : [...new Set([...prev, ...allVisibleIds])]));
+  const renderSelectAll = () => (
+    <div className="inline-flex items-center text-xs">
+      <input id={selectAllCheckboxId} type="checkbox" aria-label="Select all transactions" checked={allSelected} onChange={toggleAll} />
+      <label htmlFor={selectAllCheckboxId} className="ml-1">Select all</label>
+    </div>
+  );
 
   const markPosted = async (id: string) => {
     try {
@@ -185,6 +190,12 @@ export default function Transactions() {
       toast.success("Marked as posted");
     } catch {
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleComposerBackdropClick = () => {
+    if (!editing) {
+      setShowComposer(false);
     }
   };
 
@@ -317,11 +328,24 @@ export default function Transactions() {
           )}
 
           {loading ? <div className="dashboard-surface p-4"><div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-[var(--skeleton-base)]" />)}</div></div> : (
-            <div className="flex flex-wrap items-start gap-3">
+            <div className="space-y-4">
             {groups.map((g) => (
-              <div key={g.key} className="dashboard-surface overflow-hidden" style={{ minWidth: `${GROUP_PANEL_MIN_WIDTH}px`, flex: `1 1 ${GROUP_PANEL_FLEX_BASIS}px` }}>
-                <div className="flex items-center justify-between border-b border-[var(--border-secondary)] bg-[var(--bg-card-hover)] px-3 py-2"><span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>{g.key === groups[0]?.key && <div className="text-xs"><input id="select-all-transactions" type="checkbox" checked={allSelected} onChange={toggleAll} /><label htmlFor="select-all-transactions" className="ml-1">Select all</label></div>}</div>
-                <ul className="grid gap-2 p-2 sm:grid-cols-2">{g.items.map((t) => {
+              <div key={g.key} className="space-y-2">
+                {groupBy !== "none" && (
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{g.label}</span>
+                      <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">{g.items.length}</span>
+                    </div>
+                    {g.key === groups[0]?.key && renderSelectAll()}
+                  </div>
+                )}
+                {groupBy === "none" && g.key === groups[0]?.key && (
+                  <div className="flex justify-end px-1 text-xs">
+                    {renderSelectAll()}
+                  </div>
+                )}
+                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{g.items.map((t) => {
                   const type = (t.type || "expense") as TransactionType;
                   const account = accountMap.get(t.accountId)?.name || "Unknown account";
                   const category = categoryMap.get(t.categoryId)?.name || "Unknown category";
@@ -373,7 +397,61 @@ export default function Transactions() {
         </section>
       </div>
 
-      <AnimatePresence>{showComposer && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm"><motion.div initial={{ x: 60 }} animate={{ x: 0 }} exit={{ x: 60 }} className="ml-auto flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="transaction-drawer-title"><div className="mb-3 flex items-center justify-between"><h3 id="transaction-drawer-title" className="text-lg font-semibold text-[var(--text-primary)]">{editing ? "Edit transaction" : "Add transaction"}</h3><button onClick={() => { setEditing(null); setShowComposer(false); }} className="rounded-full border border-[var(--border-primary)] p-2" aria-label="Close drawer"><RiCloseLine /></button></div><div className="min-h-0 flex-1 overflow-auto"><TransactionForm transaction={editing || undefined} onCreated={() => { void fetchData(); }} onUpdated={() => { setEditing(null); void fetchData(); }} onCancel={() => { setEditing(null); setShowComposer(false); }} openAiImportSignal={aiSignal} /></div></motion.div></motion.div>}</AnimatePresence>
+      <AnimatePresence>
+        {showComposer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm"
+            onClick={handleComposerBackdropClick}
+          >
+            <motion.div
+              initial={{ x: 60 }}
+              animate={{ x: 0 }}
+              exit={{ x: 60 }}
+              className="ml-auto flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-5"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="transaction-drawer-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <h3 id="transaction-drawer-title" className="text-lg font-semibold text-[var(--text-primary)]">
+                  {editing ? "Edit transaction" : "Add transaction"}
+                </h3>
+                <button
+                  onClick={() => {
+                    setEditing(null);
+                    setShowComposer(false);
+                  }}
+                  className="rounded-full border border-[var(--border-primary)] p-2"
+                  aria-label="Close drawer"
+                >
+                  <RiCloseLine />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-auto">
+                <TransactionForm
+                  transaction={editing || undefined}
+                  onCreated={() => {
+                    void fetchData();
+                  }}
+                  onUpdated={() => {
+                    setEditing(null);
+                    void fetchData();
+                  }}
+                  onCancel={() => {
+                    setEditing(null);
+                    setShowComposer(false);
+                  }}
+                  openAiImportSignal={aiSignal}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>{showBalanceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/55 p-4 backdrop-blur-sm" onClick={() => setShowBalanceModal(false)}><motion.div initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: 20 }} className="mx-auto max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="quick-view-title"><div className="mb-4 flex items-center justify-between"><h3 id="quick-view-title" className="text-lg font-bold text-[var(--text-primary)]">Account quick view</h3><button onClick={() => setHideBalances((x) => !x)} className="rounded-full border border-[var(--border-primary)] px-3 py-1 text-xs">{hideBalances ? "Show" : "Hide"}</button></div><p className="mb-3 text-sm text-[var(--text-secondary)]">Total balance: <span className="font-semibold text-[var(--text-primary)]">{hideBalances ? "••••••" : format(totalBalance)}</span></p><div className="space-y-2">{accounts.map((a) => <div key={a.id} className="flex items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-3 py-2"><p className="text-sm font-medium text-[var(--text-primary)]">{a.name}</p><p className="text-sm font-semibold text-[var(--text-primary)]">{hideBalances ? "••••••" : format(Number(a.balance || 0))}</p></div>)}</div></motion.div></motion.div>}</AnimatePresence>
 

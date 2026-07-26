@@ -152,23 +152,36 @@ export default function TransactionForm({
     previousAiSignal.current = openAiImportSignal;
   }, [openAiImportSignal]);
 
-  const resetForm = useCallback(() => {
+  const applyFormReset = useCallback((overrides?: Partial<TransactionFormData>) => {
     setForm({
-      accountId: lastDefaults.accountId || "",
-      categoryId: lastDefaults.categoryId || "",
+      accountId: "",
+      categoryId: "",
       amount: "",
       description: "",
       transactionDate: today,
-      tagIds: lastDefaults.tagIds || [],
+      tagIds: [],
       status: "posted",
       expectedPostDate: undefined,
       type: undefined,
       toAccountId: undefined,
+      ...overrides,
     });
     setKind("normal");
     setToAccountId("");
     setAdvancedOpen(false);
-  }, [lastDefaults.accountId, lastDefaults.categoryId, lastDefaults.tagIds, today]);
+  }, [today]);
+
+  const resetForm = useCallback(() => {
+    applyFormReset({
+      accountId: lastDefaults.accountId || "",
+      categoryId: lastDefaults.categoryId || "",
+      tagIds: lastDefaults.tagIds || [],
+    });
+  }, [applyFormReset, lastDefaults.accountId, lastDefaults.categoryId, lastDefaults.tagIds]);
+
+  const clearFormToEmpty = useCallback(() => {
+    applyFormReset();
+  }, [applyFormReset]);
 
   const saveDefaults = useCallback((payload: TransactionFormData) => {
     const defaults: LastDefaults = {
@@ -555,6 +568,18 @@ export default function TransactionForm({
               className="bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-none"
             >
               Save & add another
+            </ModernButton>
+          )}
+
+          {!transaction && (
+            <ModernButton
+              type="button"
+              theme={theme}
+              onClick={clearFormToEmpty}
+              className="bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-none"
+            >
+              Clear form
+              <span className="sr-only"> and remove selected account, category, and tags</span>
             </ModernButton>
           )}
 
