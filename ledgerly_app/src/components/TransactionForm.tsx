@@ -562,6 +562,17 @@ export default function TransactionForm({
             <ModernButton
               type="button"
               theme={theme}
+              onClick={resetForm}
+              className="bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-none"
+            >
+              Clear form
+            </ModernButton>
+          )}
+
+          {!transaction && (
+            <ModernButton
+              type="button"
+              theme={theme}
               onClick={handleUseLastDraft}
               className="bg-[var(--bg-card-hover)] text-[var(--text-primary)] shadow-none"
             >
