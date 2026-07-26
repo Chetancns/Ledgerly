@@ -399,6 +399,7 @@ export default function Transactions() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm"
             onClick={() => {
+              if (editing) return;
               setEditing(null);
               setShowComposer(false);
             }}
