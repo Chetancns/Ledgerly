@@ -400,7 +400,6 @@ export default function Transactions() {
             className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm"
             onClick={() => {
               if (!editing) {
-                setEditing(null);
                 setShowComposer(false);
               }
             }}

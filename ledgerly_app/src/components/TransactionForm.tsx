@@ -152,25 +152,7 @@ export default function TransactionForm({
     previousAiSignal.current = openAiImportSignal;
   }, [openAiImportSignal]);
 
-  const resetForm = useCallback(() => {
-    setForm({
-      accountId: lastDefaults.accountId || "",
-      categoryId: lastDefaults.categoryId || "",
-      amount: "",
-      description: "",
-      transactionDate: today,
-      tagIds: lastDefaults.tagIds || [],
-      status: "posted",
-      expectedPostDate: undefined,
-      type: undefined,
-      toAccountId: undefined,
-    });
-    setKind("normal");
-    setToAccountId("");
-    setAdvancedOpen(false);
-  }, [lastDefaults.accountId, lastDefaults.categoryId, lastDefaults.tagIds, today]);
-
-  const clearForm = useCallback(() => {
+  const applyFormReset = useCallback((overrides?: Partial<TransactionFormData>) => {
     setForm({
       accountId: "",
       categoryId: "",
@@ -182,11 +164,24 @@ export default function TransactionForm({
       expectedPostDate: undefined,
       type: undefined,
       toAccountId: undefined,
+      ...overrides,
     });
     setKind("normal");
     setToAccountId("");
     setAdvancedOpen(false);
   }, [today]);
+
+  const resetForm = useCallback(() => {
+    applyFormReset({
+      accountId: lastDefaults.accountId || "",
+      categoryId: lastDefaults.categoryId || "",
+      tagIds: lastDefaults.tagIds || [],
+    });
+  }, [applyFormReset, lastDefaults.accountId, lastDefaults.categoryId, lastDefaults.tagIds]);
+
+  const clearForm = useCallback(() => {
+    applyFormReset();
+  }, [applyFormReset]);
 
   const saveDefaults = useCallback((payload: TransactionFormData) => {
     const defaults: LastDefaults = {
