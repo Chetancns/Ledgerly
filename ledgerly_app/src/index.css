@@ -347,6 +347,15 @@ html {
   backdrop-filter: blur(12px);
 }
 
+.mobile-bottom-nav-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-bottom-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* floating + button sits above nav + safe area */
 .fab-safe {
   bottom: calc(4.5rem + env(safe-area-inset-bottom));

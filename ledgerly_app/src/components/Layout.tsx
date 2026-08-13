@@ -106,12 +106,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ]);
   const primaryNavItems = navItems.filter((item) => primaryNavHrefs.has(item.href));
   const secondaryNavItems = navItems.filter((item) => !primaryNavHrefs.has(item.href));
-  const mobileBottomNavHrefs = new Set(["/", "/transactions", "/accounts", "/budgets"]);
-  const mobileMoreItems = navItems.filter((item) => !mobileBottomNavHrefs.has(item.href));
-  const dashboardItem = navItems.find((item) => item.href === "/");
-  const transactionsItem = navItems.find((item) => item.href === "/transactions");
-  const accountsItem = navItems.find((item) => item.href === "/accounts");
-  const budgetItem = navItems.find((item) => item.href === "/budgets");
+  const mobileVisibleNavHrefs = new Set([
+    "/",
+    "/transactions",
+    "/budgets",
+    "/debts",
+  ]);
+  const mobileVisibleNavItems = navItems.filter((item) => mobileVisibleNavHrefs.has(item.href));
+  const mobileMoreItems = navItems.filter((item) => !mobileVisibleNavHrefs.has(item.href));
+  const getMobileNavLabel = (href: string) => {
+    const labels: Record<string, string> = {
+      "/": "Home",
+      "/transactions": "Txns",
+      "/budgets": "Budget",
+      "/debts": "Debts",
+    };
+
+    return labels[href] ?? "More";
+  };
   const { user, loading, logoutapi } = useAuth();
   const { clearAll } = useNotifications();
   useAuthRedirect(user, loading);
@@ -561,52 +573,53 @@ const stopRecording = () => {
           <SpeedInsights />
         </main>
 
-        {/* Mobile Bottom Nav - Dashboard, Transactions, Accounts, Budgets, More */}
+        {/* Mobile Bottom Nav - keep the main tabs visible and add overflow for smaller screens */}
         <nav
           role="navigation"
           aria-label="Bottom navigation"
-          className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between px-3 py-2 backdrop-blur-xl md:hidden bottom-nav safe-area-padding"
+          className="fixed bottom-0 left-0 right-0 z-40 overflow-x-auto px-2 py-2 backdrop-blur-xl md:hidden bottom-nav safe-area-padding mobile-bottom-nav-scroll"
           style={{
             background: "var(--nav-bg)",
             borderTop: "1px solid var(--border-primary)",
           }}
         >
-          {[dashboardItem, transactionsItem, accountsItem, budgetItem].map((item) => {
-            if (!item) return null;
-            const Icon = item.icon;
-            const isActive = router.pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-label={`Navigate to ${item.label}`}
-                aria-current={isActive ? "page" : undefined}
-                className="group relative flex min-h-[48px] min-w-[50px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-all duration-200 ease-out active:scale-95 tap-target"
-                style={{ color: isActive ? "var(--nav-active)" : "var(--text-secondary)" }}
-              >
-                {isActive && <span className="nav-indicator-pill nav-indicator-pill--mobile" aria-hidden="true" />}
-                <div
-                  className={`rounded-lg p-1.5 transition-all duration-200 ease-out ${
-                    isActive ? "bg-[var(--bg-card-hover)]" : "group-hover:bg-[var(--bg-card)]"
-                  }`}
+          <div className="flex min-w-max items-center gap-1">
+            {mobileVisibleNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = router.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-label={`Navigate to ${item.label}`}
+                  aria-current={isActive ? "page" : undefined}
+                  className="group relative flex min-h-[48px] w-[72px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-1 text-[10px] font-semibold transition-all duration-200 ease-out active:scale-95 tap-target"
+                  style={{ color: isActive ? "var(--nav-active)" : "var(--text-secondary)" }}
                 >
-                  <Icon className="text-lg" aria-hidden="true" />
-                </div>
-                <span className="text-center leading-tight whitespace-nowrap">{item.href === "/transactions" ? "Txns" : item.label}</span>
-              </Link>
-            );
-          })}
+                  {isActive && <span className="nav-indicator-pill nav-indicator-pill--mobile" aria-hidden="true" />}
+                  <div
+                    className={`rounded-lg p-1.5 transition-all duration-200 ease-out ${
+                      isActive ? "bg-[var(--bg-card-hover)]" : "group-hover:bg-[var(--bg-card)]"
+                    }`}
+                  >
+                    <Icon className="text-base" aria-hidden="true" />
+                  </div>
+                  <span className="text-center leading-tight whitespace-nowrap">{getMobileNavLabel(item.href)}</span>
+                </Link>
+              );
+            })}
 
-          <button
-            onClick={() => setShowMoreMenu(true)}
-            aria-label="Open more menu"
-            className="flex min-h-[48px] min-w-[50px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-[var(--text-secondary)] transition-all duration-200 ease-out active:scale-95 tap-target"
-          >
-            <div className="rounded-lg p-1.5">
-              <RiAppsLine className="text-lg" aria-hidden="true" />
-            </div>
-            <span className="text-center leading-tight whitespace-nowrap">More</span>
-          </button>
+            <button
+              onClick={() => setShowMoreMenu(true)}
+              aria-label="Open more menu"
+              className="flex min-h-[48px] w-[72px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-1 text-[10px] font-semibold text-[var(--text-secondary)] transition-all duration-200 ease-out active:scale-95 tap-target"
+            >
+              <div className="rounded-lg p-1.5">
+                <RiAppsLine className="text-base" aria-hidden="true" />
+              </div>
+              <span className="text-center leading-tight whitespace-nowrap">More</span>
+            </button>
+          </div>
         </nav>
 
         {/* More Menu Modal */}
