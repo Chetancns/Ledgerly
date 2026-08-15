@@ -138,7 +138,13 @@ export default function Transactions() {
     const s = search.trim().toLowerCase();
     const rows = transactions.filter((t) => {
       if (!s) return true;
-      const text = [t.description || "", accountMap.get(t.accountId)?.name || "", categoryMap.get(t.categoryId)?.name || "", t.tags?.map((x) => x.name).join(" ") || "", String(t.amount || "")].join(" ").toLowerCase();
+      const text = [
+        t.description || "",
+        accountMap.get(t.accountId)?.name || "",
+        (t.categoryId ? categoryMap.get(t.categoryId)?.name : undefined) || "",
+        t.tags?.map((x) => x.name).join(" ") || "",
+        String(t.amount || ""),
+      ].join(" ").toLowerCase();
       return text.includes(s);
     });
     rows.sort((a, b) => {
@@ -157,7 +163,7 @@ export default function Transactions() {
       const label = groupBy === "account"
         ? accountMap.get(t.accountId)?.name || "Unknown account"
         : groupBy === "category"
-          ? categoryMap.get(t.categoryId)?.name || "Uncategorized"
+          ? (t.categoryId ? categoryMap.get(t.categoryId)?.name : undefined) || "Uncategorized"
           : groupBy === "status"
             ? t.status || "posted"
             : dayjs(t.transactionDate).isSame(dayjs(), "day")
@@ -279,7 +285,7 @@ export default function Transactions() {
   });
 
   const categoryOptions = useMemo(
-    () => [{ value: "", label: "Uncategorized" }, ...categories.map((c) => ({ value: c.id, label: c.name }))],
+    () => [{ value: "", label: "Uncategorized" }, ...categories.map((c) => ({ value: c.id, label: c.name || "Unnamed category" }))],
     [categories]
   );
 
@@ -351,7 +357,7 @@ export default function Transactions() {
                 <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{g.items.map((t) => {
                   const type = (t.type || "expense") as TransactionType;
                   const account = accountMap.get(t.accountId)?.name || "Unknown account";
-                  const category = categoryMap.get(t.categoryId)?.name || "Uncategorized";
+                  const category = (t.categoryId ? categoryMap.get(t.categoryId)?.name : undefined) || "Uncategorized";
                   const toAccount = t.toAccountId ? accountMap.get(t.toAccountId)?.name || "Unknown account" : "";
                   return (
                     <li key={t.id} className="flex flex-col gap-2 rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-card)] p-4">

@@ -8,7 +8,7 @@ import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
 import { Tag } from '../tags/tag.entity';
 import { withTransaction } from '../utils/transaction.util';
-import { parseSafeAmount } from 'src/utils/number.util';
+import { parseSafeAmount } from '../utils/number.util';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type TransactionInput = Partial<Transaction> & { tagIds?: string[] };
@@ -133,7 +133,7 @@ export class TransactionsService {
       await this.getCategoryOrThrow(categoryRepo, userId, categoryId);
     }
 
-    const status = (input.status ?? current?.status ?? 'posted') as TxStatus;
+    const status = (input.status ?? current?.status ?? 'posted');
 
     return {
       amountValue,

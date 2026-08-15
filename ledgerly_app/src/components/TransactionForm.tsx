@@ -264,10 +264,13 @@ export default function TransactionForm({
     if (kind === "transfer") {
       return [];
     }
-    return categoryOptions.filter((option) => {
+    return [
+      { value: "", label: "Uncategorized" },
+      ...categoryOptions.filter((option) => {
       const category = categories.find((item) => item.id === option.value);
       return category?.type === kind;
-    });
+      }),
+    ];
   }, [categories, categoryOptions, kind]);
 
   const accountOptions = useMemo(

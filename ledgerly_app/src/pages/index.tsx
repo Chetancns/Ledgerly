@@ -307,7 +307,7 @@ export default function Dashboard() {
 
     filteredTransactions.forEach((transaction) => {
       if (transaction.type !== "expense") return;
-      const categoryName = categoryNameMap.get(transaction.categoryId) || "Uncategorized";
+      const categoryName = transaction.categoryId ? categoryNameMap.get(transaction.categoryId) || "Uncategorized" : "Uncategorized";
       const currentValue = totals.get(categoryName) || 0;
       totals.set(categoryName, currentValue + Number(transaction.amount || 0));
     });
