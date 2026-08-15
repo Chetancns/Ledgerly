@@ -1,24 +1,24 @@
 import Layout from "@/components/Layout";
 import React from "react";
 import {
-  FaUserPlus,
-  FaListAlt,
-  FaWallet,
-  FaExchangeAlt,
-  FaChartPie,
-  FaLightbulb,
-  FaEnvelope,
-  FaRobot,
-  FaCamera,
-  FaMicrophone,
-  FaRedo,
-  FaChartLine,
-  FaQuestionCircle,
-  FaShieldAlt,
-  FaCreditCard,
-  FaDollarSign,
-  FaBell,
-} from "react-icons/fa";
+  UserPlus,
+  List,
+  Wallet,
+  ArrowLeftRight,
+  PieChart,
+  Lightbulb,
+  Mail,
+  Bot,
+  Camera,
+  Mic,
+  RotateCw,
+  TrendingUp,
+  HelpCircle,
+  ShieldCheck,
+  CreditCard,
+  DollarSign,
+  Bell,
+} from "lucide-react";
 
 interface HelpSection {
   icon: React.ReactNode;
@@ -29,7 +29,7 @@ interface HelpSection {
 
 const sections: HelpSection[] = [
   {
-    icon: <FaUserPlus className="text-blue-600 dark:text-blue-300 w-6 h-6" />,
+    icon: <UserPlus className="text-blue-600 dark:text-blue-300 w-6 h-6" />,
     title: "1. Getting Started",
     badge: "Essential",
     content: (
@@ -47,7 +47,7 @@ const sections: HelpSection[] = [
         </ul>
         <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
           <p className="text-sm flex items-start gap-2">
-            <FaShieldAlt className="text-blue-600 dark:text-blue-300 mt-0.5 flex-shrink-0" />
+            <ShieldCheck className="text-blue-600 dark:text-blue-300 mt-0.5 flex-shrink-0" />
             <span><b>Security:</b> Your data is secured with JWT authentication and stays protected.</span>
           </p>
         </div>
@@ -55,7 +55,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaListAlt className="text-green-600 dark:text-green-300 w-6 h-6" />,
+    icon: <List className="text-green-600 dark:text-green-300 w-6 h-6" />,
     title: "2. Setting Up Your Finances",
     badge: "Required",
     content: (
@@ -90,7 +90,7 @@ const sections: HelpSection[] = [
         </ul>
         <div className="mt-4 p-3 bg-yellow-500/20 rounded-lg border border-yellow-400/30">
           <p className="text-sm flex items-start gap-2">
-            <FaLightbulb className="text-yellow-600 dark:text-yellow-300 mt-0.5 flex-shrink-0" />
+            <Lightbulb className="text-yellow-600 dark:text-yellow-300 mt-0.5 flex-shrink-0" />
             <span><b>Important:</b> You must create at least one category and one account before you can add transactions!</span>
           </p>
         </div>
@@ -98,7 +98,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaExchangeAlt className="text-yellow-600 dark:text-yellow-300 w-6 h-6" />,
+    icon: <ArrowLeftRight className="text-yellow-600 dark:text-yellow-300 w-6 h-6" />,
     title: "3. Recording Transactions",
     badge: "Core Feature",
     content: (
@@ -148,7 +148,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaRobot className="text-cyan-600 dark:text-cyan-300 w-6 h-6" />,
+    icon: <Bot className="text-cyan-600 dark:text-cyan-300 w-6 h-6" />,
     title: "4. AI-Powered Features",
     badge: "Smart",
     content: (
@@ -158,7 +158,7 @@ const sections: HelpSection[] = [
         </p>
         
         <h3 className="font-semibold mt-3 text-cyan-700 dark:text-cyan-200 flex items-center gap-2">
-          <FaCamera /> 4.1. Receipt Scanning
+          <Camera /> 4.1. Receipt Scanning
         </h3>
         <ul className="list-disc ml-6 space-y-1.5 text-gray-700 dark:text-white/90">
           <li>Click the <b className="text-yellow-600 dark:text-yellow-300">+ floating button</b> in the bottom-right corner.</li>
@@ -169,7 +169,7 @@ const sections: HelpSection[] = [
         </ul>
         
         <h3 className="font-semibold mt-4 text-cyan-700 dark:text-cyan-200 flex items-center gap-2">
-          <FaMicrophone /> 4.2. Voice Transaction Entry
+          <Mic /> 4.2. Voice Transaction Entry
         </h3>
         <ul className="list-disc ml-6 space-y-1.5 text-gray-700 dark:text-white/90">
           <li>Click the <b className="text-yellow-600 dark:text-yellow-300">+ floating button</b> in the bottom-right corner.</li>
@@ -181,7 +181,7 @@ const sections: HelpSection[] = [
         
         <div className="mt-4 p-3 bg-cyan-500/20 rounded-lg border border-cyan-400/30">
           <p className="text-sm flex items-start gap-2">
-            <FaRobot className="text-cyan-600 dark:text-cyan-300 mt-0.5 flex-shrink-0" />
+            <Bot className="text-cyan-600 dark:text-cyan-300 mt-0.5 flex-shrink-0" />
             <span><b>AI Note:</b> AI processing may take a moment on free-tier backends. Always review AI-generated transactions as AI isn't perfect!</span>
           </p>
         </div>
@@ -189,7 +189,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaDollarSign className="text-pink-600 dark:text-pink-300 w-6 h-6" />,
+    icon: <DollarSign className="text-pink-600 dark:text-pink-300 w-6 h-6" />,
     title: "5. Budgeting",
     badge: "Financial Planning",
     content: (
@@ -218,7 +218,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaCreditCard className="text-orange-600 dark:text-orange-300 w-6 h-6" />,
+    icon: <CreditCard className="text-orange-600 dark:text-orange-300 w-6 h-6" />,
     title: "6. Debt Management",
     badge: "Financial Freedom",
     content: (
@@ -247,7 +247,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaRedo className="text-indigo-600 dark:text-indigo-300 w-6 h-6" />,
+    icon: <RotateCw className="text-indigo-600 dark:text-indigo-300 w-6 h-6" />,
     title: "7. Recurring Transactions",
     badge: "Automation",
     content: (
@@ -274,7 +274,7 @@ const sections: HelpSection[] = [
         
         <div className="mt-4 p-3 bg-indigo-500/20 rounded-lg border border-indigo-400/30">
           <p className="text-sm flex items-start gap-2">
-            <FaBell className="text-indigo-600 dark:text-indigo-300 mt-0.5 flex-shrink-0" />
+            <Bell className="text-indigo-600 dark:text-indigo-300 mt-0.5 flex-shrink-0" />
             <span><b>Automation:</b> Recurring transactions help you never forget regular bills and income!</span>
           </p>
         </div>
@@ -282,7 +282,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaChartLine className="text-purple-600 dark:text-purple-300 w-6 h-6" />,
+    icon: <TrendingUp className="text-purple-600 dark:text-purple-300 w-6 h-6" />,
     title: "8. Reports & Analytics",
     badge: "Insights",
     content: (
@@ -311,7 +311,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaChartPie className="text-teal-300 w-6 h-6" />,
+    icon: <PieChart className="text-teal-300 w-6 h-6" />,
     title: "9. How Ledgerly Helps You",
     badge: "Benefits",
     content: (
@@ -371,7 +371,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaLightbulb className="text-yellow-600 dark:text-yellow-300 w-6 h-6" />,
+    icon: <Lightbulb className="text-yellow-600 dark:text-yellow-300 w-6 h-6" />,
     title: "10. Tips & Best Practices",
     badge: "Pro Tips",
     content: (
@@ -431,7 +431,7 @@ const sections: HelpSection[] = [
     ),
   },
   {
-    icon: <FaQuestionCircle className="text-pink-600 dark:text-pink-300 w-6 h-6" />,
+    icon: <HelpCircle className="text-pink-600 dark:text-pink-300 w-6 h-6" />,
     title: "11. Frequently Asked Questions",
     badge: "FAQ",
     content: (
@@ -500,7 +500,7 @@ export default function HelpPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-3 flex items-center justify-center gap-3">
-              <FaLightbulb className="text-yellow-600 dark:text-yellow-300 animate-pulse" /> 
+              <Lightbulb className="text-yellow-600 dark:text-yellow-300 animate-pulse" /> 
               <span className="bg-gradient-to-r from-sky-700 via-cyan-600 to-blue-700 dark:from-yellow-300 dark:via-pink-300 dark:to-purple-300 bg-clip-text text-transparent">
                 Ledgerly User Guide
               </span>
@@ -576,7 +576,7 @@ export default function HelpPage() {
             border: "1px solid var(--border-primary)",
           }}>
             <h3 className="text-xl font-bold mb-3 flex items-center justify-center gap-2" style={{ color: "var(--text-primary)" }}>
-              <FaEnvelope className="text-sky-600 dark:text-sky-400" />
+              <Mail className="text-sky-600 dark:text-sky-400" />
               Need More Help?
             </h3>
             <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
@@ -586,7 +586,7 @@ export default function HelpPage() {
               href="mailto:chetan.1rn16is027@gmail.com"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
             >
-              <FaEnvelope />
+              <Mail />
               Contact Support: chetan.1rn16is027@gmail.com
             </a>
           </div>

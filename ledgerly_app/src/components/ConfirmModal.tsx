@@ -3,7 +3,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ModernButton from "./NeumorphicButton";
-import { XMarkIcon } from "@heroicons/react/24/solid";
+import { X } from "lucide-react";
 
 interface ConfirmModalProps {
   open: boolean;
@@ -50,7 +50,7 @@ export default function ConfirmModal({
             <div className="flex items-start justify-between">
               <h3 className="text-lg font-semibold text-white">{title}</h3>
               <button onClick={onClose} className="text-white/60 hover:text-white" aria-label="Close">
-                <XMarkIcon className="h-5 w-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 

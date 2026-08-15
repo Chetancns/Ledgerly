@@ -31,15 +31,15 @@ import toast from "react-hot-toast";
 import { BudgetCategory, BudgetReports, BudgetUtilization } from "@/models/budget";
 import { useCurrencyFormatter } from "@/hooks/useCurrencyFormatter";
 import { AnimatePresence, motion } from "framer-motion";
-import type { IconType } from "react-icons";
+import type { LucideIcon } from "lucide-react";
 import {
-  RiBarChartGroupedLine,
-  RiCalendarLine,
-  RiExchangeDollarLine,
-  RiLineChartLine,
-  RiMoneyDollarCircleLine,
-  RiWallet3Line,
-} from "react-icons/ri";
+  BarChart3,
+  Calendar,
+  ArrowLeftRight,
+  TrendingUp,
+  Banknote,
+  Wallet,
+} from "lucide-react";
 import SegmentedControl from "@/components/SegmentedControl";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -64,7 +64,7 @@ function AnalyticsCard({
 }: {
   title: string;
   subtitle: string;
-  icon: IconType;
+  icon: LucideIcon;
   children: ReactNode;
   action?: ReactNode;
   className?: string;
@@ -380,7 +380,7 @@ export default function Dashboard() {
         label: "Net Worth",
         value: totalBalance,
         helper: `${sortedAccounts.length} account${sortedAccounts.length === 1 ? "" : "s"} tracked`,
-        icon: <RiWallet3Line className="text-xl" />,
+        icon: <Wallet className="text-xl" />,
         sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.netWorth })),
         accent: "#38bdf8",
       },
@@ -389,7 +389,7 @@ export default function Dashboard() {
         label: "This Month Spent",
         value: monthExpense,
         helper: "Total outgoing spend in the active period",
-        icon: <RiExchangeDollarLine className="text-xl" />,
+        icon: <ArrowLeftRight className="text-xl" />,
         sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.expense })),
         accent: "#34d399",
       },
@@ -398,7 +398,7 @@ export default function Dashboard() {
         label: "This Month Earned",
         value: monthIncome,
         helper: "Income captured during the active period",
-        icon: <RiMoneyDollarCircleLine className="text-xl" />,
+        icon: <Banknote className="text-xl" />,
         sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.income })),
         accent: "#22d3ee",
       },
@@ -407,7 +407,7 @@ export default function Dashboard() {
         label: "Savings Rate",
         value: savingsRate,
         helper: "Share of income kept after expenses",
-        icon: <RiLineChartLine className="text-xl" />,
+        icon: <TrendingUp className="text-xl" />,
         formatAs: "percent" as const,
         sparkline: sevenDaySeries.map((item) => ({ label: item.label, value: item.savingsRate })),
         accent: "#a78bfa",
@@ -603,7 +603,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Income vs expense"
                   subtitle="Six months of incoming vs outgoing money with net savings overlaid."
-                  icon={RiBarChartGroupedLine}
+                  icon={BarChart3}
                 >
                   {comparisonData.some((item) => item.income > 0 || item.expense > 0) ? (
                     <IncomeExpenseComparisonChart data={comparisonData} />
@@ -615,7 +615,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Budget health"
                   subtitle="Track how much of your planned spend is already used this month."
-                  icon={RiMoneyDollarCircleLine}
+                  icon={Banknote}
                 >
                   {budgetReports?.totals ? (
                     <BudgetHealthRing
@@ -634,7 +634,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Spending breakdown"
                   subtitle="Donut view for the current period so major categories stand out faster."
-                  icon={RiExchangeDollarLine}
+                  icon={ArrowLeftRight}
                 >
                   {pieData.length > 0 ? (
                     <PieSpendingChart data={pieData} />
@@ -646,7 +646,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Savings rate trend"
                   subtitle="See whether your saving behavior is improving over the last six months."
-                  icon={RiLineChartLine}
+                  icon={TrendingUp}
                 >
                   {savingsRateTrend.some((item) => item.rate !== 0) ? (
                     <SavingsRateTrendChart data={savingsRateTrend} />
@@ -659,7 +659,7 @@ export default function Dashboard() {
               <AnalyticsCard
                 title="Daily flow"
                 subtitle="Switch between income and expense to inspect short-term movement inside the selected month."
-                icon={RiCalendarLine}
+                icon={Calendar}
                 action={
                   <SegmentedControl
                     options={[
@@ -683,7 +683,7 @@ export default function Dashboard() {
               <AnalyticsCard
                 title="Cash flow timeline"
                 subtitle="Wider timeline for income, expenses, savings, and net change across the month."
-                icon={RiLineChartLine}
+                icon={TrendingUp}
               >
                 {cashflowData.length > 0 ? (
                   <ChashFlowLine data={cashflowData} />
@@ -696,7 +696,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Budget utilization"
                   subtitle="Highest-usage budgets surface first so you can spot pressure points quickly."
-                  icon={RiMoneyDollarCircleLine}
+                  icon={Banknote}
                 >
                   {prioritizedBudgetUtilizations.length > 0 ? (
                     <BudgetUtilizationRadialList
@@ -711,7 +711,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Top expense categories"
                   subtitle="Ranked categories make it easier to see what is driving spend."
-                  icon={RiBarChartGroupedLine}
+                  icon={BarChart3}
                 >
                   {topExpenseCategories.length > 0 ? (
                     <TopExpenseCategoriesChart data={topExpenseCategories} />
@@ -725,7 +725,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Budget vs actual"
                   subtitle="Compare budgeted and actual amounts by category, with overspending highlighted."
-                  icon={RiMoneyDollarCircleLine}
+                  icon={Banknote}
                   action={
                     <SegmentedControl
                       options={[
@@ -772,7 +772,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Category concentration"
                   subtitle="See which categories account for the largest share of this month's totals."
-                  icon={RiExchangeDollarLine}
+                  icon={ArrowLeftRight}
                 >
                   {catHeatmap.length > 0 ? (
                     <CatHeatmapPie data={catHeatmap} />
@@ -786,7 +786,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Budget mix"
                   subtitle="A quick split of overspent, on-track, and unbudgeted categories."
-                  icon={RiMoneyDollarCircleLine}
+                  icon={Banknote}
                 >
                   {budgetReports?.categories?.length ? (
                     <PieChartComponent data={budgetReports.categories} />
@@ -798,7 +798,7 @@ export default function Dashboard() {
                 <AnalyticsCard
                   title="Transaction activity heatmap"
                   subtitle="A calendar-style view of how often money moved each day this month."
-                  icon={RiCalendarLine}
+                  icon={Calendar}
                 >
                   <SpendingHeatmap
                     transactions={filteredTransactions}

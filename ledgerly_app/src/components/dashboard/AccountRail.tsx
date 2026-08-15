@@ -1,22 +1,15 @@
 import { Account } from "@/models/account";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  RiBankCardLine,
-  RiBankLine,
-  RiEyeLine,
-  RiEyeOffLine,
-  RiSafe2Line,
-  RiWallet3Line,
-} from "react-icons/ri";
-import type { IconType } from "react-icons";
+import { Building2, CreditCard, Eye, EyeOff, PiggyBank, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
-const accountTypeMeta: Record<string, { icon: IconType; accent: string }> = {
-  bank: { icon: RiBankLine, accent: "var(--color-info)" },
-  cash: { icon: RiWallet3Line, accent: "var(--color-success)" },
-  credit_card: { icon: RiBankCardLine, accent: "var(--color-warning)" },
-  savings: { icon: RiSafe2Line, accent: "var(--color-success)" },
-  wallet: { icon: RiWallet3Line, accent: "var(--accent-primary)" },
+const accountTypeMeta: Record<string, { icon: LucideIcon; accent: string }> = {
+  bank: { icon: Building2, accent: "var(--color-info)" },
+  cash: { icon: Wallet, accent: "var(--color-success)" },
+  credit_card: { icon: CreditCard, accent: "var(--color-warning)" },
+  savings: { icon: PiggyBank, accent: "var(--color-success)" },
+  wallet: { icon: Wallet, accent: "var(--accent-primary)" },
 };
 
 function formatAccountType(type?: string) {
@@ -71,7 +64,7 @@ export default function AccountRail({
           className="dashboard-filter-pill inline-flex items-center justify-center gap-2 self-start"
           aria-pressed={hideBalances}
         >
-          {hideBalances ? <RiEyeLine className="text-base" /> : <RiEyeOffLine className="text-base" />}
+          {hideBalances ? <Eye className="text-base" /> : <EyeOff className="text-base" />}
           <span>{hideBalances ? "Reveal balances" : "Mask balances"}</span>
         </button>
       </div>
@@ -111,7 +104,7 @@ export default function AccountRail({
                     aria-pressed={isVisible}
                     aria-label={isVisible ? `Hide ${account.name} balance` : `Show ${account.name} balance`}
                   >
-                    {isVisible ? <RiEyeOffLine className="text-sm" /> : <RiEyeLine className="text-sm" />}
+                    {isVisible ? <EyeOff className="text-sm" /> : <Eye className="text-sm" />}
                   </button>
                 )}
               </div>
@@ -173,7 +166,7 @@ export default function AccountRail({
                           onClick={() => onToggleAccountVisibility(account.id)}
                           className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] p-2 text-[var(--text-secondary)]"
                         >
-                          {isVisible ? <RiEyeOffLine className="text-sm" /> : <RiEyeLine className="text-sm" />}
+                          {isVisible ? <EyeOff className="text-sm" /> : <Eye className="text-sm" />}
                         </button>
                       )}
                     </div>

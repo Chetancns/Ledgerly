@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { Category, CategoryType } from "../models/category";
 import { getUserCategory, createCategory, onDeleteCategory, updateCategory } from "../services/category";
-import { TrashIcon } from "@heroicons/react/24/solid";
+import { Trash2 } from "lucide-react";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
 import NeumorphicInput from "@/components/NeumorphicInput";
@@ -170,7 +170,7 @@ const onCancel = () => {
   style={{ color: "var(--color-error)" }}
   title="Delete"
 >
-  <TrashIcon className="h-5 w-5" />
+  <Trash2 className="h-5 w-5" />
 
 </button>
                 </li>

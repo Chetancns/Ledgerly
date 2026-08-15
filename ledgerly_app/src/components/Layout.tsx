@@ -4,30 +4,28 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import {
-  FaSignOutAlt,
-  FaPlus,
-  FaCamera,
-  FaEdit,
-  FaChevronDown,
-} from "react-icons/fa";
-import type { IconType } from "react-icons";
-import {
-  RiDashboardLine,
-  RiExchangeDollarLine,
-  RiWallet3Line,
-  RiFolderLine,
-  RiPriceTag3Line,
-  RiMoneyDollarCircleLine,
-  RiScalesLine,
-  RiCalendarLine,
-  RiLineChartLine,
-  RiRobot2Line,
-  RiBarChartGroupedLine,
-  RiUserLine,
-  RiRepeatLine,
-  RiQuestionLine,
-  RiAppsLine,
-} from "react-icons/ri";
+  LogOut,
+  Plus,
+  Camera,
+  Pencil,
+  ChevronDown,
+  LayoutDashboard,
+  ArrowLeftRight,
+  Wallet,
+  Folder,
+  Tag,
+  Banknote,
+  Scale,
+  Calendar,
+  TrendingUp,
+  Bot,
+  BarChart3,
+  User,
+  Repeat,
+  HelpCircle,
+  Grid,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { DevWarningBanner } from "./DevWarningBanner";
 import { uploadReceiptImage, uploadAudioFile } from "../services/ai";
 import toast from "react-hot-toast";
@@ -48,7 +46,7 @@ type NavSection = "Finances" | "Insights & AI" | "Settings";
 type NavItem = {
   href: string;
   label: string;
-  icon: IconType;
+  icon: LucideIcon;
   section: NavSection;
 };
 const NAV_SECTIONS: NavSection[] = ["Finances", "Insights & AI", "Settings"];
@@ -76,20 +74,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const profileMenuFirstActionRef = useRef<HTMLAnchorElement | null>(null);
 
   const navItems: NavItem[] = [
-    { href: "/", label: "Dashboard", icon: RiDashboardLine, section: "Finances" },
-    { href: "/transactions", label: "Transactions", icon: RiExchangeDollarLine, section: "Finances" },
-    { href: "/accounts", label: "Accounts", icon: RiWallet3Line, section: "Finances" },
-    { href: "/categories", label: "Categories", icon: RiFolderLine, section: "Finances" },
-    { href: "/tags", label: "Tags", icon: RiPriceTag3Line, section: "Finances" },
-    { href: "/budgets", label: "Budgets", icon: RiMoneyDollarCircleLine, section: "Finances" },
-    { href: "/debts", label: "Debts", icon: RiScalesLine, section: "Finances" },
-    { href: "/calendar", label: "Calendar", icon: RiCalendarLine, section: "Finances" },
-    { href: "/insights", label: "Insights", icon: RiLineChartLine, section: "Insights & AI" },
-    { href: "/ai-chat", label: "AI Chat", icon: RiRobot2Line, section: "Insights & AI" },
-    { href: "/tag-insights", label: "Tag Insights", icon: RiBarChartGroupedLine, section: "Insights & AI" },
-    { href: "/profile", label: "Profile", icon: RiUserLine, section: "Settings" },
-    { href: "/recurring", label: "Recurring", icon: RiRepeatLine, section: "Finances" },
-    { href: "/help", label: "Help", icon: RiQuestionLine, section: "Settings" },
+    { href: "/", label: "Dashboard", icon: LayoutDashboard, section: "Finances" },
+    { href: "/transactions", label: "Transactions", icon: ArrowLeftRight, section: "Finances" },
+    { href: "/accounts", label: "Accounts", icon: Wallet, section: "Finances" },
+    { href: "/categories", label: "Categories", icon: Folder, section: "Finances" },
+    { href: "/tags", label: "Tags", icon: Tag, section: "Finances" },
+    { href: "/budgets", label: "Budgets", icon: Banknote, section: "Finances" },
+    { href: "/debts", label: "Debts", icon: Scale, section: "Finances" },
+    { href: "/calendar", label: "Calendar", icon: Calendar, section: "Finances" },
+    { href: "/insights", label: "Insights", icon: TrendingUp, section: "Insights & AI" },
+    { href: "/ai-chat", label: "AI Chat", icon: Bot, section: "Insights & AI" },
+    { href: "/tag-insights", label: "Tag Insights", icon: BarChart3, section: "Insights & AI" },
+    { href: "/profile", label: "Profile", icon: User, section: "Settings" },
+    { href: "/recurring", label: "Recurring", icon: Repeat, section: "Finances" },
+    { href: "/help", label: "Help", icon: HelpCircle, section: "Settings" },
   ];
 
   // Primary items to keep visible on desktop; rest go under More
@@ -411,9 +409,9 @@ const stopRecording = () => {
                     showDesktopMoreMenu ? "bg-[var(--accent-soft)] text-[var(--nav-active)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-secondary)]"
                   }`}
                 >
-                  <RiAppsLine className="text-base" aria-hidden="true" />
+                  <Grid className="text-base" aria-hidden="true" />
                   <span className="hidden lg:inline">More</span>
-                  <FaChevronDown className={`text-xs transition-transform duration-200 ${showDesktopMoreMenu ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`text-xs transition-transform duration-200 ${showDesktopMoreMenu ? "rotate-180" : ""}`} />
                 </button>
 
                 {showDesktopMoreMenu && (
@@ -474,7 +472,7 @@ const stopRecording = () => {
                     onClick={() => setShowProfileMenu(false)}
                     className="mb-2 flex min-h-[40px] items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all duration-200 ease-out hover:bg-[var(--bg-card-hover)]"
                   >
-                    <RiUserLine aria-hidden="true" />
+                    <User aria-hidden="true" />
                     View Profile
                   </Link>
                   <div className="mb-2 flex min-h-[40px] items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)]">
@@ -488,7 +486,7 @@ const stopRecording = () => {
                     }}
                     className="flex min-h-[40px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--color-error)] transition-all duration-200 ease-out hover:bg-[var(--color-error-bg)]"
                   >
-                    <FaSignOutAlt aria-hidden="true" />
+                    <LogOut aria-hidden="true" />
                     Logout
                   </button>
                 </div>
@@ -542,7 +540,7 @@ const stopRecording = () => {
                     onClick={() => setShowProfileMenu(false)}
                     className="mb-2 flex min-h-[40px] items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all duration-200 ease-out hover:bg-[var(--bg-card-hover)]"
                   >
-                    <RiUserLine aria-hidden="true" />
+                    <User aria-hidden="true" />
                     View Profile
                   </Link>
                   <div className="mb-2 flex min-h-[40px] items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-secondary)]">
@@ -556,7 +554,7 @@ const stopRecording = () => {
                     }}
                     className="flex min-h-[40px] w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--color-error)] transition-all duration-200 ease-out hover:bg-[var(--color-error-bg)]"
                   >
-                    <FaSignOutAlt aria-hidden="true" />
+                    <LogOut aria-hidden="true" />
                     Logout
                   </button>
                 </div>
@@ -615,7 +613,7 @@ const stopRecording = () => {
               className="flex min-h-[48px] w-[72px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-1 text-[10px] font-semibold text-[var(--text-secondary)] transition-all duration-200 ease-out active:scale-95 tap-target"
             >
               <div className="rounded-lg p-1.5">
-                <RiAppsLine className="text-base" aria-hidden="true" />
+                <Grid className="text-base" aria-hidden="true" />
               </div>
               <span className="text-center leading-tight whitespace-nowrap">More</span>
             </button>
@@ -744,7 +742,7 @@ const stopRecording = () => {
         }}
         title="Add Manually"
       >
-        <FaEdit className="text-lg" />
+        <Pencil className="text-lg" />
       </button>
     </div>
   )}
@@ -760,7 +758,7 @@ const stopRecording = () => {
       color: "var(--text-inverse)",
     }}
   >
-    <FaPlus
+    <Plus
       className={`text-xl transform transition-transform ${
         expanded ? "rotate-45" : ""
       }`}
@@ -868,7 +866,7 @@ const stopRecording = () => {
                     <p className="text-white/70 text-sm mb-1">
                       Drag & drop a receipt image here or click to upload
                     </p>
-                    <FaCamera className="mx-auto text-3xl text-yellow-300" />
+                    <Camera className="mx-auto text-3xl text-yellow-300" />
                   </div>
 
                   <input
@@ -899,7 +897,7 @@ const stopRecording = () => {
                     }}
                     className="bg-yellow-400 hover:bg-yellow-300 text-indigo-900 px-4 py-3 rounded-lg font-semibold w-full flex items-center justify-center gap-2"
                   >
-                    <FaEdit /> Add Manually
+                    <Pencil /> Add Manually
                   </button>
                 </>
               )}

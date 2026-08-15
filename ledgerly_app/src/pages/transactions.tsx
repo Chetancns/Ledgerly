@@ -2,17 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  RiAddLine,
-  RiArrowLeftSLine,
-  RiArrowRightSLine,
-  RiCloseLine,
-  RiDeleteBinLine,
-  RiEdit2Line,
-  RiFolderLine,
-  RiSearchLine,
-  RiSparklingLine,
-  RiTaskLine,
-} from "react-icons/ri";
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Trash2,
+  Pencil,
+  Folder,
+  Search,
+  Sparkles,
+  CheckSquare,
+} from "lucide-react";
 import Layout from "../components/Layout";
 import TransactionForm from "../components/TransactionForm";
 import StatusBadge from "../components/StatusBadge";
@@ -300,8 +300,8 @@ export default function Transactions() {
               <p className="mt-2 text-sm text-[var(--text-secondary)]">Compact, scan-friendly transactions with quick actions.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => { setEditing(null); setShowComposer(true); }}><RiAddLine />Add transaction</button>
-              <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => { setEditing(null); setShowComposer(true); setAiSignal((x) => x + 1); }}><RiSparklingLine />AI import</button>
+              <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => { setEditing(null); setShowComposer(true); }}><Plus />Add transaction</button>
+              <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => { setEditing(null); setShowComposer(true); setAiSignal((x) => x + 1); }}><Sparkles />AI import</button>
               <button className="dashboard-filter-pill inline-flex items-center gap-2" onClick={() => setShowBalanceModal(true)}>Quick view</button>
             </div>
           </div>
@@ -309,8 +309,8 @@ export default function Transactions() {
 
         <section className="dashboard-surface sticky top-20 z-20 p-4 sm:top-24">
           <div className="grid gap-2 lg:grid-cols-12 lg:items-end">
-            <div className="lg:col-span-4"><label className="text-xs text-[var(--text-muted)]">Search</label><div className="mt-1 flex items-center gap-2 rounded-xl border border-[var(--input-border)] px-3 py-2"><RiSearchLine /><input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none" /></div></div>
-            <div className="lg:col-span-4"><label className="text-xs text-[var(--text-muted)]">Period</label><div className="mt-1 flex items-center gap-2"><button onClick={() => { const d = new Date(selectedYear, selectedMonth - 2, 1); setSelectedMonth(d.getMonth() + 1); setSelectedYear(d.getFullYear()); }}><RiArrowLeftSLine /></button><span className="text-sm font-semibold text-[var(--text-primary)]">{MONTHS[selectedMonth - 1]} {selectedYear}</span><button onClick={() => { const d = new Date(selectedYear, selectedMonth, 1); setSelectedMonth(d.getMonth() + 1); setSelectedYear(d.getFullYear()); }}><RiArrowRightSLine /></button><select value={`${selectedYear}-${selectedMonth}`} onChange={(e) => { const [y, m] = e.target.value.split("-").map(Number); setSelectedYear(y); setSelectedMonth(m); }} className="rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-1 text-sm">{quickMonthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div></div>
+            <div className="lg:col-span-4"><label className="text-xs text-[var(--text-muted)]">Search</label><div className="mt-1 flex items-center gap-2 rounded-xl border border-[var(--input-border)] px-3 py-2"><Search /><input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none" /></div></div>
+            <div className="lg:col-span-4"><label className="text-xs text-[var(--text-muted)]">Period</label><div className="mt-1 flex items-center gap-2"><button onClick={() => { const d = new Date(selectedYear, selectedMonth - 2, 1); setSelectedMonth(d.getMonth() + 1); setSelectedYear(d.getFullYear()); }}><ChevronLeft /></button><span className="text-sm font-semibold text-[var(--text-primary)]">{MONTHS[selectedMonth - 1]} {selectedYear}</span><button onClick={() => { const d = new Date(selectedYear, selectedMonth, 1); setSelectedMonth(d.getMonth() + 1); setSelectedYear(d.getFullYear()); }}><ChevronRight /></button><select value={`${selectedYear}-${selectedMonth}`} onChange={(e) => { const [y, m] = e.target.value.split("-").map(Number); setSelectedYear(y); setSelectedMonth(m); }} className="rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-1 text-sm">{quickMonthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div></div>
             <div className="lg:col-span-4 grid grid-cols-2 gap-2">
               <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
               <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All categories</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
@@ -389,11 +389,11 @@ export default function Transactions() {
                       <div className="flex items-center justify-between">
                         <StatusBadge status={t.status} size="sm" />
                         <div className="flex gap-1">
-                          <button onClick={() => { setEditing(t); setShowComposer(true); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiEdit2Line /></button>
-                          <button onClick={() => { setSingleCategorizeId(t.id); setSingleCategory(t.categoryId || ""); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiFolderLine /></button>
-                          <button onClick={() => void duplicateTx(t)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiAddLine /></button>
-                          {t.status === "pending" && <button onClick={() => void markPosted(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><RiTaskLine /></button>}
-                          <button onClick={() => setDeleteConfirm(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5 text-[var(--color-error)]"><RiDeleteBinLine /></button>
+                          <button onClick={() => { setEditing(t); setShowComposer(true); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><Pencil /></button>
+                          <button onClick={() => { setSingleCategorizeId(t.id); setSingleCategory(t.categoryId || ""); }} className="rounded-lg border border-[var(--border-primary)] p-1.5"><Folder /></button>
+                          <button onClick={() => void duplicateTx(t)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><Plus /></button>
+                          {t.status === "pending" && <button onClick={() => void markPosted(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5"><CheckSquare /></button>}
+                          <button onClick={() => setDeleteConfirm(t.id)} className="rounded-lg border border-[var(--border-primary)] p-1.5 text-[var(--color-error)]"><Trash2 /></button>
                         </div>
                       </div>
                     </li>
@@ -437,7 +437,7 @@ export default function Transactions() {
                   className="rounded-full border border-[var(--border-primary)] p-2"
                   aria-label="Close drawer"
                 >
-                  <RiCloseLine />
+                  <X />
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-auto">

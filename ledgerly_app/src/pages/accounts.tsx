@@ -7,7 +7,7 @@ import {
   updateAccount,
 } from "../services/accounts";
 import { Account, AccountType } from "../models/account";
-import { TrashIcon } from "@heroicons/react/24/solid";
+import { Trash2 } from "lucide-react";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast, { Toaster } from "react-hot-toast";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
@@ -199,7 +199,7 @@ export default function Accounts() {
                     style={{ color: "var(--color-error)" }}
                     title="Delete"
                   >
-                    <TrashIcon className="h-5 w-5" />
+                    <Trash2 className="h-5 w-5" />
                   </button>
                 </div>
               </li>
