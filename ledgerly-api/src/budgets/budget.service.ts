@@ -32,6 +32,18 @@ export class BudgetsService {
     this.openai = new OpenAI({ apiKey: this.config.get('OPENAI_API_KEY') });
   }
 
+  private async getBudgetTransactionType(userId: string, categoryId?: string) {
+    if (!categoryId) {
+      return 'expense' as const;
+    }
+
+    const category = await this.catRepo.findOne({
+      where: { id: categoryId, userId, IsDeleted: false },
+    });
+
+    return category?.type === 'income' ? 'income' : 'expense';
+  }
+
   async utilization(userId: string, budgetId: string) {
     const b = await this.budRepo.findOne({ where: { id: budgetId, userId } });
     if (!b) return null;
@@ -53,8 +65,9 @@ export class BudgetsService {
       transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
     };
     if (b.categoryId) where.categoryId = b.categoryId;
+    const type = await this.getBudgetTransactionType(userId, b.categoryId);
 
-    const txs = await this.txRepo.find({ where: where as any });
+    const txs = await this.txRepo.find({ where: { ...(where as any), type } });
     const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
     const pct = b.amount ? (spent / Number(b.amount)) * 100 : 0;
 
@@ -93,7 +106,7 @@ export class BudgetsService {
       const txs = await this.txRepo.find({
         where: {
           userId,
-          type: 'expense',
+          type: await this.getBudgetTransactionType(userId, b.categoryId),
           categoryId: b.categoryId,
           ...(b.startDate && b.endDate && {
             transactionDate: Between(b.startDate, b.endDate),
@@ -183,7 +196,8 @@ export class BudgetsService {
         transactionDate: Between(from.format('YYYY-MM-DD'), to.format('YYYY-MM-DD')),
       };
       if (b.categoryId) where.categoryId = b.categoryId;
-      const txs = await this.txRepo.find({ where: where as any });
+      const type = await this.getBudgetTransactionType(userId, b.categoryId);
+      const txs = await this.txRepo.find({ where: { ...(where as any), type } });
       const spent = txs.reduce((sum, t) => sum + Number(t.amount), 0);
       const pct = b.amount ? (spent / Number(b.amount)) * 100 : 0;
       results.push({

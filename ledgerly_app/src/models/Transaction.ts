@@ -11,9 +11,9 @@ export interface Tag {
 export interface Transaction {
     id: string;
     accountId: string;
-    categoryId: string;
+    categoryId?: string | null;
     amount: string;
-    type?: TransactionType;
+    type: TransactionType;
     description?: string;
     transactionDate: string;
     toAccountId?: string | null; // for transfers, the destination account

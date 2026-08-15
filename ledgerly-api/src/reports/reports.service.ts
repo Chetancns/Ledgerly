@@ -73,7 +73,10 @@ export class ReportsService {
     // 🧮 Compute actual spending per category
     const actualMap: Record<string, number> = {};
     txs.forEach((t) => {
-      const key = t.categoryId || 'uncategorized';
+      if (t.type !== 'expense' && t.type !== 'income') {
+        return;
+      }
+      const key = `${t.categoryId || 'uncategorized'}:${t.type}`;
       actualMap[key] = (actualMap[key] || 0) + Number(t.amount);
     });
 
@@ -89,9 +92,11 @@ export class ReportsService {
     let unbudgeted = 0;
 
     for (const b of budgets) {
-      const actual = actualMap[b.categoryId] || 0;
+      const budgetCategoryType = b.category?.type === 'income' ? 'income' : 'expense';
+      const actualKey = `${b.categoryId || 'uncategorized'}:${budgetCategoryType}`;
+      const actual = actualMap[actualKey] || 0;
       const budget = Number(b.amount);
-      const type = b.category?.type || 'expense'; // default to expense
+      const type = budgetCategoryType;
 
       totalBudget += budget;
       totalActual += actual;
@@ -113,19 +118,20 @@ export class ReportsService {
         status: actual > budget ? 'overspent' : 'within_budget',
       });
 
-      delete actualMap[b.categoryId];
+      delete actualMap[actualKey];
     }
 
     // 6️⃣ Handle categories with actuals but no budget
-    for (const [catId, amount] of Object.entries(actualMap)) {
+    for (const [compositeKey, amount] of Object.entries(actualMap)) {
+      const [catId, txType] = compositeKey.split(':');
       const cat = categories.find((c) => c.id === catId);
-      const type = cat?.type || 'expense';
+      const type = txType === 'income' ? 'income' : 'expense';
 
       if (type === 'income') totalActualIncome += amount;
       else totalActualExpense += amount;
 
       categoriesResult.push({
-        categoryId: catId,
+        categoryId: catId || 'uncategorized',
         categoryName: cat?.name || 'Uncategorized',
         type,
         budget: 0,
@@ -134,7 +140,9 @@ export class ReportsService {
       });
 
       totalActual += amount;
-      unbudgeted += amount;
+      if (type !== 'income') {
+        unbudgeted += amount;
+      }
     }
 
     // 7️⃣ Compute overspent
@@ -246,7 +254,7 @@ export class ReportsService {
       where:{
         userId,
       transactionDate: Between(start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')),
-      type: In(['expense','savings','transfer']),
+      type: In(['expense']),
       },
     relations: ['category'],
     });
@@ -260,7 +268,7 @@ export class ReportsService {
 
       if (!grouped[t.categoryId]) {
         grouped[t.categoryId] = {
-          categoryName: t.category?.name ?? 'Unknown',
+          categoryName: t.category?.name ?? 'Uncategorized',
           total: 0,
         };
       }

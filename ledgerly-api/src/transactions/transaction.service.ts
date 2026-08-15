@@ -1,16 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, DataSource, In, LessThanOrEqual } from 'typeorm';
-import { Transaction } from './transaction.entity';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { Between, DataSource, In, LessThanOrEqual, Repository } from 'typeorm';
+import dayjs from 'dayjs';
+import { Cron } from '@nestjs/schedule';
+import { Transaction, TxStatus, TxType } from './transaction.entity';
 import { Account } from '../accounts/account.entity';
 import { Category } from '../categories/category.entity';
 import { Tag } from '../tags/tag.entity';
 import { withTransaction } from '../utils/transaction.util';
 import { parseSafeAmount } from 'src/utils/number.util';
-import { Cron } from '@nestjs/schedule';
-import dayjs from 'dayjs';
 import { NotificationsService } from '../notifications/notifications.service';
+
+type TransactionInput = Partial<Transaction> & { tagIds?: string[] };
+
 @Injectable()
 export class TransactionsService {
   private readonly logger = new Logger(TransactionsService.name);
@@ -24,177 +26,298 @@ export class TransactionsService {
     private notificationsService: NotificationsService,
   ) {}
 
-  // ✅ CREATE
-  async create(dto: Partial<Transaction> & { tagIds?: string[] }) {
+  private isTransferLike(type?: string | null): boolean {
+    return type === 'transfer' || type === 'savings';
+  }
+
+  private normalizeType(type?: TxType, toAccountId?: string | null): TxType | undefined {
+    if (type === 'savings' && toAccountId) {
+      return 'transfer';
+    }
+    return type;
+  }
+
+  private async getCategoryOrThrow(
+    categoryRepo: Repository<Category>,
+    userId: string,
+    categoryId: string,
+  ): Promise<Category> {
+    const category = await categoryRepo.findOne({ where: { id: categoryId, userId, IsDeleted: false } });
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+    return category;
+  }
+
+  private async resolveType(
+    input: TransactionInput,
+    userId: string,
+    categoryRepo: Repository<Category>,
+    fallbackType?: TxType,
+  ): Promise<TxType> {
+    const explicitType = this.normalizeType(input.type, input.toAccountId);
+    if (explicitType) {
+      return explicitType;
+    }
+
+    if (fallbackType) {
+      return this.normalizeType(fallbackType, input.toAccountId) || fallbackType;
+    }
+
+    if (input.categoryId) {
+      const category = await this.getCategoryOrThrow(categoryRepo, userId, input.categoryId);
+      return this.normalizeType(category.type as TxType, input.toAccountId) || 'expense';
+    }
+
+    throw new BadRequestException('Transaction type is required');
+  }
+
+  private async loadTags(tagRepo: Repository<Tag>, userId: string, tagIds?: string[]) {
+    if (!tagIds || tagIds.length === 0) {
+      return [];
+    }
+
+    const tags = await tagRepo.find({
+      where: { id: In(tagIds), userId, isDeleted: false },
+    });
+
+    if (tags.length !== tagIds.length) {
+      throw new NotFoundException('One or more tags not found');
+    }
+
+    return tags;
+  }
+
+  private async validateAndNormalizeInput(
+    input: TransactionInput,
+    userId: string,
+    categoryRepo: Repository<Category>,
+    current?: Transaction,
+  ) {
+    const amountValue = parseSafeAmount(input.amount ?? current?.amount);
+    if (!amountValue || amountValue <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    const accountId = (input.accountId ?? current?.accountId ?? null) || null;
+    const rawToAccountId =
+      input.toAccountId !== undefined ? input.toAccountId : (current?.toAccountId ?? null);
+    const toAccountId = rawToAccountId || null;
+    const type = await this.resolveType(
+      { ...input, toAccountId },
+      userId,
+      categoryRepo,
+      current?.type,
+    );
+
+    if (!accountId) {
+      throw new BadRequestException('Account is required');
+    }
+
+    let categoryId =
+      input.categoryId !== undefined ? input.categoryId || null : (current?.categoryId ?? null);
+
+    if (this.isTransferLike(type)) {
+      if (!toAccountId) {
+        throw new BadRequestException('Destination account is required for transfers');
+      }
+      if (accountId === toAccountId) {
+        throw new BadRequestException('Source and destination accounts must be different');
+      }
+      categoryId = null;
+    } else if (toAccountId) {
+      throw new BadRequestException('Destination account is only allowed for transfers');
+    }
+
+    if (categoryId) {
+      await this.getCategoryOrThrow(categoryRepo, userId, categoryId);
+    }
+
+    const status = (input.status ?? current?.status ?? 'posted') as TxStatus;
+
+    return {
+      amountValue,
+      amount: amountValue.toFixed(2),
+      type,
+      accountId,
+      categoryId,
+      toAccountId: this.isTransferLike(type) ? toAccountId : null,
+      status,
+    };
+  }
+
+  private async getAccountOrThrow(accountRepo: Repository<Account>, userId: string, accountId: string) {
+    const account = await accountRepo.findOne({ where: { id: accountId, userId, IsDeleted: false } });
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+    return account;
+  }
+
+  private async applyBalanceEffect(
+    accountRepo: Repository<Account>,
+    userId: string,
+    tx: Pick<Transaction, 'type' | 'status' | 'accountId' | 'toAccountId' | 'amount'>,
+  ) {
+    if ((tx.status || 'posted') !== 'posted') {
+      return;
+    }
+
+    const amount = parseSafeAmount(tx.amount);
+    if (!amount) {
+      throw new BadRequestException('Invalid amount');
+    }
+
+    if (this.isTransferLike(tx.type)) {
+      if (!tx.accountId || !tx.toAccountId) {
+        throw new BadRequestException('Transfers require source and destination accounts');
+      }
+
+      const [fromAccount, toAccount] = await Promise.all([
+        this.getAccountOrThrow(accountRepo, userId, tx.accountId),
+        this.getAccountOrThrow(accountRepo, userId, tx.toAccountId),
+      ]);
+
+      fromAccount.balance = (Number(fromAccount.balance) - amount).toFixed(2);
+      toAccount.balance = (Number(toAccount.balance) + amount).toFixed(2);
+      await accountRepo.save([fromAccount, toAccount]);
+      return;
+    }
+
+    if (!tx.accountId) {
+      throw new BadRequestException('Account is required');
+    }
+
+    const account = await this.getAccountOrThrow(accountRepo, userId, tx.accountId);
+    const direction = tx.type === 'income' ? 1 : -1;
+    account.balance = (Number(account.balance) + direction * amount).toFixed(2);
+    await accountRepo.save(account);
+  }
+
+  private async reverseBalanceEffect(
+    accountRepo: Repository<Account>,
+    userId: string,
+    tx: Pick<Transaction, 'type' | 'status' | 'accountId' | 'toAccountId' | 'amount'>,
+  ) {
+    if ((tx.status || 'posted') !== 'posted') {
+      return;
+    }
+
+    const amount = parseSafeAmount(tx.amount);
+    if (!amount) {
+      throw new BadRequestException('Invalid amount');
+    }
+
+    if (this.isTransferLike(tx.type)) {
+      if (!tx.accountId || !tx.toAccountId) {
+        return;
+      }
+
+      const [fromAccount, toAccount] = await Promise.all([
+        this.getAccountOrThrow(accountRepo, userId, tx.accountId),
+        this.getAccountOrThrow(accountRepo, userId, tx.toAccountId),
+      ]);
+
+      fromAccount.balance = (Number(fromAccount.balance) + amount).toFixed(2);
+      toAccount.balance = (Number(toAccount.balance) - amount).toFixed(2);
+      await accountRepo.save([fromAccount, toAccount]);
+      return;
+    }
+
+    if (!tx.accountId) {
+      return;
+    }
+
+    const account = await this.getAccountOrThrow(accountRepo, userId, tx.accountId);
+    const direction = tx.type === 'income' ? -1 : 1;
+    account.balance = (Number(account.balance) + direction * amount).toFixed(2);
+    await accountRepo.save(account);
+  }
+
+  async create(dto: TransactionInput) {
     return withTransaction(this.dataSource, async (manager) => {
       const txRepo = manager.withRepository(this.txRepo);
       const accRepo = manager.withRepository(this.accRepo);
       const catRepo = manager.withRepository(this.catRepo);
       const tagRepo = manager.withRepository(this.tagRepo);
 
-      const amount = parseSafeAmount(dto.amount);
-      if (!amount) throw new Error('Invalid amount');
-
-      if (!dto.type && dto.categoryId) {
-        const cat = await catRepo.findOne({ where: { id: dto.categoryId, userId: dto.userId } });
-        if (!cat) throw new NotFoundException('Category not found');
-        dto.type = cat.type;
+      if (!dto.userId) {
+        throw new BadRequestException('User is required');
       }
 
-      // Set default status to 'posted' if not provided
-      const status = dto.status || 'posted';
+      const normalized = await this.validateAndNormalizeInput(dto, dto.userId, catRepo);
+      const tags = await this.loadTags(tagRepo, dto.userId, dto.tagIds);
 
-      // Only affect account balance if transaction is posted (not pending or cancelled)
-      const shouldAffectBalance = status === 'posted';
+      await this.applyBalanceEffect(accRepo, dto.userId, {
+        type: normalized.type,
+        status: normalized.status,
+        accountId: normalized.accountId,
+        toAccountId: normalized.toAccountId,
+        amount: normalized.amount,
+      });
 
-      // handle transfers
-      if (shouldAffectBalance && (dto.type === 'transfer' || dto.type === 'savings')) {
-        const fromAcc = await accRepo.findOne({ where: { id: dto.accountId!, userId: dto.userId } });
-        const toAcc = await accRepo.findOne({ where: { id: dto.toAccountId!, userId: dto.userId } });
-        if (!fromAcc || !toAcc) throw new NotFoundException('Account not found');
+      const transaction = txRepo.create({
+        ...dto,
+        amount: normalized.amount,
+        type: normalized.type,
+        status: normalized.status,
+        accountId: normalized.accountId,
+        categoryId: normalized.categoryId,
+        toAccountId: normalized.toAccountId,
+        tags,
+      });
 
-          fromAcc.balance = (Number(fromAcc.balance) - Number(dto.amount)).toFixed(2);
-          toAcc.balance = (Number(toAcc.balance) + Number(dto.amount)).toFixed(2);
-
-        await accRepo.save([fromAcc, toAcc]);
-      } else if (shouldAffectBalance && dto.accountId) {
-        const acc = await accRepo.findOne({ where: { id: dto.accountId, userId: dto.userId } });
-        if (!acc) throw new NotFoundException('Account not found');
-
-        const sign = dto.type === 'income' ? 1 : -1;
-        acc.balance = (Number(acc.balance) + sign * amount).toFixed(2);
-        await accRepo.save(acc);
-      }
-
-      // Handle tags
-      let tags: Tag[] = [];
-      if (dto.tagIds && dto.tagIds.length > 0) {
-        tags = await tagRepo.find({
-          where: { id: In(dto.tagIds), userId: dto.userId, isDeleted: false },
-        });
-        if (tags.length !== dto.tagIds.length) {
-          throw new NotFoundException('One or more tags not found');
-        }
-      }
-
-      const tx = txRepo.create({ ...dto, amount: amount.toString(), status, tags });
-      return txRepo.save(tx);
+      return txRepo.save(transaction);
     });
   }
-  
-// ✅ UPDATE
-  async update(userId: string, id: string, dto: Partial<Transaction> & { tagIds?: string[] }) {
+
+  async update(userId: string, id: string, dto: TransactionInput) {
     return withTransaction(this.dataSource, async (manager) => {
       const txRepo = manager.withRepository(this.txRepo);
       const accRepo = manager.withRepository(this.accRepo);
       const catRepo = manager.withRepository(this.catRepo);
       const tagRepo = manager.withRepository(this.tagRepo);
 
-      const tx = await txRepo.findOne({ where: { id, userId }, relations: ['tags'] });
-      if (!tx) throw new NotFoundException('Transaction not found');
-
-      const oldAmount = parseSafeAmount(tx.amount);
-      const newAmount = parseSafeAmount(dto.amount ?? tx.amount);
-      const oldStatus = tx.status || 'posted';
-      const newStatus = dto.status ?? oldStatus;
-
-      // Determine if we need to update balance based on status transition
-      const wasPosted = oldStatus === 'posted';
-      const willBePosted = newStatus === 'posted';
-
-      // Reverse old effect only if it was posted
-      if (wasPosted) {
-        if (tx.type === 'transfer' || tx.type === 'savings') {
-          // Reverse transfer/savings
-          const fromAcc = tx.accountId ? await accRepo.findOne({ where: { id: tx.accountId, userId } }) : null;
-          const toAcc = tx.toAccountId ? await accRepo.findOne({ where: { id: tx.toAccountId, userId } }) : null;
-          
-          if (fromAcc) {
-            fromAcc.balance = (Number(fromAcc.balance) + oldAmount).toFixed(2);
-            await accRepo.save(fromAcc);
-          }
-          if (toAcc) {
-            toAcc.balance = (Number(toAcc.balance) - oldAmount).toFixed(2);
-            await accRepo.save(toAcc);
-          }
-        } else if (tx.accountId) {
-          // Reverse regular transaction
-          const acc = await accRepo.findOne({ where: { id: tx.accountId, userId } });
-          if (acc) {
-            const sign = tx.type === 'income' ? -1 : 1;
-            acc.balance = (Number(acc.balance) + sign * oldAmount).toFixed(2);
-            await accRepo.save(acc);
-          }
-        }
+      const transaction = await txRepo.findOne({ where: { id, userId }, relations: ['tags'] });
+      if (!transaction) {
+        throw new NotFoundException('Transaction not found');
       }
 
-      // Determine transaction type for new effect
-      if (!dto.type && dto.categoryId) {
-        const cat = await catRepo.findOne({ where: { id: dto.categoryId, userId } });
-        if (!cat) throw new NotFoundException('Category not found');
-        dto.type = cat.type;
-      }
+      await this.reverseBalanceEffect(accRepo, userId, transaction);
 
-      const transactionType = dto.type || tx.type;
-      const accountIdToUpdate = dto.accountId ?? tx.accountId;
-      const toAccountIdToUpdate = dto.toAccountId ?? tx.toAccountId;
+      const normalized = await this.validateAndNormalizeInput(dto, userId, catRepo, transaction);
 
-      // Apply new effect if it will be posted
-      if (willBePosted) {
-        if (transactionType === 'transfer' || transactionType === 'savings') {
-          // Apply transfer/savings
-          const fromAcc = accountIdToUpdate ? await accRepo.findOne({ where: { id: accountIdToUpdate, userId } }) : null;
-          const toAcc = toAccountIdToUpdate ? await accRepo.findOne({ where: { id: toAccountIdToUpdate, userId } }) : null;
-          
-          if (!fromAcc || !toAcc) throw new NotFoundException('Account not found for transfer');
-          
-          fromAcc.balance = (Number(fromAcc.balance) - newAmount).toFixed(2);
-          toAcc.balance = (Number(toAcc.balance) + newAmount).toFixed(2);
-          await accRepo.save([fromAcc, toAcc]);
-        } else if (accountIdToUpdate) {
-          // Apply regular transaction
-          const acc = await accRepo.findOne({ where: { id: accountIdToUpdate, userId } });
-          if (!acc) throw new NotFoundException('Account not found');
-          const sign = transactionType === 'income' ? 1 : -1;
-          acc.balance = (Number(acc.balance) + sign * newAmount).toFixed(2);
-          await accRepo.save(acc);
-        }
-      }
-
-      // Handle tags update
       if (dto.tagIds !== undefined) {
-        if (dto.tagIds.length > 0) {
-          const tags = await tagRepo.find({
-            where: { id: In(dto.tagIds), userId, isDeleted: false },
-          });
-          if (tags.length !== dto.tagIds.length) {
-            throw new NotFoundException('One or more tags not found');
-          }
-          tx.tags = tags;
-        } else {
-          tx.tags = [];
-        }
+        transaction.tags = await this.loadTags(tagRepo, userId, dto.tagIds);
       }
 
-      Object.assign(tx, dto, { amount: newAmount });
-      return txRepo.save(tx);
+      Object.assign(transaction, dto, {
+        amount: normalized.amount,
+        type: normalized.type,
+        status: normalized.status,
+        accountId: normalized.accountId,
+        categoryId: normalized.categoryId,
+        toAccountId: normalized.toAccountId,
+      });
+
+      await this.applyBalanceEffect(accRepo, userId, transaction);
+      return txRepo.save(transaction);
     });
   }
-
 
   async findByUser(
-    userId: string, 
-    filters?: { 
-      from?: string; 
-      to?: string; 
-      categoryId?: string; 
+    userId: string,
+    filters?: {
+      from?: string;
+      to?: string;
+      categoryId?: string;
       accountId?: string;
-      type?: 'expense'|'income' | 'savings'|'transfer';
+      type?: 'expense' | 'income' | 'savings' | 'transfer';
       status?: 'pending' | 'posted' | 'cancelled';
       tagIds?: string[];
       skip?: number;
       take?: number;
-    }
+    },
   ) {
     const qb = this.txRepo.createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.tags', 'tag')
@@ -203,9 +326,9 @@ export class TransactionsService {
       .where('transaction.userId = :userId', { userId });
 
     if (filters?.from && filters?.to) {
-      qb.andWhere('transaction.transactionDate BETWEEN :from AND :to', { 
-        from: filters.from, 
-        to: filters.to 
+      qb.andWhere('transaction.transactionDate BETWEEN :from AND :to', {
+        from: filters.from,
+        to: filters.to,
       });
     }
     if (filters?.categoryId) {
@@ -226,17 +349,13 @@ export class TransactionsService {
 
     qb.orderBy('transaction.transactionDate', 'DESC')
       .addOrderBy('transaction.createdAt', 'DESC');
-    
-    // If pagination is requested, return paginated results with total count
+
     if (filters?.skip !== undefined || filters?.take !== undefined) {
-      qb.skip(filters.skip || 0)
-        .take(filters.take || 50);
-      
+      qb.skip(filters.skip || 0).take(filters.take || 50);
       const [data, total] = await qb.getManyAndCount();
       return { data, total, skip: filters.skip || 0, take: filters.take || 50 };
     }
-    
-    // Otherwise return all results (backward compatibility)
+
     return qb.getMany();
   }
 
@@ -248,7 +367,7 @@ export class TransactionsService {
       categoryId?: string;
       accountId?: string;
       type?: 'expense' | 'income' | 'savings' | 'transfer';
-    }
+    },
   ) {
     const where: Partial<Record<keyof Transaction, any>> = { userId };
     if (filters?.from && filters?.to) where.transactionDate = Between(filters.from, filters.to);
@@ -257,14 +376,11 @@ export class TransactionsService {
     if (filters?.type) where.type = filters.type;
 
     const transactions = await this.txRepo.find({ where });
-    
-    const summary = transactions.reduce((acc, tx) => {
-      const amt = Number(tx.amount) || 0;
-      acc[tx.type] = (acc[tx.type] || 0) + amt;
-      return acc;
+    return transactions.reduce((summary, tx) => {
+      const amount = Number(tx.amount) || 0;
+      summary[tx.type] = (summary[tx.type] || 0) + amount;
+      return summary;
     }, {} as Record<string, number>);
-
-    return summary;
   }
 
   async delete(userId: string, id: string) {
@@ -272,67 +388,28 @@ export class TransactionsService {
       const txRepo = manager.withRepository(this.txRepo);
       const accRepo = manager.withRepository(this.accRepo);
 
-      const tx = await txRepo.findOne({ where: { id, userId } });
-      if (!tx) throw new NotFoundException('Transaction not found');
+      const transaction = await txRepo.findOne({ where: { id, userId } });
+      if (!transaction) {
+        throw new NotFoundException('Transaction not found');
+      }
 
-      // Check if this transaction is referenced by any debt_updates
       const debtUpdateCheck = await manager.query(
         `SELECT COUNT(*) as count FROM dbo.debt_updates WHERE "transactionId" = $1`,
-        [id]
+        [id],
       );
-      
-      if (debtUpdateCheck[0]?.count > 0) {
+
+      if (Number(debtUpdateCheck[0]?.count || 0) > 0) {
         throw new BadRequestException(
-          'Cannot delete transaction that is linked to debt payment updates. Please delete the debt payment update first.'
+          'Cannot delete transaction that is linked to debt payment updates. Please delete the debt payment update first.',
         );
       }
 
-      const amount = Number(tx.amount);
-      if (isNaN(amount)) throw new Error('Invalid amount in transaction');
-
-      // Only reverse balance if transaction was posted
-      const wasPosted = (tx.status || 'posted') === 'posted';
-
-      if (wasPosted) {
-        // Case 1️⃣ — Transfer or Savings: reverse both accounts
-        if (tx.type === 'transfer' || tx.type === 'savings') {
-          const fromAcc = tx.accountId
-            ? await accRepo.findOne({ where: { id: tx.accountId, userId } })
-            : null;
-          const toAcc = tx.toAccountId
-            ? await accRepo.findOne({ where: { id: tx.toAccountId, userId } })
-            : null;
-
-          if (fromAcc) {
-            fromAcc.balance = (Number(fromAcc.balance) + amount).toFixed(2);
-            await accRepo.save(fromAcc);
-          }
-          if (toAcc) {
-            toAcc.balance = (Number(toAcc.balance) - amount).toFixed(2);
-            await accRepo.save(toAcc);
-          }
-        }
-
-        // Case 2️⃣ — Regular income/expense
-        else if (tx.accountId) {
-          const acc = await accRepo.findOne({ where: { id: tx.accountId, userId } });
-          if (acc) {
-            const sign = tx.type === 'income' ? -1 : 1;
-            acc.balance = (Number(acc.balance) + sign * amount).toFixed(2);
-            await accRepo.save(acc);
-          }
-        }
-      }
-
-      // Case 3️⃣ — Delete transaction itself
+      await this.reverseBalanceEffect(accRepo, userId, transaction);
       await txRepo.delete(id);
-
-      // ✅ If anything above fails, TypeORM rolls back automatically
       return { deleted: true };
     });
   }
 
-  // ✅ Get pending transactions that need to be posted
   async getPendingTransactions(userId: string) {
     return this.txRepo.find({
       where: { userId, status: 'pending' },
@@ -341,12 +418,10 @@ export class TransactionsService {
     });
   }
 
-  // ✅ Transition transaction status (e.g., pending -> posted)
   async updateStatus(userId: string, id: string, newStatus: 'pending' | 'posted' | 'cancelled') {
     return this.update(userId, id, { status: newStatus });
   }
 
-  // ✅ Bulk update status for multiple transactions (parallel processing)
   async bulkUpdateStatus(userId: string, ids: string[], newStatus: 'pending' | 'posted' | 'cancelled') {
     const updatePromises = ids.map(async (id) => {
       try {
@@ -357,25 +432,19 @@ export class TransactionsService {
       }
     });
 
-    return Promise.allSettled(updatePromises).then(results =>
-      results.map(result => result.status === 'fulfilled' ? result.value : result.reason)
+    return Promise.allSettled(updatePromises).then((results) =>
+      results.map((result) => (result.status === 'fulfilled' ? result.value : result.reason)),
     );
   }
 
-  // 🕑 AUTO-POST PENDING TRANSACTIONS (Cron Job)
-  // Runs at 3:00 AM daily to automatically post pending transactions that have reached their expected post date
-  // Set env var CRON_TIMEZONE to your region, e.g., 'Asia/Kolkata' or 'America/Los_Angeles'.
-  @Cron('0 3 * * *', { timeZone: process.env.CRON_TIMEZONE || 'UTC' }) // 3:00 AM daily
+  @Cron('0 3 * * *', { timeZone: process.env.CRON_TIMEZONE || 'UTC' })
   async autoPostPendingTransactions() {
     this.logger.log('Starting auto-post of pending transactions...');
     const today = dayjs().format('YYYY-MM-DD');
 
     try {
-      // Find pending transactions where expectedPostDate is today or earlier
       const dueTransactions = await this.txRepo.find({
-        where: [
-          { status: 'pending', expectedPostDate: LessThanOrEqual(today) },
-        ],
+        where: [{ status: 'pending', expectedPostDate: LessThanOrEqual(today) }],
         relations: ['user', 'account', 'category'],
       });
 
@@ -384,52 +453,44 @@ export class TransactionsService {
         return { posted: 0, errors: [] };
       }
 
-      this.logger.log(`Found ${dueTransactions.length} pending transaction(s) to post.`);
-
       const results = {
         posted: 0,
         errors: [] as Array<{ id: string; error: string }>,
       };
 
-      // Process each transaction
-      for (const tx of dueTransactions) {
+      for (const transaction of dueTransactions) {
         try {
-          await this.updateStatus(tx.userId, tx.id, 'posted');
+          await this.updateStatus(transaction.userId, transaction.id, 'posted');
           results.posted++;
-          this.logger.log(`Posted transaction ${tx.id} for user ${tx.userId}`);
 
-          // Create notification for user
-          const accountName = tx.account?.name || 'Unknown Account';
-          const categoryName = tx.category?.name || 'Unknown Category';
-          const amount = parseFloat(tx.amount).toFixed(2);
-          
+          const accountName = transaction.account?.name || 'Unknown Account';
+          const categoryName = transaction.category?.name || 'Uncategorized';
+          const amount = parseFloat(transaction.amount).toFixed(2);
+
           await this.notificationsService.create(
-            tx.userId,
+            transaction.userId,
             'transaction_posted',
             'Pending Transaction Posted',
             `Your pending transaction of $${amount} (${categoryName} - ${accountName}) has been automatically posted.`,
             {
-              transactionId: tx.id,
-              amount: tx.amount,
-              accountId: tx.accountId,
-              categoryId: tx.categoryId,
-              expectedPostDate: tx.expectedPostDate,
+              transactionId: transaction.id,
+              amount: transaction.amount,
+              accountId: transaction.accountId,
+              categoryId: transaction.categoryId,
+              expectedPostDate: transaction.expectedPostDate,
               actualPostDate: today,
             },
           );
         } catch (error) {
-          const errorMsg = error.message || 'Unknown error';
-          results.errors.push({ id: tx.id, error: errorMsg });
-          this.logger.error(`Failed to post transaction ${tx.id}: ${errorMsg}`);
+          results.errors.push({ id: transaction.id, error: error.message || 'Unknown error' });
+          this.logger.error(`Failed to post transaction ${transaction.id}: ${error.message}`);
         }
       }
 
-      this.logger.log(`Auto-post completed: ${results.posted} posted, ${results.errors.length} errors.`);
       return results;
     } catch (error) {
       this.logger.error('Error in auto-post cron job:', error);
       throw error;
     }
   }
-
 }

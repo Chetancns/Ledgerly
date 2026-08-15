@@ -240,7 +240,7 @@ export default function Dashboard() {
   );
 
   const categoryNameMap = useMemo(
-    () => new Map(categories.map((category) => [category.id, category.name || "Unknown"])),
+    () => new Map(categories.map((category) => [category.id, category.name || "Uncategorized"])),
     [categories]
   );
 
@@ -307,7 +307,7 @@ export default function Dashboard() {
 
     filteredTransactions.forEach((transaction) => {
       if (transaction.type !== "expense") return;
-      const categoryName = categoryNameMap.get(transaction.categoryId) || "Unknown";
+      const categoryName = categoryNameMap.get(transaction.categoryId) || "Uncategorized";
       const currentValue = totals.get(categoryName) || 0;
       totals.set(categoryName, currentValue + Number(transaction.amount || 0));
     });

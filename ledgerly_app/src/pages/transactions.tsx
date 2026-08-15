@@ -36,7 +36,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const TYPE_META: Record<TransactionType, { label: string; icon: string; color: string }> = {
   income: { label: "Income", icon: "💰", color: "var(--color-success)" },
   expense: { label: "Expense", icon: "💸", color: "var(--color-error)" },
-  savings: { label: "Savings", icon: "🏦", color: "var(--color-info)" },
+  savings: { label: "Transfer", icon: "🔁", color: "#8b5cf6" },
   transfer: { label: "Transfer", icon: "🔁", color: "#8b5cf6" },
 };
 
@@ -155,9 +155,9 @@ export default function Transactions() {
     const map = new Map<string, Transaction[]>();
     filtered.forEach((t) => {
       const label = groupBy === "account"
-        ? accountMap.get(t.accountId)?.name || "Unknown"
+        ? accountMap.get(t.accountId)?.name || "Unknown account"
         : groupBy === "category"
-          ? categoryMap.get(t.categoryId)?.name || "Unknown"
+          ? categoryMap.get(t.categoryId)?.name || "Uncategorized"
           : groupBy === "status"
             ? t.status || "posted"
             : dayjs(t.transactionDate).isSame(dayjs(), "day")
@@ -248,13 +248,13 @@ export default function Transactions() {
   };
 
   const applySingleCategory = async () => {
-    if (!singleCategorizeId || !singleCategory) return;
+    if (!singleCategorizeId) return;
     const tx = transactions.find((t) => t.id === singleCategorizeId);
     if (!tx) return;
     try {
       await updateTransaction(singleCategorizeId, {
         accountId: tx.accountId,
-        categoryId: singleCategory,
+        categoryId: singleCategory || undefined,
         amount: tx.amount,
         description: tx.description,
         transactionDate: tx.transactionDate,
@@ -278,7 +278,10 @@ export default function Transactions() {
     return { label: `${MONTHS[d.getMonth()]} ${d.getFullYear()}`, value: `${d.getFullYear()}-${d.getMonth() + 1}` };
   });
 
-  const categoryOptions = useMemo(() => categories.map((c) => ({ value: c.id, label: c.name })), [categories]);
+  const categoryOptions = useMemo(
+    () => [{ value: "", label: "Uncategorized" }, ...categories.map((c) => ({ value: c.id, label: c.name }))],
+    [categories]
+  );
 
   return (
     <Layout>
@@ -306,7 +309,7 @@ export default function Transactions() {
               <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
               <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All categories</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
               <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All status</option><option value="posted">Posted</option><option value="pending">Pending</option><option value="cancelled">Cancelled</option></select>
-              <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All types</option><option value="income">Income</option><option value="expense">Expense</option><option value="transfer">Transfer</option><option value="savings">Savings</option></select>
+              <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="all">All types</option><option value="income">Income</option><option value="expense">Expense</option><option value="transfer">Transfer</option></select>
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="date_desc">Newest</option><option value="date_asc">Oldest</option><option value="amount_desc">Amount high-low</option><option value="amount_asc">Amount low-high</option></select>
               <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className="rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-2 py-2 text-sm"><option value="none">No group</option><option value="date">Date</option><option value="account">Account</option><option value="category">Category</option><option value="status">Status</option></select>
             </div>
@@ -348,7 +351,7 @@ export default function Transactions() {
                 <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">{g.items.map((t) => {
                   const type = (t.type || "expense") as TransactionType;
                   const account = accountMap.get(t.accountId)?.name || "Unknown account";
-                  const category = categoryMap.get(t.categoryId)?.name || "Unknown category";
+                  const category = categoryMap.get(t.categoryId)?.name || "Uncategorized";
                   const toAccount = t.toAccountId ? accountMap.get(t.toAccountId)?.name || "Unknown account" : "";
                   return (
                     <li key={t.id} className="flex flex-col gap-2 rounded-xl border border-[var(--border-secondary)] bg-[var(--bg-card)] p-4">
@@ -455,7 +458,7 @@ export default function Transactions() {
 
       <AnimatePresence>{showBalanceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/55 p-4 backdrop-blur-sm" onClick={() => setShowBalanceModal(false)}><motion.div initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: 20 }} className="mx-auto max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="quick-view-title"><div className="mb-4 flex items-center justify-between"><h3 id="quick-view-title" className="text-lg font-bold text-[var(--text-primary)]">Account quick view</h3><button onClick={() => setHideBalances((x) => !x)} className="rounded-full border border-[var(--border-primary)] px-3 py-1 text-xs">{hideBalances ? "Show" : "Hide"}</button></div><p className="mb-3 text-sm text-[var(--text-secondary)]">Total balance: <span className="font-semibold text-[var(--text-primary)]">{hideBalances ? "••••••" : format(totalBalance)}</span></p><div className="space-y-2">{accounts.map((a) => <div key={a.id} className="flex items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--bg-card)] px-3 py-2"><p className="text-sm font-medium text-[var(--text-primary)]">{a.name}</p><p className="text-sm font-semibold text-[var(--text-primary)]">{hideBalances ? "••••••" : format(Number(a.balance || 0))}</p></div>)}</div></motion.div></motion.div>}</AnimatePresence>
 
-      <AnimatePresence>{!!singleCategorizeId && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[55] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" onClick={() => { setSingleCategorizeId(null); setSingleCategory(""); }}><motion.div initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: 20 }} className="w-full max-w-md rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="category-dialog-title"><h3 id="category-dialog-title" className="mb-3 text-base font-semibold text-[var(--text-primary)]">Update category</h3><NeumorphicSelect value={singleCategory} onChange={setSingleCategory} options={categoryOptions} placeholder="Select category" theme={theme} /><div className="mt-4 flex justify-end gap-2"><button className="rounded-xl border border-[var(--border-primary)] px-3 py-2 text-sm text-[var(--text-secondary)]" onClick={() => { setSingleCategorizeId(null); setSingleCategory(""); }}>Cancel</button><button className="rounded-xl bg-[var(--accent-primary)] px-3 py-2 text-sm font-semibold text-[var(--text-inverse)] disabled:opacity-60" disabled={!singleCategory} onClick={() => void applySingleCategory()}>Apply</button></div></motion.div></motion.div>}</AnimatePresence>
+      <AnimatePresence>{!!singleCategorizeId && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[55] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" onClick={() => { setSingleCategorizeId(null); setSingleCategory(""); }}><motion.div initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: 20 }} className="w-full max-w-md rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="category-dialog-title"><h3 id="category-dialog-title" className="mb-3 text-base font-semibold text-[var(--text-primary)]">Update category</h3><NeumorphicSelect value={singleCategory} onChange={setSingleCategory} options={categoryOptions} placeholder="Select category" theme={theme} /><div className="mt-4 flex justify-end gap-2"><button className="rounded-xl border border-[var(--border-primary)] px-3 py-2 text-sm text-[var(--text-secondary)]" onClick={() => { setSingleCategorizeId(null); setSingleCategory(""); }}>Cancel</button><button className="rounded-xl bg-[var(--accent-primary)] px-3 py-2 text-sm font-semibold text-[var(--text-inverse)]" onClick={() => void applySingleCategory()}>Apply</button></div></motion.div></motion.div>}</AnimatePresence>
 
       <ConfirmModal open={!!deleteConfirm} title="Delete transaction" description="Delete this transaction permanently?" confirmLabel="Delete" confirmColor="red-500" onConfirm={() => void deleteTx()} onClose={() => setDeleteConfirm(null)} />
     </Layout>
