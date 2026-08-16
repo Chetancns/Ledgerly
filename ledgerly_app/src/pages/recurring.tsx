@@ -12,7 +12,7 @@ import {
 import { getUserAccount } from "../services/accounts";
 import { getUserCategory } from "../services/category";
 import { RecurringTransaction } from "../models/recurring";
-import { Trash2, Pause, Play, Zap } from "lucide-react";
+import { TrashIcon, PauseIcon, PlayIcon, BoltIcon } from "@heroicons/react/24/solid";
 import ConfirmModal from "@/components/ConfirmModal";
 import TagInput from "@/components/TagInput";
 
@@ -450,7 +450,7 @@ export default function Recurring() {
         style={{ background: "var(--color-warning)20", color: "var(--color-warning)" }}
         title="Trigger Now"
       >
-        <Zap className="h-5 w-5" />
+        <BoltIcon className="h-5 w-5" />
       </button>
 
       <button
@@ -460,9 +460,9 @@ export default function Recurring() {
         title={tx.status === "active" ? "Pause" : "Resume"}
       >
         {tx.status === "active" ? (
-          <Pause className="h-5 w-5" />
+          <PauseIcon className="h-5 w-5" />
         ) : (
-          <Play className="h-5 w-5" />
+          <PlayIcon className="h-5 w-5" />
         )}
       </button>
 
@@ -472,7 +472,7 @@ export default function Recurring() {
         style={{ background: "var(--color-error)20", color: "var(--color-error)" }}
         title="Delete"
       >
-        <Trash2 className="h-5 w-5" />
+        <TrashIcon className="h-5 w-5" />
       </button>
     </div>
 

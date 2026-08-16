@@ -13,7 +13,7 @@ import ModernButton from "./NeumorphicButton";
 import TagInput from "./TagInput";
 import SegmentedControl from "./SegmentedControl";
 import { useTheme } from "@/context/ThemeContext";
-import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { RiArrowDownSLine, RiArrowUpSLine, RiSparklingLine } from "react-icons/ri";
 
 type TransactionFormData = Omit<Transaction, "id">;
 type ComposerType = "expense" | "income" | "transfer";
@@ -547,7 +547,7 @@ export default function TransactionForm({
             onClick={() => setAdvancedOpen((current) => !current)}
             className="dashboard-filter-pill inline-flex items-center gap-2"
           >
-            {advancedOpen ? <ChevronUp /> : <ChevronDown />}
+            {advancedOpen ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
             Advanced
           </button>
 
@@ -634,7 +634,7 @@ export default function TransactionForm({
             theme={theme}
             onClick={() => setShowImportPopup(true)}
             className="bg-[var(--color-info-bg)] text-[var(--text-primary)] shadow-none"
-            leftIcon={<Sparkles />}
+            leftIcon={<RiSparklingLine />}
           >
             AI import
           </ModernButton>

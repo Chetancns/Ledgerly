@@ -1,5 +1,6 @@
 // src/services/api.ts
 import axios from "axios";
+import Cookies from "js-cookie";
 import { initCsrf } from "./auth";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.1.50:3001";
@@ -21,9 +22,10 @@ api.interceptors.request.use(async (config) => {
     const res = await initCsrf();
     const token = res.data?.csrfToken;
     if (token) {
-      const isProd = process.env.NODE_ENV === "production";
-      document.cookie = `XSRF-TOKEN=${encodeURIComponent(token)}; Path=/; SameSite=${isProd ? "None" : "Lax"}${isProd ? "; Secure" : ""}`;
-
+      Cookies.set("XSRF-TOKEN", token, {
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
       config.headers = config.headers || {};
       config.headers["X-CSRF-Token"] = token;
       console.debug("[api] attached refreshed CSRF token:", token.slice(0,8) + "...");
@@ -78,7 +80,7 @@ api.interceptors.response.use(
 
             // remove CSRF cookie if present
             try {
-              document.cookie = "XSRF-TOKEN=; Path=/; Max-Age=0";
+              Cookies.remove("XSRF-TOKEN");
             } catch (e) {
               /* ignore */
             }

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { User } from "@/models/User";
 import { login, signup, logout as apiLogout, getCurrentUser, initCsrf } from "@/services/auth";
+import Cookies from "js-cookie";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -31,8 +32,7 @@ export const useAuth = () => {
       const res = await initCsrf();
       const token = res.data?.csrfToken;
       if (token) {
-        const isProd = process.env.NODE_ENV === "production";
-        document.cookie = `XSRF-TOKEN=${encodeURIComponent(token)}; Path=/; SameSite=${isProd ? "None" : "Lax"}${isProd ? "; Secure" : ""}`;
+        Cookies.set("XSRF-TOKEN", token, { sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", secure: process.env.NODE_ENV === "production" });
         //console.log("[useAuth] got CSRF token (first 8):", token.slice(0,8)+"...");
       }
     } catch (e) {

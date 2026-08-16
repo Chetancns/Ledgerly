@@ -1,7 +1,7 @@
 import SegmentedControl from "@/components/SegmentedControl";
 import { Account } from "@/models/account";
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Calendar, Filter } from "lucide-react";
+import { RiArrowDownSLine, RiArrowLeftSLine, RiArrowRightSLine, RiCalendarLine, RiFilter3Line } from "react-icons/ri";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -61,10 +61,10 @@ export default function FilterToolbar({
               className="dashboard-filter-pill inline-flex w-full items-center justify-between gap-2 lg:w-auto"
             >
               <span className="inline-flex items-center gap-2">
-                <Calendar className="text-base" />
+                <RiCalendarLine className="text-base" />
                 {MONTHS[selectedMonth - 1]} {selectedYear}
               </span>
-              <ChevronDown className="text-lg" />
+              <RiArrowDownSLine className="text-lg" />
             </button>
 
             {showPeriodPicker && (
@@ -75,7 +75,7 @@ export default function FilterToolbar({
                     onClick={() => setPeriodYear((year) => year - 1)}
                     className="rounded-full border border-[var(--border-primary)] p-2 text-[var(--text-secondary)]"
                   >
-                    <ChevronLeft className="text-lg" />
+                    <RiArrowLeftSLine className="text-lg" />
                   </button>
                   <p className="text-sm font-semibold text-[var(--text-primary)]">{periodYear}</p>
                   <button
@@ -83,7 +83,7 @@ export default function FilterToolbar({
                     onClick={() => setPeriodYear((year) => year + 1)}
                     className="rounded-full border border-[var(--border-primary)] p-2 text-[var(--text-secondary)]"
                   >
-                    <ChevronRight className="text-lg" />
+                    <RiArrowRightSLine className="text-lg" />
                   </button>
                 </div>
 
@@ -133,10 +133,10 @@ export default function FilterToolbar({
                 className="dashboard-filter-pill inline-flex w-full items-center justify-between gap-2 lg:min-w-[220px]"
               >
                 <span className="inline-flex items-center gap-2">
-                  <Filter className="text-base" />
+                  <RiFilter3Line className="text-base" />
                   {selectedAccountLabel}
                 </span>
-                <ChevronDown className="text-lg" />
+                <RiArrowDownSLine className="text-lg" />
               </button>
 
               {showAccountPicker && (

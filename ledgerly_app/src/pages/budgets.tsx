@@ -11,7 +11,7 @@ import {
   AIBudgetSuggestion,
 } from "@/services/budget";
 import { getBudgetUtilizations } from "@/services/budget";
-import { Trash2, Pencil, Check, X, RefreshCw, Plus } from "lucide-react";
+import { TrashIcon, PencilIcon, CheckIcon, XMarkIcon, ArrowPathIcon, PlusIcon } from "@heroicons/react/24/solid";
 import ConfirmModal from "@/components/ConfirmModal";
 import dayjs from "dayjs";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
@@ -125,7 +125,7 @@ function BudgetCard({
             style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }}
             aria-label={`Edit budget for ${categoryName ?? "category"}`}
           >
-            <Pencil className="h-5 w-5" />
+            <PencilIcon className="h-5 w-5" />
           </button>
           <button
             onClick={onDelete}
@@ -134,7 +134,7 @@ function BudgetCard({
             style={{ background: "var(--bg-card-hover)", color: "var(--color-error)" }}
             aria-label={`Delete budget for ${categoryName ?? "category"}`}
           >
-            <Trash2 className="h-5 w-5" />
+            <TrashIcon className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -488,7 +488,7 @@ export default function BudgetsPage() {
               color="indigo-600"
               variant="solid"
               size="md"
-              leftIcon={<Plus className="h-5 w-5" />}
+              leftIcon={<PlusIcon className="h-5 w-5" />}
             >
               New Budget
             </ModernButton>
@@ -498,7 +498,7 @@ export default function BudgetsPage() {
               color="green-400"
               variant="outline"
               size="md"
-              leftIcon={<RefreshCw className="h-5 w-5" />}
+              leftIcon={<ArrowPathIcon className="h-5 w-5" />}
               disabled={actionLoading}
             >
               Copy Prev
@@ -699,10 +699,10 @@ export default function BudgetsPage() {
                       <td className="px-3 py-2 text-right">
                         <div className="inline-flex gap-2">
                           <button onClick={() => openEditModal(b)} className="p-2 rounded-lg transition" style={{ background: "var(--bg-card-hover)", color: "var(--text-primary)" }} aria-label="Edit budget">
-                            <Pencil className="h-4 w-4" />
+                            <PencilIcon className="h-4 w-4" />
                           </button>
                           <button onClick={() => handleDelete(b.id)} className="p-2 rounded-lg transition" style={{ background: "var(--color-error-bg)", color: "var(--color-error)" }} aria-label="Delete budget">
-                            <Trash2 className="h-4 w-4" />
+                            <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -743,7 +743,7 @@ export default function BudgetsPage() {
                 <div className="flex items-start justify-between">
                   <h3 className="text-xl font-semibold mb-4" style={{ color: "var(--text-primary)" }}>{editing ? "Edit Budget" : "Create Budget"}</h3>
                   <button onClick={closeModal} style={{ color: "var(--text-muted)" }}>
-                    <X className="h-5 w-5" />
+                    <XMarkIcon className="h-5 w-5" />
                   </button>
                 </div>
 
@@ -851,7 +851,7 @@ export default function BudgetsPage() {
                     <ModernButton
                       type="button"
                       onClick={() => handleSubmit()}
-                      leftIcon={<Check className="h-4 w-4" />}
+                      leftIcon={<CheckIcon className="h-4 w-4" />}
                       color="yellow-400"
                       disabled={actionLoading || categories.length === 0}
                     >
