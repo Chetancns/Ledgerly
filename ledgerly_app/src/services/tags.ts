@@ -59,7 +59,7 @@ export interface TagTrend {
 export interface CategoryBreakdown {
   categoryId: string;
   categoryName: string;
-  categoryType: string;
+  categoryType: "expense" | "income";
   transactionCount: number;
   totalAmount: number;
 }

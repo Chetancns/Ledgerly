@@ -7,6 +7,7 @@ export interface AIParseRequest {
 export interface AIDraftTransaction {
   accountId?: string;
   categoryId?: string;
+  toAccountId?: string;
   transactionDate: string;
   amount: string;
   type: 'expense' | 'income' | 'savings' | 'transfer';

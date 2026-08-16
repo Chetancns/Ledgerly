@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { Category, CategoryType } from "../models/category";
+import { Category } from "../models/category";
 import { getUserCategory, createCategory, onDeleteCategory, updateCategory } from "../services/category";
 import { TrashIcon } from "@heroicons/react/24/solid";
 import ConfirmModal from "@/components/ConfirmModal";
 import toast from "react-hot-toast";
 import NeumorphicInput from "@/components/NeumorphicInput";
 import NeumorphicSelect from "@/components/NeumorphicSelect";
-import { on } from "events";
 import ModernButton from "@/components/NeumorphicButton";
 import { useTheme } from "@/context/ThemeContext";
+
+type CategoryDirection = "expense" | "income";
+
+const normalizeCategoryDirection = (type?: string): CategoryDirection =>
+  type === "income" ? "income" : "expense";
 
 export default function Categories() {
   const { theme } = useTheme();
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
-  const [type, setType] = useState<CategoryType>("expense");
+  const [type, setType] = useState<CategoryDirection>("expense");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,7 +62,7 @@ export default function Categories() {
 const openModal = (category: Category) => {
   setEditingId(category.id);
   setName(category.name ?? "");
-  setType(category.type ?? "expense");
+  setType(normalizeCategoryDirection(category.type));
   setShowModal(true);
 };
 const onCancel = () => {
@@ -107,7 +111,7 @@ const onCancel = () => {
             />
             <NeumorphicSelect
               value={type}
-              onChange={(val) => setType(val as CategoryType)}
+              onChange={(val) => setType(val as CategoryDirection)}
               options={categoryTypes}
               placeholder="Select Category Type"
               theme={theme}
@@ -153,7 +157,7 @@ const onCancel = () => {
                 >
                   <div>
                     <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{c.name}</span>
-                    <span className="ml-2 text-sm" style={{ color: "var(--text-muted)" }}>({c.type})</span>
+                    <span className="ml-2 text-sm" style={{ color: "var(--text-muted)" }}>({normalizeCategoryDirection(c.type)})</span>
                   </div>
                   <button
   onClick={() => openModal(c)}
@@ -203,7 +207,7 @@ const onCancel = () => {
         <select
           className="p-2 rounded-lg"
           value={type}
-          onChange={(e) => setType(e.target.value as CategoryType)}
+          onChange={(e) => setType(e.target.value as CategoryDirection)}
           style={{
             background: "var(--input-bg)",
             color: "var(--input-text)",

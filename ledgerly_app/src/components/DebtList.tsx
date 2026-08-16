@@ -359,8 +359,7 @@ export default function DebtList() {
 
   const getCategoryOptions = (debt: Debt | null) => {
     if (!debt) return [];
-    const expectedType = debt.debtType === "lent" ? "income" : "expense";
-    return categories.filter((category) => category.type === expectedType);
+    return categories;
   };
 
   return (
