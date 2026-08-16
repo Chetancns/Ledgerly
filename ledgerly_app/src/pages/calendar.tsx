@@ -18,12 +18,15 @@ interface DailyAggregate {
   date: string; // YYYY-MM-DD
   income: number;
   expense: number;
-  savings?: number;
+  transfers?: number;
   netCashflow: number;
   count?: number;
 }
 
-type TxnFilter = "all" | "income" | "expense" | "savings" | "transfer";
+type TxnFilter = "all" | "income" | "expense" | "transfer";
+
+const normalizeTransactionType = (type?: string): "income" | "expense" | "transfer" =>
+  type === "income" ? "income" : type === "transfer" || type === "savings" ? "transfer" : "expense";
 
 export default function CalendarPage() {
   const { formatCompact } = useCurrencyFormatter();
@@ -72,13 +75,13 @@ export default function CalendarPage() {
           if (!date || date === "Invalid Date") return;
           const income = Number(d.income || 0);
           const expense = Number(d.expense || 0);
-          const savings = Number(d.savings || 0);
+          const transfers = Number(d.savings || 0);
           const netCashflow = Number(d.netChange ?? income - expense);
           map[date] = {
             date,
             income,
             expense,
-            savings,
+            transfers,
             netCashflow,
             count: Number(d.count || 0),
           };
@@ -133,7 +136,8 @@ export default function CalendarPage() {
                 const key = current.format("YYYY-MM-DD");
                 const catLabel = r.categoryId && categoryNames[r.categoryId] ? ` • ${categoryNames[r.categoryId]}` : "";
                 const accLabel = r.accountId && accountNames[r.accountId] ? ` • ${accountNames[r.accountId]}` : "";
-                (marks[key] ||= []).push({ name: `${r.type === "income" ? "income" : "expense"}${catLabel}${accLabel}`, amount: Number(r.amount || 0), type: r.type });
+                const recurringType = normalizeTransactionType(r.type);
+                (marks[key] ||= []).push({ name: `${recurringType}${catLabel}${accLabel}`, amount: Number(r.amount || 0), type: recurringType });
               }
               current = current.add(s.add.val, s.add.unit as any);
             }
@@ -199,10 +203,10 @@ export default function CalendarPage() {
       (acc, d) => ({
         income: acc.income + d.income,
         expense: acc.expense + d.expense,
-        savings: acc.savings + (typeof d.savings === 'number' ? d.savings : 0),
+        transfers: acc.transfers + (typeof d.transfers === 'number' ? d.transfers : 0),
         net: acc.net + d.netCashflow,
       }),
-      { income: 0, expense: 0, savings: 0, net: 0 }
+      { income: 0, expense: 0, transfers: 0, net: 0 }
     );
   }, [daily]);
 
@@ -211,14 +215,13 @@ export default function CalendarPage() {
 
   const filteredDayTxns = useMemo(() => {
     if (txnFilter === "all") return dayTxns;
-    return dayTxns.filter((t: any) => t?.type === txnFilter);
+    return dayTxns.filter((t: any) => normalizeTransactionType(t?.type) === txnFilter);
   }, [dayTxns, txnFilter]);
 
   const txnFilterOptions = [
     { value: "all", label: `All (${dayTxns.length})`, icon: "🧾" },
     { value: "income", label: "Income", icon: "💰" },
     { value: "expense", label: "Expense", icon: "💸" },
-    { value: "savings", label: "Savings", icon: "🏦" },
     { value: "transfer", label: "Transfer", icon: "🔀" },
   ];
 
@@ -267,10 +270,10 @@ export default function CalendarPage() {
                 </div>
               </div>
               <div className="text-center p-3 sm:p-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5" style={{ background: "var(--bg-card-hover)" }}>
-                <div className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>Total Savings</div>
+                <div className="text-xs sm:text-sm font-medium mb-1" style={{ color: "var(--text-muted)" }}>Total Transfers</div>
                 <div className="text-xl sm:text-2xl font-bold text-blue-400 flex items-center justify-center gap-1">
-                  <span>🏦</span>
-                  {formatCompact(monthlyTotals.savings)}
+                  <span>🔀</span>
+                  {formatCompact(monthlyTotals.transfers)}
                 </div>
               </div>
               <div className="text-center p-3 sm:p-4 rounded-xl shadow-md transition-all hover:-translate-y-0.5" style={{ background: "var(--bg-card-hover)" }}>
@@ -365,10 +368,6 @@ export default function CalendarPage() {
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-rose-500/30 border border-rose-400/50"></div>
               <span style={{ color: "var(--text-muted)" }}>Expense</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-blue-500/30 border border-blue-400/50"></div>
-              <span style={{ color: "var(--text-muted)" }}>Savings</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-gray-500/30 border border-gray-400/50"></div>
@@ -518,21 +517,13 @@ export default function CalendarPage() {
                           )}
                         </div>
                         
-                        {/* Savings & Transfers row with enhanced styling */}
-                        {((typeof agg.savings === 'number' && agg.savings > 0) || (c.date && transfersByDay[c.date] && transfersByDay[c.date] > 0)) && (
+                        {/* Transfers row with enhanced styling */}
+                        {((typeof agg.transfers === 'number' && agg.transfers > 0) || (c.date && transfersByDay[c.date] && transfersByDay[c.date] > 0)) && (
                           <div className="flex flex-wrap gap-1">
-                            {typeof agg.savings === 'number' && agg.savings > 0 && (
-                              <div className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md bg-blue-500/25 text-blue-200 border border-blue-400/40 font-semibold shadow-sm">
-                                <span>🏦</span>
-                                <span>{formatCompact(agg.savings)}</span>
-                              </div>
-                            )}
-                            {c.date && transfersByDay[c.date] && transfersByDay[c.date] > 0 && (
-                              <div className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md bg-gray-500/25 text-gray-200 border border-gray-400/40 font-semibold shadow-sm">
-                                <span>🔀</span>
-                                <span>{formatCompact(transfersByDay[c.date])}</span>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md bg-gray-500/25 text-gray-200 border border-gray-400/40 font-semibold shadow-sm">
+                              <span>🔀</span>
+                              <span>{formatCompact((typeof agg.transfers === 'number' ? agg.transfers : 0) + (c.date && transfersByDay[c.date] ? transfersByDay[c.date] : 0))}</span>
+                            </div>
                           </div>
                         )}
                         
@@ -562,8 +553,8 @@ export default function CalendarPage() {
                             title={`Scheduled recurring ${r.type}: ${formatCompact(Number(r.amount || 0))}`}
                           >
                             <span className="mr-0.5">🔁</span>
-                            <span className={r.type === "income" ? "text-emerald-200" : "text-rose-200"}>
-                              {r.type === "income" ? "+" : "-"}
+                            <span className={r.type === "income" ? "text-emerald-200" : r.type === "transfer" ? "text-gray-200" : "text-rose-200"}>
+                              {r.type === "income" ? "+" : r.type === "transfer" ? "↔" : "-"}
                             </span>
                             {formatCompact(Number(r.amount || 0))}
                           </span>
@@ -655,10 +646,10 @@ export default function CalendarPage() {
                     className="rounded-xl p-3 sm:p-4 shadow-md"
                     style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))", border: "1px solid rgba(59,130,246,0.3)" }}
                   >
-                    <div className="text-[10px] sm:text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Savings</div>
+                    <div className="text-[10px] sm:text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Transfers</div>
                     <div className="text-lg sm:text-xl font-bold text-blue-300 flex items-center gap-1">
-                      <span>🏦</span>
-                      {formatCompact(typeof daily[selectedDay].savings === 'number' ? daily[selectedDay].savings : 0)}
+                      <span>🔀</span>
+                      {formatCompact(typeof daily[selectedDay].transfers === 'number' ? daily[selectedDay].transfers : 0)}
                     </div>
                   </motion.div>
                   <motion.div
@@ -687,13 +678,12 @@ export default function CalendarPage() {
               {/* Additional Metrics (if available) */}
               {selectedDay && dayTxns.length > 0 && (() => {
                 const totals = dayTxns.reduce(
-                  (acc: { savings: number; transfers: number }, t: any) => {
+                  (acc: { transfers: number }, t: any) => {
                     const amt = Number(t.amount || 0);
-                    if (t.type === "savings") acc.savings += amt;
-                    if (t.type === "transfer") acc.transfers += amt;
+                    if (normalizeTransactionType(t.type) === "transfer") acc.transfers += amt;
                     return acc;
                   },
-                  { savings: 0, transfers: 0 }
+                  { transfers: 0 }
                 );
                 return totals.transfers > 0 ? (
                   <div className="mb-4">
@@ -755,11 +745,12 @@ export default function CalendarPage() {
                     </div>
                   ) : (
                     filteredDayTxns.map((t: any) => {
-                      const typeColor = t.type === "income" ? "text-emerald-300" : t.type === "expense" ? "text-rose-300" : t.type === "savings" ? "text-blue-300" : t.type === "transfer" ? "text-gray-300" : "";
-                      const typeBadge = t.type === "income" ? "Income" : t.type === "expense" ? "Expense" : t.type === "savings" ? "Savings" : t.type === "transfer" ? "Transfer" : "";
-                      const typeIcon = t.type === "income" ? "💰" : t.type === "expense" ? "💸" : t.type === "savings" ? "🏦" : t.type === "transfer" ? "🔀" : "";
-                      const typeBg = t.type === "income" ? "rgba(16,185,129,0.1)" : t.type === "expense" ? "rgba(244,63,94,0.1)" : t.type === "savings" ? "rgba(59,130,246,0.1)" : t.type === "transfer" ? "rgba(156,163,175,0.1)" : "var(--bg-card-hover)";
-                      const typeBorder = t.type === "income" ? "rgba(16,185,129,0.3)" : t.type === "expense" ? "rgba(244,63,94,0.3)" : t.type === "savings" ? "rgba(59,130,246,0.3)" : t.type === "transfer" ? "rgba(156,163,175,0.3)" : "var(--border-primary)";
+                      const normalizedType = normalizeTransactionType(t.type);
+                      const typeColor = normalizedType === "income" ? "text-emerald-300" : normalizedType === "expense" ? "text-rose-300" : normalizedType === "transfer" ? "text-gray-300" : "";
+                      const typeBadge = normalizedType === "income" ? "Income" : normalizedType === "expense" ? "Expense" : normalizedType === "transfer" ? "Transfer" : "";
+                      const typeIcon = normalizedType === "income" ? "💰" : normalizedType === "expense" ? "💸" : normalizedType === "transfer" ? "🔀" : "";
+                      const typeBg = normalizedType === "income" ? "rgba(16,185,129,0.1)" : normalizedType === "expense" ? "rgba(244,63,94,0.1)" : normalizedType === "transfer" ? "rgba(156,163,175,0.1)" : "var(--bg-card-hover)";
+                      const typeBorder = normalizedType === "income" ? "rgba(16,185,129,0.3)" : normalizedType === "expense" ? "rgba(244,63,94,0.3)" : normalizedType === "transfer" ? "rgba(156,163,175,0.3)" : "var(--border-primary)";
                       
                       return (
                         <motion.div
@@ -797,7 +788,7 @@ export default function CalendarPage() {
                                 return parts.join(' ');
                               })()}
                             </div>
-                            {(t.type === "transfer" || t.type === "savings") && (
+                            {normalizedType === "transfer" && (
                               <div className="text-[9px] sm:text-[10px] mt-1 italic opacity-70" style={{ color: "var(--text-muted)" }}>
                                 Does not affect net cashflow
                               </div>
