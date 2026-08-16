@@ -546,19 +546,22 @@ export default function CalendarPage() {
                     {/* Recurring transaction indicators with improved design */}
                     {hasRecurring && c.date && (
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {recurringMarks[c.date].slice(0, 2).map((r, idx) => (
-                          <span
-                            key={idx}
-                            className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full border font-semibold shadow-sm bg-violet-500/25 text-violet-200 border-violet-400/50"
-                            title={`Scheduled recurring ${r.type}: ${formatCompact(Number(r.amount || 0))}`}
-                          >
-                            <span className="mr-0.5">🔁</span>
-                            <span className={r.type === "income" ? "text-emerald-200" : r.type === "transfer" ? "text-gray-200" : "text-rose-200"}>
-                              {r.type === "income" ? "+" : r.type === "transfer" ? "↔" : "-"}
+                        {recurringMarks[c.date].slice(0, 2).map((r, idx) => {
+                          const recurringType = normalizeTransactionType(r.type);
+                          return (
+                            <span
+                              key={idx}
+                              className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full border font-semibold shadow-sm bg-violet-500/25 text-violet-200 border-violet-400/50"
+                              title={`Scheduled recurring ${r.type}: ${formatCompact(Number(r.amount || 0))}`}
+                            >
+                              <span className="mr-0.5">🔁</span>
+                              <span className={recurringType === "income" ? "text-emerald-200" : recurringType === "transfer" ? "text-gray-200" : "text-rose-200"}>
+                                {recurringType === "income" ? "+" : recurringType === "transfer" ? "↔" : "-"}
+                              </span>
+                              {formatCompact(Number(r.amount || 0))}
                             </span>
-                            {formatCompact(Number(r.amount || 0))}
-                          </span>
-                        ))}
+                          );
+                        })}
                         {recurringMarks[c.date].length > 2 && (
                           <span 
                             className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium shadow-sm" 
