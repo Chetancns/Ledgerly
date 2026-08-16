@@ -419,7 +419,7 @@ export default function Transactions() {
               initial={{ x: 60 }}
               animate={{ x: 0 }}
               exit={{ x: 60 }}
-              className="ml-auto flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-5"
+              className="ml-auto flex h-full w-full max-w-full flex-col overflow-hidden border-l border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-5 lg:w-1/2 lg:max-w-[50vw]"
               role="dialog"
               aria-modal="true"
               aria-labelledby="transaction-drawer-title"
