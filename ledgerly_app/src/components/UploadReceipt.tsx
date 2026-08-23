@@ -228,16 +228,33 @@ export default function UploadReceipt() {
 
                       <select
                         value={draft.categoryId || ''}
-                        onChange={(e) => updateDraft(idx, { categoryId: e.target.value, needsReview: false })}
+                        onChange={(e) => updateDraft(idx, { categoryId: e.target.value || undefined, needsReview: false })}
                         className="px-3 py-2 rounded-lg bg-white/90 text-gray-900"
                       >
-                        <option value="">Select category</option>
+                        <option value="">Uncategorized</option>
                         {categories.map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.name || 'Unnamed Category'}
                           </option>
                         ))}
                       </select>
+
+                      {(draft.type === 'transfer' || draft.type === 'savings') && (
+                        <select
+                          value={draft.toAccountId || ''}
+                          onChange={(e) => updateDraft(idx, { toAccountId: e.target.value, needsReview: false })}
+                          className="px-3 py-2 rounded-lg bg-white/90 text-gray-900"
+                        >
+                          <option value="">Select destination account</option>
+                          {accounts
+                            .filter((acc) => acc.id !== draft.accountId)
+                            .map((acc) => (
+                              <option key={acc.id} value={acc.id}>
+                                {acc.name || 'Unnamed Account'}
+                              </option>
+                            ))}
+                        </select>
+                      )}
 
                       <input
                         type="date"

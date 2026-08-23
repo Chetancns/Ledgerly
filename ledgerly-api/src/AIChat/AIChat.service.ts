@@ -23,6 +23,7 @@ export type AiSourceType = 'text' | 'image' | 'audio';
 export interface ParsedTransactionDraft {
   accountId?: string;
   categoryId?: string;
+  toAccountId?: string;
   transactionDate: string;
   amount: string;
   type: TxType;
@@ -97,6 +98,7 @@ Output must be an array of transaction objects:
 [
   {
     "accountId": "one account id from: ${accounts.map((a) => `${a.id} (${a.name})`).join(', ')}",
+    "toAccountId": "optional destination account id for transfers from: ${accounts.map((a) => `${a.id} (${a.name})`).join(', ')}",
     "categoryId": "one category id from: ${categories.map((c) => `${c.id} (${c.name})`).join(', ')}",
     "transactionDate": "YYYY-MM-DD",
     "amount": number,
@@ -112,6 +114,8 @@ Rules:
 - If amount sign is negative, output absolute value.
 - If unsure about any field, still provide best guess and lower confidence.
 - Set confidence < 0.7 when uncertain.
+- Category is optional for income and expense.
+- Transfers require both accountId and toAccountId, and should usually omit categoryId.
 `;
   }
 
@@ -150,6 +154,7 @@ Rules:
     const confidence = this.clampConfidence(draft.confidence);
 
     const accountId = typeof draft.accountId === 'string' ? draft.accountId : undefined;
+    const toAccountId = typeof draft.toAccountId === 'string' ? draft.toAccountId : undefined;
     const categoryId = typeof draft.categoryId === 'string' ? draft.categoryId : undefined;
     const transactionDate =
       typeof draft.transactionDate === 'string' && dayjs(draft.transactionDate).isValid()
@@ -159,7 +164,12 @@ Rules:
     const reasons: string[] = [];
     if (!Number.isFinite(amount) || amount <= 0) reasons.push('Invalid amount');
     if (!accountId || !accountIds.has(accountId)) reasons.push('Account uncertain');
-    if (!categoryId || !categoryIds.has(categoryId)) reasons.push('Category uncertain');
+    if (categoryId && !categoryIds.has(categoryId)) reasons.push('Category uncertain');
+    if (safeType === 'transfer' || safeType === 'savings') {
+      if (!toAccountId || !accountIds.has(toAccountId)) {
+        reasons.push('Destination account uncertain');
+      }
+    }
     if (confidence < 0.7) reasons.push('Low AI confidence');
     if (!['expense', 'income', 'savings', 'transfer'].includes(parsedType)) reasons.push('Type inferred');
 
@@ -169,6 +179,7 @@ Rules:
     return {
       accountId,
       categoryId,
+      toAccountId,
       transactionDate,
       amount: Number.isFinite(amount) ? amount.toFixed(2) : '0.00',
       type: safeType,
@@ -260,7 +271,10 @@ Rules:
     for (const draft of drafts) {
       const amount = Number(draft.amount);
       const validAmount = Number.isFinite(amount) && amount > 0;
-      const hasRequiredRefs = !!draft.accountId && !!draft.categoryId;
+      const normalizedType = draft.type === 'savings' && draft.toAccountId ? 'transfer' : draft.type;
+      const hasRequiredRefs =
+        !!draft.accountId &&
+        (normalizedType !== 'transfer' || !!draft.toAccountId);
 
       if (draft.needsReview || !validAmount || !hasRequiredRefs) {
         skipped.push(draft);
@@ -271,8 +285,9 @@ Rules:
         userId,
         accountId: draft.accountId,
         categoryId: draft.categoryId,
+        toAccountId: draft.toAccountId,
         amount: amount.toFixed(2),
-        type: draft.type,
+        type: normalizedType,
         transactionDate: draft.transactionDate,
         description: draft.description,
       });

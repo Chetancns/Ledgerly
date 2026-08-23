@@ -24,8 +24,12 @@ interface Account {
 interface Category {
   id: string;
   name: string;
-  type: string;
 }
+
+type UiRecurringType = "expense" | "income" | "transfer";
+
+const normalizeRecurringType = (type?: string): UiRecurringType =>
+  type === "income" ? "income" : type === "transfer" || type === "savings" ? "transfer" : "expense";
 
 export default function Recurring() {
   const { format } = useCurrencyFormatter();
@@ -34,9 +38,10 @@ export default function Recurring() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   // Helper function to get color for transaction type
-  const getTypeColor = (type: string) => {
-    if (type === "income") return "var(--color-success)";
-    if (type === "transfer" || type === "savings") return "var(--color-info)";
+  const getTypeColor = (type?: string) => {
+    const normalizedType = normalizeRecurringType(type);
+    if (normalizedType === "income") return "var(--color-success)";
+    if (normalizedType === "transfer") return "var(--color-info)";
     return "var(--color-error)";
   };
 
@@ -142,19 +147,24 @@ export default function Recurring() {
       return;
     }
 
-    // Validate transfer/savings requires destination account
-    if ((form.type === "transfer" || form.type === "savings") && !form.toAccountId) {
-      toast.error("Please select a destination account for transfer/savings.");
+    // Validate transfer requires destination account
+    const normalizedType = normalizeRecurringType(form.type);
+    if (normalizedType === "transfer" && !form.toAccountId) {
+      toast.error("Please select a destination account for transfer.");
       return;
     }
 
     setLoading(true);
     try {
+      const payload = {
+        ...form,
+        type: normalizedType,
+      };
       if (editingId) {
-        await updateRecurring(editingId, form);
+        await updateRecurring(editingId, payload);
         toast.success("Recurring transaction updated!");
       } else {
-        await createRecurring(form);
+        await createRecurring(payload);
         toast.success("Recurring transaction added!");
       }
 
@@ -228,7 +238,7 @@ export default function Recurring() {
       categoryId: tx.categoryId ?? "",
       amount: tx.amount ?? "",
       frequency: tx.frequency ?? "monthly",
-      type: tx.type ?? "expense",
+      type: normalizeRecurringType(tx.type),
       nextOccurrence: tx.nextOccurrence
         ? tx.nextOccurrence.split("T")[0]   // important! fix date
         : "",
@@ -376,7 +386,7 @@ export default function Recurring() {
             color: getTypeColor(tx.type)
           }}
         >
-          {tx.type}
+          {normalizeRecurringType(tx.type)}
         </span>
       </div>
 
@@ -400,7 +410,7 @@ export default function Recurring() {
           <span style={{ color: "var(--text-secondary)" }}>{account?.name || 'N/A'}</span>
         </p>
 
-        {(tx.type === "transfer" || tx.type === "savings") && (
+        {normalizeRecurringType(tx.type) === "transfer" && (
           <p>
             <span className="font-medium">To:</span>{" "}
             <span style={{ color: "var(--text-secondary)" }}>{toAccount?.name || 'N/A'}</span>
@@ -507,7 +517,6 @@ export default function Recurring() {
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
                 <option value="transfer">Transfer</option>
-                <option value="savings">Savings</option>
               </select>
 
               {/* Account */}
@@ -518,7 +527,7 @@ export default function Recurring() {
                 className="p-2 rounded-lg"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               >
-                <option value="">Select {form.type === "transfer" || form.type === "savings" ? "From " : ""}Account</option>
+                <option value="">Select {normalizeRecurringType(form.type) === "transfer" ? "From " : ""}Account</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
                     {acc.name}
@@ -526,8 +535,8 @@ export default function Recurring() {
                 ))}
               </select>
 
-              {/* To Account (only for transfer/savings) */}
-              {(form.type === "transfer" || form.type === "savings") && (
+              {/* To Account (only for transfer) */}
+              {normalizeRecurringType(form.type) === "transfer" && (
                 <select
                   name="toAccountId"
                   value={form.toAccountId ?? ""}
@@ -555,7 +564,7 @@ export default function Recurring() {
                 <option value="">Select Category</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.type === "income" ? "💰" : "💸"} {cat.name}
+                    📁 {cat.name}
                   </option>
                 ))}
               </select>

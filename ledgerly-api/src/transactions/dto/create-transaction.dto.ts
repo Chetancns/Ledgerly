@@ -1,5 +1,14 @@
 import { Transform } from 'class-transformer';
-import { IsUUID, IsOptional, IsNumberString, IsIn, IsDateString, IsString, IsNotEmpty, IsArray } from 'class-validator';
+import {
+  IsUUID,
+  IsOptional,
+  IsNumberString,
+  IsIn,
+  IsDateString,
+  IsString,
+  IsNotEmpty,
+  IsArray,
+} from 'class-validator';
 import { sanitizeInput } from '../../utils/sanitize.util';
 
 export class CreateTransactionDto {
@@ -7,23 +16,23 @@ export class CreateTransactionDto {
   @IsOptional() @IsUUID() accountId?: string;
   @IsOptional() @IsUUID() categoryId?: string;
   @IsNotEmpty()
-  @Transform(({ value }) => typeof value === 'string'
-      ? parseFloat(value.replace(/,/g, ''))
-      : value
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.replace(/,/g, '') : String(value ?? '')))
   @IsNumberString() amount: string;
-  @IsOptional() @IsIn(['expense' , 'income' , 'savings','transfer']) type: 'expense' | 'income' | 'savings' | 'transfer';
+  @IsOptional() @IsIn(['expense', 'income', 'savings', 'transfer']) type: 'expense' | 'income' | 'savings' | 'transfer';
   @IsOptional() @IsDateString() transactionDate: string;
   @IsOptional() @IsIn(['pending', 'posted', 'cancelled']) status?: 'pending' | 'posted' | 'cancelled';
-  @IsOptional() 
+  @IsOptional()
   @IsDateString()
   @Transform(({ value }) => value === '' || value === null || value === undefined ? undefined : value)
   expectedPostDate?: string;
-  @IsOptional() 
-  @IsString() 
+  @IsOptional()
+  @IsString()
   @Transform(({ value }) => value ? sanitizeInput(value) : value)
   description?: string;
-  @IsOptional() @IsUUID() toAccountId?: string | null; // for transfers, the destination account
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
+  @IsUUID()
+  toAccountId?: string | null; // for transfers, the destination account
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
@@ -31,19 +40,20 @@ export class CreateTransactionDto {
 }
 
 export class TransferDto {
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   from: string;
 
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   to: string;
 
-  @IsString()
-  @IsNotEmpty()
-  cat: string;
+  @IsOptional()
+  @IsUUID()
+  cat?: string;
 
-  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.replace(/,/g, '') : String(value ?? '')))
+  @IsNumberString()
   @IsNotEmpty()
   amount: string;
 

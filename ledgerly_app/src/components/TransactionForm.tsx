@@ -16,6 +16,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { RiArrowDownSLine, RiArrowUpSLine, RiSparklingLine } from "react-icons/ri";
 
 type TransactionFormData = Omit<Transaction, "id">;
+type ComposerType = "expense" | "income" | "transfer";
 
 const LAST_DEFAULTS_KEY = "ledgerly:transactions:lastDefaults";
 const LAST_DRAFT_KEY = "ledgerly:transactions:lastDraft";
@@ -41,6 +42,11 @@ export default function TransactionForm({
 }) {
   const { theme } = useTheme();
   const today = new Date().toISOString().split("T")[0];
+  const normalizeType = useCallback(
+    (type?: Transaction["type"]): ComposerType =>
+      type === "income" ? "income" : type === "transfer" || type === "savings" ? "transfer" : "expense",
+    []
+  );
 
   const [form, setForm] = useState<TransactionFormData>({
     accountId: transaction?.accountId || "",
@@ -51,7 +57,7 @@ export default function TransactionForm({
     tagIds: transaction?.tags?.map((tag) => tag.id) || [],
     status: transaction?.status || "posted",
     expectedPostDate: transaction?.expectedPostDate?.split("T")[0] || undefined,
-    type: transaction?.type,
+    type: transaction ? normalizeType(transaction.type) : "expense",
     toAccountId: transaction?.toAccountId || undefined,
   });
 
@@ -62,7 +68,7 @@ export default function TransactionForm({
   const [importLoading, setImportLoading] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [submitMode, setSubmitMode] = useState<"save" | "saveAndAdd">("save");
-  const [kind, setKind] = useState<"normal" | "transfer" | "savings">("normal");
+  const [kind, setKind] = useState<ComposerType>(transaction ? normalizeType(transaction.type) : "expense");
   const [toAccountId, setToAccountId] = useState("");
   const [lastDefaults, setLastDefaults] = useState<LastDefaults>({});
   const [lastDraft, setLastDraft] = useState<Partial<TransactionFormData> | null>(null);
@@ -132,18 +138,18 @@ export default function TransactionForm({
       tagIds: transaction.tags?.map((tag) => tag.id) || [],
       status: transaction.status || "posted",
       expectedPostDate: transaction.expectedPostDate?.split("T")[0] || undefined,
-      type: transaction.type,
+      type: normalizeType(transaction.type),
       toAccountId: transaction.toAccountId || undefined,
     });
 
     if (transaction.type === "transfer" || transaction.type === "savings") {
-      setKind(transaction.type);
+      setKind("transfer");
       setToAccountId(transaction.toAccountId || "");
     } else {
-      setKind("normal");
+      setKind(normalizeType(transaction.type));
       setToAccountId("");
     }
-  }, [transaction]);
+  }, [normalizeType, transaction]);
 
   useEffect(() => {
     if (openAiImportSignal === undefined || openAiImportSignal <= 0) return;
@@ -151,6 +157,19 @@ export default function TransactionForm({
     setShowImportPopup(true);
     previousAiSignal.current = openAiImportSignal;
   }, [openAiImportSignal]);
+
+  useEffect(() => {
+    setForm((previous) => ({
+      ...previous,
+      type: kind,
+      categoryId: kind === "transfer" ? undefined : previous.categoryId,
+      toAccountId: kind === "transfer" ? previous.toAccountId : undefined,
+    }));
+
+    if (kind !== "transfer") {
+      setToAccountId("");
+    }
+  }, [kind]);
 
   const applyFormReset = useCallback((overrides?: Partial<TransactionFormData>) => {
     setForm({
@@ -162,14 +181,14 @@ export default function TransactionForm({
       tagIds: [],
       status: "posted",
       expectedPostDate: undefined,
-      type: undefined,
+      type: "expense",
       toAccountId: undefined,
       ...overrides,
     });
-    setKind("normal");
+    setKind(overrides?.type ? normalizeType(overrides.type) : "expense");
     setToAccountId("");
     setAdvancedOpen(false);
-  }, [today]);
+  }, [normalizeType, today]);
 
   const resetForm = useCallback(() => {
     applyFormReset({
@@ -186,7 +205,7 @@ export default function TransactionForm({
   const saveDefaults = useCallback((payload: TransactionFormData) => {
     const defaults: LastDefaults = {
       accountId: payload.accountId,
-      categoryId: payload.categoryId,
+      categoryId: payload.type === "transfer" ? undefined : payload.categoryId || undefined,
       tagIds: payload.tagIds || [],
     };
 
@@ -222,10 +241,10 @@ export default function TransactionForm({
     }));
 
     if (lastDraft.type === "transfer" || lastDraft.type === "savings") {
-      setKind(lastDraft.type);
+      setKind("transfer");
       setToAccountId(lastDraft.toAccountId || "");
     } else {
-      setKind("normal");
+      setKind(normalizeType(lastDraft.type));
       setToAccountId("");
     }
 
@@ -236,10 +255,23 @@ export default function TransactionForm({
     () =>
       categories.map((category) => ({
         value: category.id,
-        label: `${category.type === "income" ? "💰" : "💸"} ${category.name}`,
+        label: category.name || "Unnamed category",
       })),
     [categories]
   );
+
+  const filteredCategoryOptions = useMemo(() => {
+    if (kind === "transfer") {
+      return [];
+    }
+    return [
+      { value: "", label: "Uncategorized" },
+      ...categoryOptions.filter((option) => {
+      const category = categories.find((item) => item.id === option.value);
+      return category?.type === kind;
+      }),
+    ];
+  }, [categories, categoryOptions, kind]);
 
   const accountOptions = useMemo(
     () =>
@@ -264,8 +296,8 @@ export default function TransactionForm({
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!form.accountId || !form.categoryId) {
-      toast.error("Please select both account and category.");
+    if (!form.accountId) {
+      toast.error("Please select an account.");
       return;
     }
 
@@ -274,23 +306,24 @@ export default function TransactionForm({
       return;
     }
 
-    if ((kind === "transfer" || kind === "savings") && !toAccountId) {
+    if (kind === "transfer" && !toAccountId) {
       toast.error("Please select the destination account.");
       return;
     }
 
     const payload: TransactionFormData = {
       accountId: form.accountId,
-      categoryId: form.categoryId,
+      categoryId: kind === "transfer" ? undefined : form.categoryId || undefined,
       amount: form.amount,
       description: form.description,
       transactionDate: toISOStringWithoutOffset(form.transactionDate),
       tagIds: form.tagIds || [],
       status: form.status,
       expectedPostDate: form.expectedPostDate ? form.expectedPostDate : undefined,
-      ...(kind === "transfer" || kind === "savings"
-        ? { toAccountId, type: kind }
-        : { toAccountId: undefined, type: undefined }),
+      type: kind,
+      ...(kind === "transfer"
+        ? { toAccountId }
+        : { toAccountId: undefined }),
     };
 
     try {
@@ -406,12 +439,12 @@ export default function TransactionForm({
               <label className="text-sm font-semibold text-[var(--text-primary)]">Transaction type</label>
               <SegmentedControl
                 options={[
-                  { value: "normal", label: "Normal", icon: "💸" },
+                  { value: "expense", label: "Expense", icon: "💸" },
+                  { value: "income", label: "Income", icon: "💰" },
                   { value: "transfer", label: "Transfer", icon: "🔁" },
-                  { value: "savings", label: "Savings", icon: "🏦" },
                 ]}
                 value={kind}
-                onChange={(value) => setKind(value as "normal" | "transfer" | "savings")}
+                onChange={(value) => setKind(value as ComposerType)}
                 size="md"
               />
             </div>
@@ -460,7 +493,9 @@ export default function TransactionForm({
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[var(--text-primary)]">From account *</label>
+              <label className="text-sm font-semibold text-[var(--text-primary)]">
+                {kind === "transfer" ? "From account *" : "Account *"}
+              </label>
               <NeumorphicSelect
                 value={form.accountId}
                 onChange={(value) => setForm((previous) => ({ ...previous, accountId: value }))}
@@ -469,23 +504,23 @@ export default function TransactionForm({
                 theme={theme}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-[var(--text-primary)]">Category *</label>
-              <NeumorphicSelect
-                value={form.categoryId}
-                onChange={(value) => setForm((previous) => ({ ...previous, categoryId: value }))}
-                options={categoryOptions}
-                placeholder="Select category"
-                theme={theme}
-              />
-            </div>
+            {kind !== "transfer" && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-[var(--text-primary)]">Category</label>
+                <NeumorphicSelect
+                  value={form.categoryId || ""}
+                  onChange={(value) => setForm((previous) => ({ ...previous, categoryId: value || undefined }))}
+                  options={filteredCategoryOptions}
+                  placeholder="Uncategorized (optional)"
+                  theme={theme}
+                />
+              </div>
+            )}
           </div>
 
-          {(kind === "transfer" || kind === "savings") && (
+          {kind === "transfer" && (
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[var(--text-primary)]">
-                {kind === "transfer" ? "Destination account *" : "Savings account *"}
-              </label>
+              <label className="text-sm font-semibold text-[var(--text-primary)]">To account *</label>
               <NeumorphicSelect
                 value={toAccountId}
                 onChange={(value) => setToAccountId(value)}

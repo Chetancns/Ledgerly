@@ -15,8 +15,18 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return api metadata', () => {
+      expect(appController.getHello()).toEqual(
+        expect.objectContaining({
+          name: 'Ledgerly API',
+          version: '1.0.0',
+          status: 'running',
+          endpoints: expect.objectContaining({
+            transactions: '/transactions',
+            reports: '/reports',
+          }),
+        }),
+      );
     });
   });
 });
