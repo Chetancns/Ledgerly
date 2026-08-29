@@ -182,6 +182,13 @@ export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Filter state — controls which budgets are fetched
+  const [filterStartDate, setFilterStartDate] = useState(dayjs().startOf("month").format("YYYY-MM-DD"));
+  const [filterEndDate, setFilterEndDate] = useState(dayjs().endOf("month").format("YYYY-MM-DD"));
+  const [filterPeriod, setFilterPeriod] = useState<BudgetPeriod>("monthly");
+
+  // Modal form state — separate from filter
   const [form, setForm] = useState<Budget>({
     categoryId: "",
     amount: "",
@@ -211,16 +218,16 @@ export default function BudgetsPage() {
     try {
       const [catRes, budgetRes] = await Promise.all([
         getUserCategory(),
-        getBudgets(form.startDate, form.endDate, form.period),
+        getBudgets(filterStartDate, filterEndDate, filterPeriod),
       ]);
       // Prefer server-side aggregations when available. Request utilizations for the period
       // derive month/year from the start date (API expects month/year)
-      const start = dayjs(form.startDate);
+      const start = dayjs(filterStartDate);
       const month = start.month() + 1; // dayjs months are 0-indexed
       const year = start.year();
       let spentMap = new Map<string, number>();
       try {
-        const utils = await getBudgetUtilizations(month, year, form.period);
+        const utils = await getBudgetUtilizations(month, year, filterPeriod);
         (utils || []).forEach((u: any) => {
           if (!u || !u.categoryId) return;
           spentMap.set(u.categoryId, Number(u.spent) || 0);
@@ -249,7 +256,7 @@ export default function BudgetsPage() {
     } finally {
       setLoading(false);
     }
-  }, [form.endDate, form.period, form.startDate]);
+  }, [filterEndDate, filterPeriod, filterStartDate]);
 
   useEffect(() => {
     if (!mountedRef.current) {
@@ -263,17 +270,16 @@ export default function BudgetsPage() {
   // Open create modal with a sensible default category pre-selected if available
   const openCreateModal = useCallback(() => {
     setEditing(null);
-    setForm((prev) => ({
-      ...prev,
+    setForm({
       categoryId: categories.length > 0 ? categories[0].id : "",
       amount: "",
-      period: "monthly",
-      startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
-      endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
-    }));
+      period: filterPeriod,
+      startDate: filterStartDate,
+      endDate: filterEndDate,
+    });
     setCarryOver(false);
     setModalOpen(true);
-  }, [categories]);
+  }, [categories, filterPeriod, filterStartDate, filterEndDate]);
 
   const openEditModal = useCallback((b: Budget) => {
     setEditing(b);
@@ -287,21 +293,7 @@ export default function BudgetsPage() {
     setEditing(null);
   }, []);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (name === "period") {
-      setForm((prev) => {
-        const newPeriod = value as BudgetPeriod;
-        return { ...prev, period: newPeriod, endDate: getEndDateFor(newPeriod, prev.startDate) };
-      });
-      return;
-    }
-    if (name === "startDate") {
-      setForm((prev) => ({ ...prev, startDate: value, endDate: getEndDateFor(prev.period, value) }));
-      return;
-    }
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  
 
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
@@ -363,7 +355,7 @@ export default function BudgetsPage() {
   const handleCopyPrevious = useCallback(async () => {
     try {
       setActionLoading(true);
-      await copyPreviousBudgets({ period: form.period, startDate: form.startDate, endDate: form.endDate });
+      await copyPreviousBudgets({ period: filterPeriod, startDate: filterStartDate, endDate: filterEndDate });
       await loadData();
       toast.success("Copied previous budgets.");
     } catch (err) {
@@ -373,7 +365,7 @@ export default function BudgetsPage() {
       setActionLoading(false);
       setCopyConfirmOpen(false);
     }
-  }, [form.endDate, form.period, form.startDate, loadData]);
+  }, [filterEndDate, filterPeriod, filterStartDate, loadData]);
 
   const isEmpty = !loading && budgets.length === 0;
 
@@ -521,9 +513,12 @@ export default function BudgetsPage() {
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>Start</label>
               <input
                 type="date"
-                name="startDate"
-                value={form.startDate}
-                onChange={handleChange}
+                value={filterStartDate}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFilterStartDate(val);
+                  setFilterEndDate(getEndDateFor(filterPeriod, val));
+                }}
                 className="w-full px-3 py-2 rounded-lg"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
@@ -534,9 +529,8 @@ export default function BudgetsPage() {
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>End</label>
               <input
                 type="date"
-                name="endDate"
-                value={form.endDate}
-                onChange={handleChange}
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
@@ -545,10 +539,12 @@ export default function BudgetsPage() {
             <div>
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>Period</label>
               <NeumorphicSelect
-                value={form.period}
-                onChange={(v) =>
-                  setForm((p) => ({ ...p, period: v as BudgetPeriod, endDate: getEndDateFor(v as BudgetPeriod, p.startDate) }))
-                }
+                value={filterPeriod}
+                onChange={(v) => {
+                  const p = v as BudgetPeriod;
+                  setFilterPeriod(p);
+                  setFilterEndDate(getEndDateFor(p, filterStartDate));
+                }}
                 options={[
                   { value: "monthly", label: "Monthly" },
                   { value: "weekly", label: "Weekly" },
@@ -561,16 +557,15 @@ export default function BudgetsPage() {
             </div>
 
             <div className="flex gap-2">
-              <ModernButton type="submit" onClick={() => loadData()} color="indigo-500" variant="outline" size="md" disabled={loading}>
+              <ModernButton type="submit" color="indigo-500" variant="outline" size="md" disabled={loading}>
                 Refresh
               </ModernButton>
               <ModernButton
+                type="button"
                 onClick={() => {
-                  setForm((p) => ({
-                    ...p,
-                    startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
-                    endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
-                  }));
+                  setFilterStartDate(dayjs().startOf("month").format("YYYY-MM-DD"));
+                  setFilterEndDate(dayjs().endOf("month").format("YYYY-MM-DD"));
+                  setFilterPeriod("monthly");
                 }}
                 color="yellow-400"
                 variant="ghost"
