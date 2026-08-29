@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { Budget, BudgetPeriod } from './budget.entity';
 import { Transaction } from '../transactions/transaction.entity';
 import dayjs from 'dayjs';
@@ -89,12 +89,14 @@ export class BudgetsService {
   }
 
   async getBudgets(userId: string, startDate: string, endDate: string, period: string) {
+    // Return budgets whose date range overlaps the requested window.
+    // An overlap exists when: budget.startDate <= endDate AND budget.endDate >= startDate
     return this.budRepo.find({
       where: {
         userId,
         period: period as BudgetPeriod,
-        startDate,
-        endDate,
+        startDate: LessThanOrEqual(endDate),
+        endDate: MoreThanOrEqual(startDate),
       },
     });
   }

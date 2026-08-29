@@ -319,9 +319,10 @@ export default function BudgetsPage() {
       try {
         setActionLoading(true);
         await createOrUpdateBudget({ ...form, carriedOver: carryOver });
-        refresh();
+        toast.success(editing ? "Budget updated." : "Budget created.");
         setModalOpen(false);
         setEditing(null);
+        refresh();
       } catch (err) {
         console.error("Failed to save budget", err);
         toast.error("Failed to save budget. See console.");
