@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { getUserCategory } from "@/services/category";
 import { Category } from "@/models/category";
@@ -205,7 +205,9 @@ export default function BudgetsPage() {
   const [aiSuggestions, setAiSuggestions] = useState<AIBudgetSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [applyingSuggestions, setApplyingSuggestions] = useState(false);
-  const mountedRef = useRef(false);
+  // refreshKey increments to trigger a reload without depending on loadData reference
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const categoryMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -213,59 +215,53 @@ export default function BudgetsPage() {
     return m;
   }, [categories]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [catRes, budgetRes] = await Promise.all([
-        getUserCategory(),
-        getBudgets(filterStartDate, filterEndDate, filterPeriod),
-      ]);
-      // Prefer server-side aggregations when available. Request utilizations for the period
-      // derive month/year from the start date (API expects month/year)
-      const start = dayjs(filterStartDate);
-      const month = start.month() + 1; // dayjs months are 0-indexed
-      const year = start.year();
-      let spentMap = new Map<string, number>();
-      try {
-        const utils = await getBudgetUtilizations(month, year, filterPeriod);
-        (utils || []).forEach((u: any) => {
-          if (!u || !u.categoryId) return;
-          spentMap.set(u.categoryId, Number(u.spent) || 0);
-        });
-      } catch (err) {
-        // fallback: if server aggregation fails, leave spentMap empty so budgets show 0
-        console.warn("getBudgetUtilizations failed, falling back to 0 spent", err);
-        spentMap = new Map();
-      }
-      setCategories(catRes);
-      setBudgets((budgetRes || []).map((b: any) => ({
-        id: b.id,
-        categoryId: b.categoryId,
-        amount: String(b.amount ?? b.value ?? "0"),
-        period: b.period,
-        startDate: b.startDate,
-        endDate: b.endDate,
-        carriedOver: !!b.carriedOver,
-        // prefer backend-provided spent if present; otherwise use computed sum
-        spent: typeof b.spent === "number" ? b.spent : (spentMap.get(b.categoryId) ?? 0),
-        updatedAt: b.updatedAt,
-      })));
-    } catch (err) {
-      console.error("Failed loading budgets", err);
-      toast.error("Failed to load budgets. See console for details.");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterEndDate, filterPeriod, filterStartDate]);
-
   useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      loadData();
-    } else {
-      loadData();
-    }
-  }, [loadData]);
+    let cancelled = false;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [catRes, budgetRes] = await Promise.all([
+          getUserCategory(),
+          getBudgets(filterStartDate, filterEndDate, filterPeriod),
+        ]);
+        const start = dayjs(filterStartDate);
+        const month = start.month() + 1;
+        const year = start.year();
+        let spentMap = new Map<string, number>();
+        try {
+          const utils = await getBudgetUtilizations(month, year, filterPeriod);
+          (utils || []).forEach((u: any) => {
+            if (!u || !u.categoryId) return;
+            spentMap.set(u.categoryId, Number(u.spent) || 0);
+          });
+        } catch (err) {
+          console.warn("getBudgetUtilizations failed, falling back to 0 spent", err);
+          spentMap = new Map();
+        }
+        if (cancelled) return;
+        setCategories(catRes);
+        setBudgets((budgetRes || []).map((b: any) => ({
+          id: b.id,
+          categoryId: b.categoryId,
+          amount: String(b.amount ?? b.value ?? "0"),
+          period: b.period,
+          startDate: b.startDate,
+          endDate: b.endDate,
+          carriedOver: !!b.carriedOver,
+          spent: typeof b.spent === "number" ? b.spent : (spentMap.get(b.categoryId) ?? 0),
+          updatedAt: b.updatedAt,
+        })));
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Failed loading budgets", err);
+        toast.error("Failed to load budgets. See console for details.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchData();
+    return () => { cancelled = true; };
+  }, [filterStartDate, filterEndDate, filterPeriod, refreshKey]);
 
   // Open create modal with a sensible default category pre-selected if available
   const openCreateModal = useCallback(() => {
@@ -323,7 +319,7 @@ export default function BudgetsPage() {
       try {
         setActionLoading(true);
         await createOrUpdateBudget({ ...form, carriedOver: carryOver });
-        await loadData();
+        refresh();
         setModalOpen(false);
         setEditing(null);
       } catch (err) {
@@ -333,7 +329,7 @@ export default function BudgetsPage() {
         setActionLoading(false);
       }
     },
-    [carryOver, form, loadData, budgets, editing]
+    [carryOver, form, refresh, budgets, editing]
   );
 
   const handleDelete = useCallback(async (id?: string) => {
@@ -341,7 +337,7 @@ export default function BudgetsPage() {
     try {
       setActionLoading(true);
       await deleteBudget(id);
-      await loadData();
+      refresh();
       toast.success("Budget deleted.");
     } catch (err) {
       console.error("Delete failed", err);
@@ -350,13 +346,13 @@ export default function BudgetsPage() {
       setActionLoading(false);
       setDeleteConfirm(null);
     }
-  }, [loadData]);
+  }, [refresh]);
 
   const handleCopyPrevious = useCallback(async () => {
     try {
       setActionLoading(true);
       await copyPreviousBudgets({ period: filterPeriod, startDate: filterStartDate, endDate: filterEndDate });
-      await loadData();
+      refresh();
       toast.success("Copied previous budgets.");
     } catch (err) {
       console.error("Copy previous budgets failed", err);
@@ -365,7 +361,7 @@ export default function BudgetsPage() {
       setActionLoading(false);
       setCopyConfirmOpen(false);
     }
-  }, [filterEndDate, filterPeriod, filterStartDate, loadData]);
+  }, [filterEndDate, filterPeriod, filterStartDate, refresh]);
 
   const isEmpty = !loading && budgets.length === 0;
 
@@ -420,14 +416,14 @@ export default function BudgetsPage() {
         setAiSuggestions(failed);
       }
 
-      await loadData();
+      await refresh();
     } catch (err) {
       console.error("Failed to apply AI budget suggestions", err);
       toast.error("Failed to apply AI suggestions.");
     } finally {
       setApplyingSuggestions(false);
     }
-  }, [aiSuggestions, loadData]);
+  }, [aiSuggestions, refresh]);
 
   return (
     <Layout>
@@ -506,7 +502,7 @@ export default function BudgetsPage() {
             className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
             onSubmit={(e) => {
               e.preventDefault();
-              loadData();
+              refresh();
             }}
           >
             <div>
@@ -557,7 +553,7 @@ export default function BudgetsPage() {
             </div>
 
             <div className="flex gap-2">
-              <ModernButton type="submit" color="indigo-500" variant="outline" size="md" disabled={loading}>
+              <ModernButton type="button" onClick={() => refresh()} color="indigo-500" variant="outline" size="md" disabled={loading}>
                 Refresh
               </ModernButton>
               <ModernButton
