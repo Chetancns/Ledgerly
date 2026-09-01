@@ -207,7 +207,10 @@ export default function BudgetsPage() {
   const [applyingSuggestions, setApplyingSuggestions] = useState(false);
   // refreshKey increments to trigger a reload without depending on loadData reference
   const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const refresh = useCallback(() => {
+    console.log("[Budgets] refresh() called");
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   const categoryMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -219,11 +222,13 @@ export default function BudgetsPage() {
     let cancelled = false;
     const fetchData = async () => {
       setLoading(true);
+      console.log("[Budgets] fetchData start", { filterStartDate, filterEndDate, filterPeriod, refreshKey });
       try {
         const [catRes, budgetRes] = await Promise.all([
           getUserCategory(),
           getBudgets(filterStartDate, filterEndDate, filterPeriod),
         ]);
+        console.log("[Budgets] API returned", budgetRes?.length, "budgets");
         const start = dayjs(filterStartDate);
         const month = start.month() + 1;
         const year = start.year();
@@ -238,7 +243,7 @@ export default function BudgetsPage() {
           console.warn("getBudgetUtilizations failed, falling back to 0 spent", err);
           spentMap = new Map();
         }
-        if (cancelled) return;
+        if (cancelled) { console.log("[Budgets] cancelled, skipping setState"); return; }
         setCategories(catRes);
         setBudgets((budgetRes || []).map((b: any) => ({
           id: b.id,
