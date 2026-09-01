@@ -220,7 +220,10 @@ export default function BudgetsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const fetchData = async () => {
+    // Small debounce so rapid filter-state changes (date typing, This Month reset)
+    // don't fire overlapping requests — only the last state wins.
+    const timer = setTimeout(async () => {
+      if (cancelled) return;
       setLoading(true);
       console.log("[Budgets] fetchData start", { filterStartDate, filterEndDate, filterPeriod, refreshKey });
       try {
@@ -263,9 +266,11 @@ export default function BudgetsPage() {
       } finally {
         if (!cancelled) setLoading(false);
       }
+    }, 80);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
     };
-    fetchData();
-    return () => { cancelled = true; };
   }, [filterStartDate, filterEndDate, filterPeriod, refreshKey]);
 
   // Open create modal with a sensible default category pre-selected if available
@@ -579,63 +584,64 @@ export default function BudgetsPage() {
           </form>
         </div>
 
-        <AnimatePresence mode="wait">
-          {isEmpty && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-5 rounded-2xl backdrop-blur-lg"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
-            >
-              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-                First budget setup
-              </h2>
-              <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-                Let AI suggest monthly budgets based on your last 1–3 months of spending.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <ModernButton
-                  onClick={handleLoadSuggestions}
-                  color="indigo-600"
-                  variant="solid"
-                  disabled={loadingSuggestions || applyingSuggestions}
-                >
-                  {loadingSuggestions ? "Loading AI Suggestions..." : "Let AI suggest budgets"}
-                </ModernButton>
-                {aiSuggestions.length > 0 && (
-                  <ModernButton
-                    onClick={handleApplySuggestions}
-                    color="green-400"
-                    variant="outline"
-                    disabled={applyingSuggestions}
-                  >
-                    {applyingSuggestions ? "Applying..." : `Apply ${aiSuggestions.length} suggestions`}
-                  </ModernButton>
-                )}
-              </div>
-
+        {isEmpty && !loading && (
+          <motion.div
+            key="empty-setup"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-5 rounded-2xl backdrop-blur-lg"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          >
+            <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+              First budget setup
+            </h2>
+            <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
+              Let AI suggest monthly budgets based on your last 1–3 months of spending.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <ModernButton
+                onClick={handleLoadSuggestions}
+                color="indigo-600"
+                variant="solid"
+                disabled={loadingSuggestions || applyingSuggestions}
+              >
+                {loadingSuggestions ? "Loading AI Suggestions..." : "Let AI suggest budgets"}
+              </ModernButton>
               {aiSuggestions.length > 0 && (
-                <div className="space-y-2">
-                  {aiSuggestions.map((s) => (
-                    <div
-                      key={s.categoryId}
-                      className="rounded-xl p-3"
-                      style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-secondary)" }}
-                    >
-                      <div className="flex justify-between items-start gap-3">
-                        <div>
-                          <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{s.categoryName}</p>
-                          <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.reason}</p>
-                        </div>
-                        <p className="font-bold" style={{ color: "var(--text-primary)" }}>{format(Number(s.amount))}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ModernButton
+                  onClick={handleApplySuggestions}
+                  color="green-400"
+                  variant="outline"
+                  disabled={applyingSuggestions}
+                >
+                  {applyingSuggestions ? "Applying..." : `Apply ${aiSuggestions.length} suggestions`}
+                </ModernButton>
               )}
-            </motion.div>
-          )}
+            </div>
 
+            {aiSuggestions.length > 0 && (
+              <div className="space-y-2">
+                {aiSuggestions.map((s) => (
+                  <div
+                    key={s.categoryId}
+                    className="rounded-xl p-3"
+                    style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-secondary)" }}
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{s.categoryName}</p>
+                        <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.reason}</p>
+                      </div>
+                      <p className="font-bold" style={{ color: "var(--text-primary)" }}>{format(Number(s.amount))}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        <AnimatePresence mode="wait">
           {loading ? (
             <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

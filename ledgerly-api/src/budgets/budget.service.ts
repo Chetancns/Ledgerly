@@ -134,29 +134,52 @@ export class BudgetsService {
   }
 
   async copyPrevious(userId: string, period: string, startDate: string, endDate: string) {
+    // Find the most recent budget period that is NOT the target period
     const lastBudget = await this.budRepo.findOne({
       where: { userId, period: period as BudgetPeriod },
-      order: { createdAt: 'DESC' },
+      order: { startDate: 'DESC', createdAt: 'DESC' },
     });
     if (!lastBudget) return [];
+
+    // Don't copy from the target period itself
+    if (lastBudget.startDate === startDate && lastBudget.endDate === endDate) {
+      // Find an older period instead
+      const olderBudget = await this.budRepo
+        .createQueryBuilder('b')
+        .where('b.userId = :userId', { userId })
+        .andWhere('b.period = :period', { period })
+        .andWhere('b.startDate != :startDate', { startDate })
+        .orderBy('b.startDate', 'DESC')
+        .getOne();
+      if (!olderBudget) return [];
+      lastBudget.startDate = olderBudget.startDate;
+      lastBudget.endDate = olderBudget.endDate;
+    }
 
     const prevBudgets = await this.budRepo.find({
       where: { userId, period: period as BudgetPeriod, startDate: lastBudget.startDate, endDate: lastBudget.endDate },
     });
 
-    const newBudgets = prevBudgets.map((b) =>
-      this.budRepo.create({
-        userId,
-        period: b.period,
-        categoryId: b.categoryId,
-        amount: b.amount,
-        startDate,
-        endDate,
-        carriedOver: false,
-      }),
-    );
+    // Get categories already budgeted in the target period to avoid duplicates
+    const existing = await this.budRepo.find({ where: { userId, period: period as BudgetPeriod, startDate, endDate } });
+    const existingCategoryIds = new Set(existing.map((b) => b.categoryId));
 
-    return this.budRepo.save(newBudgets);
+    const toCreate = prevBudgets
+      .filter((b) => !existingCategoryIds.has(b.categoryId))
+      .map((b) =>
+        this.budRepo.create({
+          userId,
+          period: b.period,
+          categoryId: b.categoryId,
+          amount: b.amount,
+          startDate,
+          endDate,
+          carriedOver: false,
+        }),
+      );
+
+    if (!toCreate.length) return [];
+    return this.budRepo.save(toCreate);
   }
 
   async deleteBudgets(userId: string, id: string) {
