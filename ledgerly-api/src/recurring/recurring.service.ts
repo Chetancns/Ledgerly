@@ -1,5 +1,5 @@
 // src/recurring/recurring.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,6 +7,7 @@ import { RecurringTransaction } from './recurring.entity';
 import dayjs from 'dayjs';
 import { TransactionsService } from 'src/transactions/transaction.service';
 import { Tag } from 'src/tags/tag.entity';
+import { Transaction } from 'src/transactions/transaction.entity';
 
 interface CreateRecurringDto extends Partial<RecurringTransaction> {
   tagIds?: string[];
@@ -19,6 +20,8 @@ export class RecurringService {
     private recRepo: Repository<RecurringTransaction>,
     @InjectRepository(Tag)
     private tagRepo: Repository<Tag>,
+    @InjectRepository(Transaction)
+    private txRepo: Repository<Transaction>,
     private txService: TransactionsService
   ) {}
 
@@ -126,6 +129,23 @@ export class RecurringService {
     }
 
     const today = dayjs().format('YYYY-MM-DD');
+    const duplicateThisMonth = await this.txRepo
+      .createQueryBuilder('tx')
+      .where('tx.userId = :userId', { userId })
+      .andWhere('tx.accountId IS NOT DISTINCT FROM :accountId', { accountId: rec.accountId ?? null })
+      .andWhere('tx.categoryId IS NOT DISTINCT FROM :categoryId', { categoryId: rec.categoryId ?? null })
+      .andWhere('tx.toAccountId IS NOT DISTINCT FROM :toAccountId', { toAccountId: rec.toAccountId ?? null })
+      .andWhere('tx.type = :type', { type: rec.type })
+      .andWhere('tx.amount = :amount', { amount: rec.amount })
+      .andWhere('COALESCE(tx.description, \'\') = :description', { description: rec.description ?? '' })
+      .andWhere('tx.transactionDate >= :startOfMonth', { startOfMonth: dayjs(today).startOf('month').format('YYYY-MM-DD') })
+      .andWhere('tx.transactionDate <= :endOfMonth', { endOfMonth: dayjs(today).endOf('month').format('YYYY-MM-DD') })
+      .getOne();
+
+    if (duplicateThisMonth) {
+      throw new BadRequestException('This recurring transaction was already triggered this month.');
+    }
+
     await this.createTransactionFromRecurring(rec, today, true); // Pass true for manual trigger
     
     return { message: 'Recurring transaction triggered successfully' };
@@ -160,11 +180,48 @@ export class RecurringService {
     let next = dayjs(baseDate);
     if (r.frequency === 'daily') next = next.add(1, 'day');
     if (r.frequency === 'weekly') next = next.add(1, 'week');
+    if (r.frequency === 'biweekly') next = next.add(2, 'week');
     if (r.frequency === 'monthly') next = next.add(1, 'month');
     if (r.frequency === 'yearly') next = next.add(1, 'year');
 
     await this.recRepo.update(r.id, {
       nextOccurrence: next.format('YYYY-MM-DD'),
     });
+  }
+
+  async revertLastManualTrigger(id: string, userId: string) {
+    const rec = await this.findOne(id, userId);
+    const frequencyUnit = rec.frequency === 'daily'
+      ? 'day'
+      : rec.frequency === 'weekly'
+      ? 'week'
+      : rec.frequency === 'biweekly'
+      ? 'week'
+      : rec.frequency === 'monthly'
+      ? 'month'
+      : 'year';
+    const frequencyStep = rec.frequency === 'biweekly' ? 2 : 1;
+    const previousOccurrence = dayjs(rec.nextOccurrence).subtract(frequencyStep, frequencyUnit as dayjs.ManipulateType).format('YYYY-MM-DD');
+
+    const txToDelete = await this.txRepo
+      .createQueryBuilder('tx')
+      .where('tx.userId = :userId', { userId })
+      .andWhere('tx.accountId IS NOT DISTINCT FROM :accountId', { accountId: rec.accountId ?? null })
+      .andWhere('tx.categoryId IS NOT DISTINCT FROM :categoryId', { categoryId: rec.categoryId ?? null })
+      .andWhere('tx.toAccountId IS NOT DISTINCT FROM :toAccountId', { toAccountId: rec.toAccountId ?? null })
+      .andWhere('tx.type = :type', { type: rec.type })
+      .andWhere('tx.amount = :amount', { amount: rec.amount })
+      .andWhere('COALESCE(tx.description, \'\') = :description', { description: rec.description ?? '' })
+      .andWhere('tx.transactionDate = :txDate', { txDate: dayjs().format('YYYY-MM-DD') })
+      .orderBy('tx.createdAt', 'DESC')
+      .getOne();
+
+    if (!txToDelete) {
+      throw new NotFoundException('No recent trigger found to revert for this recurring transaction.');
+    }
+
+    await this.txService.delete(userId, txToDelete.id);
+    await this.recRepo.update(rec.id, { nextOccurrence: previousOccurrence });
+    return { message: 'Last recurring trigger reverted successfully' };
   }
 }

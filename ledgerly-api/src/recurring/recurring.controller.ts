@@ -38,4 +38,9 @@ export class RecurringController {
   async trigger(@Param('id') id: string, @GetUser() user: { userId: string}) {
     return this.recurringService.triggerRecurring(id, user.userId);
   }
+
+  @Post(':id/revert-trigger')
+  async revertTrigger(@Param('id') id: string, @GetUser() user: { userId: string}) {
+    return this.recurringService.revertLastManualTrigger(id, user.userId);
+  }
 }
