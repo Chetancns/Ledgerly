@@ -1,4 +1,4 @@
-export type Frequency = "daily" | "weekly" | "monthly" | "yearly";
+export type Frequency = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 export type RecurringStatus = "active" | "paused";
 export type TxType = "expense" | "income" | "savings" | "transfer";
 

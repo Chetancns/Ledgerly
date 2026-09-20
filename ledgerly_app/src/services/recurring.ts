@@ -25,3 +25,8 @@ export async function triggerRecurring(id: string) {
   const res = await api.post(`/recurring/${id}/trigger`);
   return res.data;
 }
+
+export async function revertRecurringTrigger(id: string) {
+  const res = await api.post(`/recurring/${id}/revert-trigger`);
+  return res.data;
+}

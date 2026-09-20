@@ -8,11 +8,12 @@ import {
   updateRecurring,
   deleteRecurring,
   triggerRecurring,
+  revertRecurringTrigger,
 } from "../services/recurring";
 import { getUserAccount } from "../services/accounts";
 import { getUserCategory } from "../services/category";
 import { RecurringTransaction } from "../models/recurring";
-import { TrashIcon, PauseIcon, PlayIcon, BoltIcon } from "@heroicons/react/24/solid";
+import { TrashIcon, PauseIcon, PlayIcon, BoltIcon, ArrowUturnLeftIcon } from "@heroicons/react/24/solid";
 import ConfirmModal from "@/components/ConfirmModal";
 import TagInput from "@/components/TagInput";
 
@@ -69,6 +70,9 @@ export default function Recurring() {
     if (frequency === 'monthly') {
       // If next occurrence is in the future and it's a different month, transaction was done this month
       return next > today && next.getMonth() !== today.getMonth();
+    } else if (frequency === 'biweekly') {
+      const daysDiff = getDaysUntil(nextOccurrence);
+      return daysDiff > 7 && daysDiff <= 14;
     } else if (frequency === 'weekly') {
       // For weekly, check if next occurrence is in the future
       const daysDiff = getDaysUntil(nextOccurrence);
@@ -103,6 +107,7 @@ export default function Recurring() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [pauseResumeConfirm, setPauseResumeConfirm] = useState<{ id: string; status: string } | null>(null);
   const [triggerConfirm, setTriggerConfirm] = useState<string | null>(null);
+  const [revertConfirm, setRevertConfirm] = useState<string | null>(null);
 
   // Load recurring transactions
   const load = async () => {
@@ -226,6 +231,19 @@ export default function Recurring() {
       toast.error("Trigger failed. Please try again.");
     } finally {
       setTriggerConfirm(null);
+    }
+  };
+
+  const handleRevertTrigger = async (id: string) => {
+    try {
+      await revertRecurringTrigger(id);
+      toast.success("Last trigger reverted successfully!");
+      await load();
+    } catch (err) {
+      console.error("Revert trigger failed", err);
+      toast.error("Revert failed. Please try again.");
+    } finally {
+      setRevertConfirm(null);
     }
   };
 
@@ -464,6 +482,15 @@ export default function Recurring() {
       </button>
 
       <button
+        onClick={() => setRevertConfirm(tx.id)}
+        className="p-2 rounded-lg transition-all hover:scale-110 hover:shadow-lg"
+        style={{ background: "var(--color-success)20", color: "var(--color-success)" }}
+        title="Revert Last Trigger"
+      >
+        <ArrowUturnLeftIcon className="h-5 w-5" />
+      </button>
+
+      <button
         onClick={() => setPauseResumeConfirm({ id: tx.id, status: tx.status })}
         className="p-2 rounded-lg transition-all hover:scale-110 hover:shadow-lg"
         style={{ background: "var(--color-info)20", color: "var(--color-info)" }}
@@ -579,6 +606,7 @@ export default function Recurring() {
               >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
+                <option value="biweekly">Bi-weekly</option>
                 <option value="monthly">Monthly</option>
                 <option value="yearly">Yearly</option>
               </select>
@@ -680,6 +708,17 @@ export default function Recurring() {
         loading={false}
         onConfirm={() => handleTriggerNow(triggerConfirm!)}
         onClose={() => setTriggerConfirm(null)}
+      />
+
+      <ConfirmModal
+        open={!!revertConfirm}
+        title="Revert Last Trigger"
+        description="This will remove the most recent triggered transaction and restore the previous schedule. Continue?"
+        confirmLabel="Revert"
+        confirmColor="green-500"
+        loading={false}
+        onConfirm={() => handleRevertTrigger(revertConfirm!)}
+        onClose={() => setRevertConfirm(null)}
       />
     </Layout>
   );

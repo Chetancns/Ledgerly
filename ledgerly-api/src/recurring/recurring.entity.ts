@@ -15,7 +15,7 @@ import { Category } from '../categories/category.entity';
 import { Tag } from '../tags/tag.entity';
 import type { TxType } from '../transactions/transaction.entity';
 
-export type Frequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type Frequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 export type RecurringStatus = 'active' | 'paused';
 
 @Entity('dbo.recurring_transactions')

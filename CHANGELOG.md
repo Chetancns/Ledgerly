@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-20
+
+### Changed
+- Added **bi-weekly** frequency support for recurring transactions in backend scheduling and recurring UI.
+- Added recurring action to **revert the last manually triggered recurring transaction** from the recurring page.
+- Prevented users from manually triggering the same recurring transaction multiple times in the same month.
+
 ## 2026-06-15
 
 ### Changed
