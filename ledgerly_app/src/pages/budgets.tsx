@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { getUserCategory } from "@/services/category";
 import { Category } from "@/models/category";
@@ -182,6 +182,13 @@ export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Filter state — controls which budgets are fetched
+  const [filterStartDate, setFilterStartDate] = useState(dayjs().startOf("month").format("YYYY-MM-DD"));
+  const [filterEndDate, setFilterEndDate] = useState(dayjs().endOf("month").format("YYYY-MM-DD"));
+  const [filterPeriod, setFilterPeriod] = useState<BudgetPeriod>("monthly");
+
+  // Modal form state — separate from filter
   const [form, setForm] = useState<Budget>({
     categoryId: "",
     amount: "",
@@ -198,7 +205,12 @@ export default function BudgetsPage() {
   const [aiSuggestions, setAiSuggestions] = useState<AIBudgetSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [applyingSuggestions, setApplyingSuggestions] = useState(false);
-  const mountedRef = useRef(false);
+  // refreshKey increments to trigger a reload without depending on loadData reference
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = useCallback(() => {
+    console.log("[Budgets] refresh() called");
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   const categoryMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -206,74 +218,74 @@ export default function BudgetsPage() {
     return m;
   }, [categories]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [catRes, budgetRes] = await Promise.all([
-        getUserCategory(),
-        getBudgets(form.startDate, form.endDate, form.period),
-      ]);
-      // Prefer server-side aggregations when available. Request utilizations for the period
-      // derive month/year from the start date (API expects month/year)
-      const start = dayjs(form.startDate);
-      const month = start.month() + 1; // dayjs months are 0-indexed
-      const year = start.year();
-      let spentMap = new Map<string, number>();
-      try {
-        const utils = await getBudgetUtilizations(month, year, form.period);
-        (utils || []).forEach((u: any) => {
-          if (!u || !u.categoryId) return;
-          spentMap.set(u.categoryId, Number(u.spent) || 0);
-        });
-      } catch (err) {
-        // fallback: if server aggregation fails, leave spentMap empty so budgets show 0
-        console.warn("getBudgetUtilizations failed, falling back to 0 spent", err);
-        spentMap = new Map();
-      }
-      setCategories(catRes);
-      setBudgets((budgetRes || []).map((b: any) => ({
-        id: b.id,
-        categoryId: b.categoryId,
-        amount: String(b.amount ?? b.value ?? "0"),
-        period: b.period,
-        startDate: b.startDate,
-        endDate: b.endDate,
-        carriedOver: !!b.carriedOver,
-        // prefer backend-provided spent if present; otherwise use computed sum
-        spent: typeof b.spent === "number" ? b.spent : (spentMap.get(b.categoryId) ?? 0),
-        updatedAt: b.updatedAt,
-      })));
-    } catch (err) {
-      console.error("Failed loading budgets", err);
-      toast.error("Failed to load budgets. See console for details.");
-    } finally {
-      setLoading(false);
-    }
-  }, [form.endDate, form.period, form.startDate]);
-
   useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      loadData();
-    } else {
-      loadData();
-    }
-  }, [loadData]);
+    let cancelled = false;
+    // Small debounce so rapid filter-state changes (date typing, This Month reset)
+    // don't fire overlapping requests — only the last state wins.
+    const timer = setTimeout(async () => {
+      if (cancelled) return;
+      setLoading(true);
+      console.log("[Budgets] fetchData start", { filterStartDate, filterEndDate, filterPeriod, refreshKey });
+      try {
+        const [catRes, budgetRes] = await Promise.all([
+          getUserCategory(),
+          getBudgets(filterStartDate, filterEndDate, filterPeriod),
+        ]);
+        console.log("[Budgets] API returned", budgetRes?.length, "budgets");
+        const start = dayjs(filterStartDate);
+        const month = start.month() + 1;
+        const year = start.year();
+        let spentMap = new Map<string, number>();
+        try {
+          const utils = await getBudgetUtilizations(month, year, filterPeriod);
+          (utils || []).forEach((u: any) => {
+            if (!u || !u.categoryId) return;
+            spentMap.set(u.categoryId, Number(u.spent) || 0);
+          });
+        } catch (err) {
+          console.warn("getBudgetUtilizations failed, falling back to 0 spent", err);
+          spentMap = new Map();
+        }
+        if (cancelled) { console.log("[Budgets] cancelled, skipping setState"); return; }
+        setCategories(catRes);
+        setBudgets((budgetRes || []).map((b: any) => ({
+          id: b.id,
+          categoryId: b.categoryId,
+          amount: String(b.amount ?? b.value ?? "0"),
+          period: b.period,
+          startDate: b.startDate,
+          endDate: b.endDate,
+          carriedOver: !!b.carriedOver,
+          spent: typeof b.spent === "number" ? b.spent : (spentMap.get(b.categoryId) ?? 0),
+          updatedAt: b.updatedAt,
+        })));
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Failed loading budgets", err);
+        toast.error("Failed to load budgets. See console for details.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 80);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [filterStartDate, filterEndDate, filterPeriod, refreshKey]);
 
   // Open create modal with a sensible default category pre-selected if available
   const openCreateModal = useCallback(() => {
     setEditing(null);
-    setForm((prev) => ({
-      ...prev,
+    setForm({
       categoryId: categories.length > 0 ? categories[0].id : "",
       amount: "",
-      period: "monthly",
-      startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
-      endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
-    }));
+      period: filterPeriod,
+      startDate: filterStartDate,
+      endDate: filterEndDate,
+    });
     setCarryOver(false);
     setModalOpen(true);
-  }, [categories]);
+  }, [categories, filterPeriod, filterStartDate, filterEndDate]);
 
   const openEditModal = useCallback((b: Budget) => {
     setEditing(b);
@@ -287,21 +299,7 @@ export default function BudgetsPage() {
     setEditing(null);
   }, []);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (name === "period") {
-      setForm((prev) => {
-        const newPeriod = value as BudgetPeriod;
-        return { ...prev, period: newPeriod, endDate: getEndDateFor(newPeriod, prev.startDate) };
-      });
-      return;
-    }
-    if (name === "startDate") {
-      setForm((prev) => ({ ...prev, startDate: value, endDate: getEndDateFor(prev.period, value) }));
-      return;
-    }
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  
 
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
@@ -331,9 +329,10 @@ export default function BudgetsPage() {
       try {
         setActionLoading(true);
         await createOrUpdateBudget({ ...form, carriedOver: carryOver });
-        await loadData();
+        toast.success(editing ? "Budget updated." : "Budget created.");
         setModalOpen(false);
         setEditing(null);
+        refresh();
       } catch (err) {
         console.error("Failed to save budget", err);
         toast.error("Failed to save budget. See console.");
@@ -341,7 +340,7 @@ export default function BudgetsPage() {
         setActionLoading(false);
       }
     },
-    [carryOver, form, loadData, budgets, editing]
+    [carryOver, form, refresh, budgets, editing]
   );
 
   const handleDelete = useCallback(async (id?: string) => {
@@ -349,7 +348,7 @@ export default function BudgetsPage() {
     try {
       setActionLoading(true);
       await deleteBudget(id);
-      await loadData();
+      refresh();
       toast.success("Budget deleted.");
     } catch (err) {
       console.error("Delete failed", err);
@@ -358,13 +357,13 @@ export default function BudgetsPage() {
       setActionLoading(false);
       setDeleteConfirm(null);
     }
-  }, [loadData]);
+  }, [refresh]);
 
   const handleCopyPrevious = useCallback(async () => {
     try {
       setActionLoading(true);
-      await copyPreviousBudgets({ period: form.period, startDate: form.startDate, endDate: form.endDate });
-      await loadData();
+      await copyPreviousBudgets({ period: filterPeriod, startDate: filterStartDate, endDate: filterEndDate });
+      refresh();
       toast.success("Copied previous budgets.");
     } catch (err) {
       console.error("Copy previous budgets failed", err);
@@ -373,7 +372,7 @@ export default function BudgetsPage() {
       setActionLoading(false);
       setCopyConfirmOpen(false);
     }
-  }, [form.endDate, form.period, form.startDate, loadData]);
+  }, [filterEndDate, filterPeriod, filterStartDate, refresh]);
 
   const isEmpty = !loading && budgets.length === 0;
 
@@ -428,14 +427,14 @@ export default function BudgetsPage() {
         setAiSuggestions(failed);
       }
 
-      await loadData();
+      await refresh();
     } catch (err) {
       console.error("Failed to apply AI budget suggestions", err);
       toast.error("Failed to apply AI suggestions.");
     } finally {
       setApplyingSuggestions(false);
     }
-  }, [aiSuggestions, loadData]);
+  }, [aiSuggestions, refresh]);
 
   return (
     <Layout>
@@ -514,16 +513,19 @@ export default function BudgetsPage() {
             className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end"
             onSubmit={(e) => {
               e.preventDefault();
-              loadData();
+              refresh();
             }}
           >
             <div>
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>Start</label>
               <input
                 type="date"
-                name="startDate"
-                value={form.startDate}
-                onChange={handleChange}
+                value={filterStartDate}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFilterStartDate(val);
+                  setFilterEndDate(getEndDateFor(filterPeriod, val));
+                }}
                 className="w-full px-3 py-2 rounded-lg"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
@@ -534,9 +536,8 @@ export default function BudgetsPage() {
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>End</label>
               <input
                 type="date"
-                name="endDate"
-                value={form.endDate}
-                onChange={handleChange}
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)", border: "1px solid var(--input-border)" }}
               />
@@ -545,10 +546,12 @@ export default function BudgetsPage() {
             <div>
               <label className="text-xs block mb-1" style={{ color: "var(--text-muted)" }}>Period</label>
               <NeumorphicSelect
-                value={form.period}
-                onChange={(v) =>
-                  setForm((p) => ({ ...p, period: v as BudgetPeriod, endDate: getEndDateFor(v as BudgetPeriod, p.startDate) }))
-                }
+                value={filterPeriod}
+                onChange={(v) => {
+                  const p = v as BudgetPeriod;
+                  setFilterPeriod(p);
+                  setFilterEndDate(getEndDateFor(p, filterStartDate));
+                }}
                 options={[
                   { value: "monthly", label: "Monthly" },
                   { value: "weekly", label: "Weekly" },
@@ -561,16 +564,15 @@ export default function BudgetsPage() {
             </div>
 
             <div className="flex gap-2">
-              <ModernButton type="submit" onClick={() => loadData()} color="indigo-500" variant="outline" size="md" disabled={loading}>
+              <ModernButton type="button" onClick={() => refresh()} color="indigo-500" variant="outline" size="md" disabled={loading}>
                 Refresh
               </ModernButton>
               <ModernButton
+                type="button"
                 onClick={() => {
-                  setForm((p) => ({
-                    ...p,
-                    startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
-                    endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
-                  }));
+                  setFilterStartDate(dayjs().startOf("month").format("YYYY-MM-DD"));
+                  setFilterEndDate(dayjs().endOf("month").format("YYYY-MM-DD"));
+                  setFilterPeriod("monthly");
                 }}
                 color="yellow-400"
                 variant="ghost"
@@ -582,63 +584,64 @@ export default function BudgetsPage() {
           </form>
         </div>
 
-        <AnimatePresence mode="wait">
-          {isEmpty && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-5 rounded-2xl backdrop-blur-lg"
-              style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
-            >
-              <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-                First budget setup
-              </h2>
-              <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-                Let AI suggest monthly budgets based on your last 1–3 months of spending.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <ModernButton
-                  onClick={handleLoadSuggestions}
-                  color="indigo-600"
-                  variant="solid"
-                  disabled={loadingSuggestions || applyingSuggestions}
-                >
-                  {loadingSuggestions ? "Loading AI Suggestions..." : "Let AI suggest budgets"}
-                </ModernButton>
-                {aiSuggestions.length > 0 && (
-                  <ModernButton
-                    onClick={handleApplySuggestions}
-                    color="green-400"
-                    variant="outline"
-                    disabled={applyingSuggestions}
-                  >
-                    {applyingSuggestions ? "Applying..." : `Apply ${aiSuggestions.length} suggestions`}
-                  </ModernButton>
-                )}
-              </div>
-
+        {isEmpty && !loading && (
+          <motion.div
+            key="empty-setup"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-5 rounded-2xl backdrop-blur-lg"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-primary)" }}
+          >
+            <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+              First budget setup
+            </h2>
+            <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
+              Let AI suggest monthly budgets based on your last 1–3 months of spending.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <ModernButton
+                onClick={handleLoadSuggestions}
+                color="indigo-600"
+                variant="solid"
+                disabled={loadingSuggestions || applyingSuggestions}
+              >
+                {loadingSuggestions ? "Loading AI Suggestions..." : "Let AI suggest budgets"}
+              </ModernButton>
               {aiSuggestions.length > 0 && (
-                <div className="space-y-2">
-                  {aiSuggestions.map((s) => (
-                    <div
-                      key={s.categoryId}
-                      className="rounded-xl p-3"
-                      style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-secondary)" }}
-                    >
-                      <div className="flex justify-between items-start gap-3">
-                        <div>
-                          <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{s.categoryName}</p>
-                          <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.reason}</p>
-                        </div>
-                        <p className="font-bold" style={{ color: "var(--text-primary)" }}>{format(Number(s.amount))}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ModernButton
+                  onClick={handleApplySuggestions}
+                  color="green-400"
+                  variant="outline"
+                  disabled={applyingSuggestions}
+                >
+                  {applyingSuggestions ? "Applying..." : `Apply ${aiSuggestions.length} suggestions`}
+                </ModernButton>
               )}
-            </motion.div>
-          )}
+            </div>
 
+            {aiSuggestions.length > 0 && (
+              <div className="space-y-2">
+                {aiSuggestions.map((s) => (
+                  <div
+                    key={s.categoryId}
+                    className="rounded-xl p-3"
+                    style={{ background: "var(--bg-card-hover)", border: "1px solid var(--border-secondary)" }}
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{s.categoryName}</p>
+                        <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.reason}</p>
+                      </div>
+                      <p className="font-bold" style={{ color: "var(--text-primary)" }}>{format(Number(s.amount))}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        <AnimatePresence mode="wait">
           {loading ? (
             <motion.div key="skeleton" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
